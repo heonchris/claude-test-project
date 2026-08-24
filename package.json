@@ -6,7 +6,7 @@
     "start": "expo start",
     "tunnel": "expo start --tunnel",
     "xcode": "expo run:ios",
-    "xcode:device": "expo run:ios --device",
+    "iphone": "expo run:ios --device --configuration Release",
     "android": "expo start --android",
     "typecheck": "tsc --noEmit"
   },

@@ -74,18 +74,36 @@ npm run xcode
 
 **② 진짜 아이폰에 설치해서 쓰기**
 
-아이폰을 케이블로 맥에 연결하고 (아이폰에서 `이 컴퓨터를 신뢰` 를 눌러주세요):
+*먼저 한 번만: 서명(Signing) 설정*
 
 ```bash
-npm run xcode:device
+open ios/*.xcworkspace
 ```
 
-목록이 나오면 본인 아이폰을 고릅니다.
-서명(Signing) 오류가 나면 Xcode에서 `ios/cathealth.xcworkspace` 를 열고
-`Signing & Capabilities` 탭에서 `Team`을 본인 Apple ID로 지정한 뒤 다시 실행하세요.
+Xcode가 열리면 왼쪽 맨 위 파란 아이콘 클릭 → 가운데 `TARGETS`에서 앱 선택 →
+상단 `Signing & Capabilities` 탭 → `Automatically manage signing` 체크 →
+`Team`에서 `Add an Account...`로 본인 Apple ID 로그인 후 `(Personal Team)` 선택.
 
-> 무료 Apple ID로 설치하면 **7일 뒤 앱이 열리지 않습니다.** 그때마다 위 명령을 다시 실행하면 됩니다.
-> 계속 쓰실 거면 Expo Go 쪽이 편하고, 유료 개발자 계정($99/년)이면 1년짜리가 됩니다.
+`Failed to register bundle identifier` 오류가 나면 바로 아래 `Bundle Identifier` 뒤에
+본인만의 글자를 붙여 고유하게 만드세요 (예: `com.cathealth.app.hong`).
+
+*설치*
+
+아이폰을 케이블로 연결하고, 아이폰에서 `이 컴퓨터를 신뢰`를 누른 뒤:
+
+```bash
+npm run iphone
+```
+
+아이폰에서 처음 실행할 때 "신뢰할 수 없는 개발자"가 뜨면
+**설정 → 일반 → VPN 및 기기 관리 → 본인 Apple ID → 신뢰**를 눌러주세요.
+
+> `npm run iphone`은 **Release 빌드**라서 자바스크립트가 앱 안에 들어갑니다.
+> 즉 **맥이 꺼져 있어도 앱이 혼자 동작합니다.** 실제로 쓰시려면 이걸로 설치하세요.
+> (`npm run xcode`로 만든 개발 빌드는 맥의 서버에 연결돼 있어야만 열립니다.)
+
+> 무료 Apple ID로 설치하면 **7일 뒤 앱이 열리지 않습니다.** 그때 `npm run iphone`을 다시 실행하면
+> 기록은 그대로 둔 채 7일이 갱신됩니다. 유료 개발자 계정($99/년)이면 1년짜리가 됩니다.
 
 **자주 나는 오류**
 
@@ -94,6 +112,7 @@ npm run xcode:device
 | `pod: command not found` | `brew install cocoapods` 실행 후 다시 |
 | `xcrun: error: unable to find utilities` | Xcode를 한 번 열어서 추가 구성요소 설치를 끝내세요 |
 | 빌드가 꼬였을 때 | `ios` 폴더를 지우고 다시 실행하면 새로 만듭니다 |
+| `No such file or directory: ...` | **폴더 이름에 띄어쓰기나 한글이 있으면 안 됩니다.** 짧은 영문 이름(`cat-health`)으로 바꾸고 `ios` 폴더를 지운 뒤 다시 실행하세요 |
 
 ---
 
