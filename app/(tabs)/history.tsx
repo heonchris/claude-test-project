@@ -30,7 +30,15 @@ import {
   type WeekPoint,
   type Workout,
 } from '../../db/queries';
-import { formatKorean, formatMonth, fromKey, toKey, todayKey, WEEKDAYS } from '../../lib/dates';
+import {
+  formatKorean,
+  formatMonth,
+  formatTimeOfDay,
+  fromKey,
+  toKey,
+  todayKey,
+  WEEKDAYS,
+} from '../../lib/dates';
 import { deletePhoto } from '../../lib/photos';
 import { colors, radius, screenPadding, space } from '../../theme/colors';
 
@@ -261,8 +269,9 @@ export default function HistoryScreen() {
                               </Txt>
                             </View>
                           )}
+                          <Txt variant="caption">{m.meal_type}</Txt>
                           <Txt variant="caption" color={colors.textSub}>
-                            {m.meal_type}
+                            {formatTimeOfDay(m.taken_at ?? m.created_at)}
                           </Txt>
                         </Pressable>
                       ))}

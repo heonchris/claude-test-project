@@ -11,6 +11,14 @@ export const todayKey = () => toKey(new Date());
 export const fromKey = (key: string) => parseISO(key);
 
 export const formatKorean = (key: string) => format(fromKey(key), 'M월 d일 (E)', { locale: ko });
+export const formatShortDate = (d: Date) => format(d, 'M월 d일', { locale: ko });
+
+/** '오후 12:34' */
+export function formatTimeOfDay(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '' : format(d, 'a h:mm', { locale: ko });
+}
 export const formatMonth = (d: Date) => format(d, 'yyyy년 M월', { locale: ko });
 export const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 

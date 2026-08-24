@@ -5,9 +5,23 @@ const DB_NAME = 'catlog.db';
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
+/**
+ * 이미 쓰고 있는 폰의 DB를 새 스키마에 맞춰 올린다.
+ * 기록은 절대 지우지 않는다. 열마다 있는지 확인하고 없을 때만 추가한다.
+ */
+async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
+  const columns = await db.getAllAsync<{ name: string }>('PRAGMA table_info(meals)');
+  if (!columns.some((c) => c.name === 'taken_at')) {
+    await db.execAsync('ALTER TABLE meals ADD COLUMN taken_at TEXT');
+    // 예전 기록은 저장한 시각을 찍은 시각으로 본다
+    await db.execAsync('UPDATE meals SET taken_at = created_at WHERE taken_at IS NULL');
+  }
+}
+
 async function open(): Promise<SQLite.SQLiteDatabase> {
   const db = await SQLite.openDatabaseAsync(DB_NAME);
   await db.execAsync(SCHEMA_SQL);
+  await migrate(db);
   for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
     await db.runAsync('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)', key, value);
   }

@@ -10,6 +10,8 @@ export type Meal = {
   photo_uri: string | null;
   memo: string | null;
   calories: number | null;
+  /** 사진을 찍은 시각(EXIF). 사진이 없으면 저장한 시각. */
+  taken_at: string | null;
   created_at: string;
 };
 
@@ -85,7 +87,7 @@ export async function getNumberSetting(key: string, fallback: number): Promise<n
 export async function listMeals(date: string): Promise<Meal[]> {
   const db = await getDb();
   return db.getAllAsync<Meal>(
-    'SELECT * FROM meals WHERE date = ? ORDER BY created_at ASC, id ASC',
+    'SELECT * FROM meals WHERE date = ? ORDER BY COALESCE(taken_at, created_at) ASC, id ASC',
     date
   );
 }
@@ -96,16 +98,19 @@ export async function insertMeal(input: {
   photo_uri?: string | null;
   memo?: string | null;
   calories?: number | null;
+  taken_at?: string | null;
 }): Promise<number> {
   const db = await getDb();
+  const now = nowIso();
   const res = await db.runAsync(
-    'INSERT INTO meals (date, meal_type, photo_uri, memo, calories, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+    'INSERT INTO meals (date, meal_type, photo_uri, memo, calories, taken_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
     input.date,
     input.meal_type,
     input.photo_uri ?? null,
     input.memo ?? null,
     input.calories ?? null,
-    nowIso()
+    input.taken_at ?? now,
+    now
   );
   return res.lastInsertRowId;
 }
@@ -123,6 +128,8 @@ export async function updateMeal(
     memo?: string | null;
     calories?: number | null;
     photo_uri?: string | null;
+    taken_at?: string | null;
+    date?: string;
   }
 ): Promise<void> {
   const db = await getDb();
@@ -130,6 +137,8 @@ export async function updateMeal(
   const values: (string | number | null)[] = [];
   if (patch.meal_type !== undefined) (fields.push('meal_type = ?'), values.push(patch.meal_type));
   if (patch.photo_uri !== undefined) (fields.push('photo_uri = ?'), values.push(patch.photo_uri));
+  if (patch.taken_at !== undefined) (fields.push('taken_at = ?'), values.push(patch.taken_at));
+  if (patch.date !== undefined) (fields.push('date = ?'), values.push(patch.date));
   if (patch.memo !== undefined) (fields.push('memo = ?'), values.push(patch.memo));
   if (patch.calories !== undefined) (fields.push('calories = ?'), values.push(patch.calories));
   if (!fields.length) return;
@@ -397,7 +406,7 @@ export async function getRangeSummary(from: string, to: string): Promise<Record<
 export async function listMealsBetween(from: string, to: string): Promise<Meal[]> {
   const db = await getDb();
   return db.getAllAsync<Meal>(
-    'SELECT * FROM meals WHERE date BETWEEN ? AND ? ORDER BY date DESC, created_at DESC',
+    'SELECT * FROM meals WHERE date BETWEEN ? AND ? ORDER BY date DESC, COALESCE(taken_at, created_at) DESC',
     from,
     to
   );
@@ -448,13 +457,14 @@ export async function importAll(backup: Backup): Promise<void> {
     );
     for (const m of backup.meals ?? []) {
       await db.runAsync(
-        'INSERT INTO meals (id, date, meal_type, photo_uri, memo, calories, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO meals (id, date, meal_type, photo_uri, memo, calories, taken_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
         m.id,
         m.date,
         m.meal_type,
         m.photo_uri ?? null,
         m.memo ?? null,
         m.calories ?? null,
+        m.taken_at ?? m.created_at ?? nowIso(),
         m.created_at ?? nowIso()
       );
     }

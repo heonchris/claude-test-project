@@ -19,7 +19,7 @@ import { Txt } from '../../components/Txt';
 import { WaterCups } from '../../components/WaterCups';
 import { Button, Card, EmptyHint, SectionTitle } from '../../components/ui';
 import { addWaterCup, deleteMeal, togglePlanCheck, type Meal } from '../../db/queries';
-import { formatKorean, useToday } from '../../lib/dates';
+import { formatKorean, formatTimeOfDay, useToday } from '../../lib/dates';
 import { deletePhoto } from '../../lib/photos';
 import { catLine, catStateFor, type CatState } from '../../lib/progress';
 import { consumeSaved } from '../../lib/savedSignal';
@@ -198,8 +198,9 @@ export default function TodayScreen() {
                         </Txt>
                       </View>
                     )}
+                    <Txt variant="caption">{meal.meal_type}</Txt>
                     <Txt variant="caption" color={colors.textSub}>
-                      {meal.meal_type}
+                      {formatTimeOfDay(meal.taken_at ?? meal.created_at)}
                     </Txt>
                   </Pressable>
                 ))}
@@ -316,7 +317,13 @@ export default function TodayScreen() {
               <Image source={{ uri: viewing.photo_uri }} style={styles.viewerImage} resizeMode="contain" />
             ) : null}
             <View style={styles.viewerInfo}>
-              <Txt variant="bodyBold">{viewing?.meal_type}</Txt>
+              <Txt variant="bodyBold">
+                {viewing?.meal_type}
+                {'  '}
+                <Txt variant="sub" color={colors.textSub}>
+                  {formatTimeOfDay(viewing?.taken_at ?? viewing?.created_at)}
+                </Txt>
+              </Txt>
               {!!viewing?.memo && (
                 <Txt variant="sub" color={colors.textSub}>
                   {viewing.memo}

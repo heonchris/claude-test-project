@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS meals (
   photo_uri TEXT,
   memo TEXT,
   calories INTEGER,
+  taken_at TEXT,
   created_at TEXT NOT NULL
 );
 

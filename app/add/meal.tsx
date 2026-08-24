@@ -8,6 +8,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   View,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -25,7 +26,8 @@ import {
   MEAL_TYPES,
   type MealType,
 } from '../../db/queries';
-import { suggestMealType, todayKey } from '../../lib/dates';
+import { formatShortDate, formatTimeOfDay, suggestMealType, toKey, todayKey } from '../../lib/dates';
+import { takenAtFromExif } from '../../lib/exif';
 import { deletePhoto, savePhoto } from '../../lib/photos';
 import { markSaved } from '../../lib/savedSignal';
 import { colors, radius, screenPadding, space } from '../../theme/colors';
@@ -44,6 +46,10 @@ export default function MealScreen() {
   const [showCalories, setShowCalories] = useState(false);
   const [saving, setSaving] = useState(false);
   const [date, setDate] = useState(todayKey());
+  /** 사진을 찍은 시각. 사진이 없거나 정보가 없으면 저장할 때 현재 시각으로 채운다. */
+  const [takenAt, setTakenAt] = useState<Date | null>(null);
+  /** 어제 찍은 사진이면 그날 기록으로 넣을지 */
+  const [useTakenDate, setUseTakenDate] = useState(true);
 
   useEffect(() => {
     if (editingId == null) return;
@@ -54,6 +60,7 @@ export default function MealScreen() {
       setMealType(meal.meal_type);
       setMemo(meal.memo ?? '');
       setDate(meal.date);
+      setTakenAt(meal.taken_at ? new Date(meal.taken_at) : null);
       if (meal.calories != null) {
         setCalories(String(meal.calories));
         setShowCalories(true);
@@ -81,6 +88,7 @@ export default function MealScreen() {
       mediaTypes: ['images'],
       quality: 1,
       allowsEditing: false,
+      exif: true, // 찍은 시각을 읽기 위해
     };
     const result =
       from === 'camera'
@@ -88,7 +96,16 @@ export default function MealScreen() {
         : await ImagePicker.launchImageLibraryAsync(options);
 
     if (!result.canceled && result.assets?.length) {
-      setPhotoUri(result.assets[0].uri);
+      const asset = result.assets[0];
+      setPhotoUri(asset.uri);
+
+      // 사진에 찍힌 시각이 있으면 그 시각을 쓰고, 끼니도 그 시각 기준으로 추천한다
+      const shot = takenAtFromExif(asset.exif) ?? (from === 'camera' ? new Date() : null);
+      setTakenAt(shot);
+      if (shot && editingId == null) {
+        setMealType(suggestMealType(shot));
+        setUseTakenDate(true);
+      }
     }
   };
 
@@ -106,19 +123,25 @@ export default function MealScreen() {
       const kcal = calories.trim() ? Number(calories.trim()) : null;
       const cleanCalories = kcal != null && Number.isFinite(kcal) ? Math.round(kcal) : null;
 
+      const when = takenAt ?? new Date();
+      const targetDate = shiftDate ? toKey(when) : date;
+
       if (editingId == null) {
         await insertMeal({
-          date,
+          date: targetDate,
           meal_type: mealType,
           photo_uri: storedUri,
           memo: memo.trim() || null,
           calories: cleanCalories,
+          taken_at: when.toISOString(),
         });
       } else {
         await updateMeal(editingId, {
           meal_type: mealType,
           memo: memo.trim() || null,
           calories: cleanCalories,
+          date: targetDate,
+          taken_at: when.toISOString(),
           ...(photoChanged ? { photo_uri: storedUri } : {}),
         });
         if (photoChanged && originalPhoto) deletePhoto(originalPhoto);
@@ -131,6 +154,11 @@ export default function MealScreen() {
       setSaving(false);
     }
   };
+
+  /** 사진이 오늘 것이 아니면 어느 날짜로 남길지 물어본다 */
+  const takenDateKey = takenAt ? toKey(takenAt) : null;
+  const isOtherDay = !!takenDateKey && takenDateKey !== date;
+  const shiftDate = isOtherDay && useTakenDate;
 
   const remove = () => {
     if (editingId == null) return;
@@ -189,9 +217,33 @@ export default function MealScreen() {
           </View>
         )}
 
-        <Txt variant="caption" color={colors.textSub} center>
-          사진 없이 메모만 남겨도 괜찮아요
-        </Txt>
+        {takenAt ? (
+          <Txt variant="caption" color={colors.textSub} center>
+            {formatShortDate(takenAt)} {formatTimeOfDay(takenAt.toISOString())}에 찍은 사진
+          </Txt>
+        ) : (
+          <Txt variant="caption" color={colors.textSub} center>
+            사진 없이 메모만 남겨도 괜찮아요
+          </Txt>
+        )}
+
+        {isOtherDay && (
+          <Card>
+            <View style={styles.switchRow}>
+              <View style={{ flex: 1 }}>
+                <Txt variant="bodyBold">{formatShortDate(takenAt!)} 기록으로 남기기</Txt>
+                <Txt variant="caption" color={colors.textSub}>
+                  끄면 오늘({date}) 기록이 됩니다
+                </Txt>
+              </View>
+              <Switch
+                value={useTakenDate}
+                onValueChange={setUseTakenDate}
+                trackColor={{ true: colors.meal, false: colors.line }}
+              />
+            </View>
+          </Card>
+        )}
 
         <Card>
           <Txt variant="sub" color={colors.textSub} style={{ marginBottom: space(2) }}>
@@ -289,6 +341,7 @@ const styles = StyleSheet.create({
     padding: space(2),
   },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
   input: {
     fontSize: 15,
     color: colors.text,
