@@ -113,6 +113,7 @@ npm run iphone
 | `xcrun: error: unable to find utilities` | Xcode를 한 번 열어서 추가 구성요소 설치를 끝내세요 |
 | 빌드가 꼬였을 때 | `ios` 폴더를 지우고 다시 실행하면 새로 만듭니다 |
 | `No such file or directory: ...` | **폴더 이름에 띄어쓰기나 한글이 있으면 안 됩니다.** 짧은 영문 이름(`cat-health`)으로 바꾸고 `ios` 폴더를 지운 뒤 다시 실행하세요 |
+| `Personal development teams ... do not support the Push Notifications capability` | 무료 Apple 계정은 푸시 알림을 못 씁니다. 이 앱은 폰 안에서만 울리는 로컬 알림만 쓰므로 이 기능이 필요 없습니다. Xcode `Signing & Capabilities` 탭에서 **Push Notifications 항목을 삭제**하세요 (app.json에서도 빼뒀으니 `ios` 폴더를 새로 만들면 다시 생기지 않습니다) |
 
 ---
 
