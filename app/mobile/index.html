@@ -1,0 +1,813 @@
+<title>족저압 인솔 앱</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@500;700;800&family=IBM+Plex+Sans+KR:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+  :root{
+    --stage:#E8E9E5;
+    --app:#F4F5F2; --card:#FFFFFF; --card-2:#EDEEEA; --sunk:#E4E5E1;
+    --ink:#0B0B0B; --ink-2:#3B3B38; --muted:#52514E; --faint:#84837C;
+    --rule:#DEDFDA; --rule-2:#C7C8C1;
+    --s1:#2a78d6; --s2:#eb6834;
+    --div-b:#d03b3b;
+    --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+    --grid:rgba(11,11,11,.07); --axis:rgba(11,11,11,.3);
+    --bezel-a:#1B1B1D; --bezel-b:#37373B;
+    --shadow:0 1px 2px rgba(11,11,11,.05),0 8px 22px -16px rgba(11,11,11,.3);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --stage:#0A0A0A;
+      --app:#121212; --card:#1C1C1B; --card-2:#242423; --sunk:#0E0E0E;
+      --ink:#FFFFFF; --ink-2:#D8D8D0; --muted:#c3c2b7; --faint:#8B8A82;
+      --rule:#2C2C2A; --rule-2:#3E3E3C;
+      --s1:#3987e5; --s2:#d95926;
+      --div-b:#d03b3b;
+      --grid:rgba(255,255,255,.08); --axis:rgba(255,255,255,.32);
+      --bezel-a:#000000; --bezel-b:#2A2A2E;
+      --shadow:0 1px 2px rgba(0,0,0,.5),0 8px 22px -16px rgba(0,0,0,.9);
+    }
+  }
+  :root[data-theme="dark"]{
+    --stage:#0A0A0A;
+    --app:#121212; --card:#1C1C1B; --card-2:#242423; --sunk:#0E0E0E;
+    --ink:#FFFFFF; --ink-2:#D8D8D0; --muted:#c3c2b7; --faint:#8B8A82;
+    --rule:#2C2C2A; --rule-2:#3E3E3C;
+    --s1:#3987e5; --s2:#d95926;
+    --div-b:#d03b3b;
+    --grid:rgba(255,255,255,.08); --axis:rgba(255,255,255,.32);
+    --bezel-a:#000000; --bezel-b:#2A2A2E;
+    --shadow:0 1px 2px rgba(0,0,0,.5),0 8px 22px -16px rgba(0,0,0,.9);
+  }
+
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    background:var(--stage);color:var(--ink);margin:0;
+    font-family:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo",sans-serif;
+    line-height:1.5;-webkit-font-smoothing:antialiased;word-break:keep-all;
+    display:flex;align-items:center;justify-content:center;
+    min-height:100vh;min-height:100dvh;padding:1.5rem 1rem;
+  }
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+
+  /* ═══ 기기 프레임 ═══ */
+  .stage{display:flex;flex-direction:column;align-items:center}
+  .device{
+    width:390px;height:844px;flex:0 0 auto;position:relative;
+    background:var(--app);border-radius:46px;overflow:hidden;
+    box-shadow:0 0 0 11px var(--bezel-a),0 0 0 13px var(--bezel-b),
+               0 36px 70px -24px rgba(0,0,0,.55);
+    display:flex;flex-direction:column;
+  }
+  .island{
+    position:absolute;top:11px;left:50%;transform:translateX(-50%);
+    width:104px;height:29px;background:#000;border-radius:16px;z-index:40;
+  }
+  .statusbar{
+    height:50px;flex:0 0 auto;display:flex;align-items:center;
+    justify-content:space-between;padding:0 1.6rem 0 1.9rem;
+    font-family:"IBM Plex Mono",monospace;font-size:.8rem;font-weight:600;
+    color:var(--ink);position:relative;z-index:41;padding-top:8px;
+  }
+  .sb-r{display:flex;align-items:center;gap:5px}
+  .sb-r svg{display:block}
+
+  @media (max-width:520px){
+    body{padding:0;align-items:stretch;justify-content:stretch}
+    .stage{width:100%;height:100vh;height:100dvh;min-height:36rem}
+    .device{width:100%;height:100%;min-height:36rem;flex:1 1 auto;border-radius:0;box-shadow:none}
+    .island{display:none}
+    .statusbar{display:none}
+    .appbar{padding-top:calc(.6rem + env(safe-area-inset-top,0px))}
+    .sheet{top:0}
+    .sheet-h{padding-top:calc(.8rem + env(safe-area-inset-top,0px))}
+    .tabbar{padding-bottom:calc(.4rem + env(safe-area-inset-bottom,0px))}
+  }
+
+  /* ═══ 앱바 ═══ */
+  .appbar{
+    flex:0 0 auto;padding:.15rem 1.15rem .6rem;display:flex;
+    align-items:center;gap:.6rem;
+  }
+  .appbar h1{
+    font-family:"Gothic A1",sans-serif;font-weight:800;font-size:1.35rem;
+    margin:0;letter-spacing:-.03em;flex:1 1 auto;min-width:0;
+  }
+  .conn{
+    display:flex;align-items:center;gap:.35rem;font-size:.68rem;font-weight:500;
+    background:var(--card);border:1px solid var(--rule);border-radius:99px;
+    padding:.25rem .55rem;color:var(--muted);white-space:nowrap;
+  }
+  .conn i{width:6px;height:6px;border-radius:50%;background:var(--good);flex:0 0 auto}
+  .conn.off i{background:var(--faint)}
+
+  /* ═══ 화면 ═══ */
+  .screens{flex:1 1 auto;position:relative;overflow:hidden}
+  .screen{
+    position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;
+    padding:0 1.15rem .9rem;-webkit-overflow-scrolling:touch;
+    opacity:0;pointer-events:none;transform:translateX(8px);
+    transition:opacity .18s ease,transform .18s ease;
+  }
+  .screen.on{opacity:1;pointer-events:auto;transform:none}
+
+  /* ═══ 카드 ═══ */
+  .card{background:var(--card);border-radius:16px;padding:.85rem .9rem;box-shadow:var(--shadow);margin-bottom:.7rem}
+  .card-t{
+    display:flex;align-items:baseline;gap:.5rem;margin-bottom:.6rem;
+  }
+  .card-t h2{font-family:"Gothic A1",sans-serif;font-weight:700;font-size:.85rem;margin:0}
+  .card-t .n{margin-left:auto;font-size:.66rem;color:var(--faint)}
+
+  /* 발 */
+  .feet{display:flex;gap:.55rem;justify-content:center;align-items:flex-start}
+  .foot{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:.3rem}
+  .foot-l{display:flex;align-items:center;gap:.3rem;font-size:.7rem;color:var(--muted);font-weight:500}
+  .dot{width:.5rem;height:.5rem;border-radius:50%}
+  .dot.l{background:var(--s1)} .dot.r{background:var(--s2)}
+  canvas.fc{width:100%;max-width:116px;height:auto;display:block;touch-action:none}
+  .foot-p{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+          font-size:1rem;font-weight:600;color:var(--ink)}
+  .ramp{display:flex;align-items:center;gap:.4rem;justify-content:center;margin-top:.55rem}
+  .ramp-b{height:6px;flex:0 1 130px;border-radius:99px}
+  .ramp-t{font-family:"IBM Plex Mono",monospace;font-size:.6rem;color:var(--faint)}
+
+  /* 균형 게이지 */
+  .bal{margin-bottom:.55rem}
+  .bal:last-child{margin-bottom:0}
+  .bal-h{display:flex;justify-content:space-between;align-items:baseline;font-size:.7rem;color:var(--muted);margin-bottom:.25rem}
+  .bal-h b{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600;font-size:.82rem}
+  .bal-tr{position:relative;height:9px;background:var(--sunk);border-radius:99px;overflow:hidden}
+  .bal-f{position:absolute;top:0;bottom:0;background:var(--s1);border-radius:99px}
+  .bal-f.b{background:var(--div-b)}
+  .bal-m{position:absolute;left:50%;top:0;bottom:0;width:2px;background:var(--axis);transform:translateX(-1px)}
+  .bal-c{display:flex;justify-content:space-between;font-size:.63rem;color:var(--faint);margin-top:.18rem}
+
+  /* 지표 */
+  .mrow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.45rem}
+  .m{background:var(--card-2);border-radius:11px;padding:.45rem .5rem;text-align:center}
+  .m .l{font-family:"IBM Plex Mono",monospace;font-size:.55rem;letter-spacing:.06em;
+        text-transform:uppercase;color:var(--faint);display:block}
+  .m .v{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+        font-size:.95rem;font-weight:600;color:var(--ink)}
+
+  canvas.lc{width:100%;height:104px;display:block;touch-action:none}
+  .lgd{display:flex;gap:.7rem;justify-content:center;margin-top:.35rem;flex-wrap:wrap}
+  .lg{display:flex;align-items:center;gap:.25rem;font-size:.66rem;color:var(--muted)}
+  .lg i{width:12px;height:2.5px;border-radius:2px}
+
+  /* 녹화 버튼 */
+  .recdock{
+    flex:0 0 auto;padding:.5rem 1.15rem .55rem;background:var(--app);
+    border-top:1px solid var(--rule);
+  }
+  .recdock[hidden]{display:none}
+  .rec{
+    width:100%;height:52px;border-radius:15px;background:var(--s1);color:#fff;
+    font-size:.98rem;font-weight:600;display:flex;align-items:center;
+    justify-content:center;gap:.5rem;letter-spacing:-.01em;
+  }
+  .rec.on{background:var(--critical)}
+  .rec:active{transform:scale(.985)}
+  .rec .sq{width:12px;height:12px;border-radius:3px;background:#fff}
+  .rec .ci{width:13px;height:13px;border-radius:50%;background:#fff}
+  .rec.on .ci{animation:pulse 1.1s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  /* 기록 목록 */
+  .rec-item{
+    width:100%;text-align:left;background:var(--card);border-radius:14px;
+    padding:.7rem .85rem;box-shadow:var(--shadow);margin-bottom:.55rem;
+    display:flex;align-items:center;gap:.7rem;
+  }
+  .rec-item:active{background:var(--card-2)}
+  .ri-b{flex:1 1 auto;min-width:0}
+  .ri-t{font-size:.85rem;font-weight:600;color:var(--ink);display:block}
+  .ri-s{font-family:"IBM Plex Mono",monospace;font-size:.68rem;color:var(--faint);
+        display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ri-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .chip{
+    font-size:.63rem;font-weight:700;padding:.16rem .45rem;border-radius:99px;white-space:nowrap;flex:0 0 auto;
+  }
+  .c-good{background:rgba(12,163,12,.13);color:var(--good)}
+  .c-warn{background:rgba(250,178,25,.16);color:#8a6206}
+  .c-ser{background:rgba(236,131,90,.16);color:#a4462a}
+  :root[data-theme="dark"] .c-warn{color:var(--warning)}
+  :root[data-theme="dark"] .c-ser{color:var(--serious)}
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]) .c-warn{color:var(--warning)}
+    :root:not([data-theme="light"]) .c-ser{color:var(--serious)}
+  }
+  .arrow{color:var(--faint);font-size:.9rem;flex:0 0 auto}
+
+  .empty{text-align:center;padding:3rem 1rem;color:var(--faint);font-size:.82rem;line-height:1.7}
+  .empty b{display:block;color:var(--muted);font-weight:600;font-size:.9rem;margin-bottom:.3rem}
+
+  /* 설정 */
+  .opt{
+    width:100%;display:flex;align-items:center;gap:.6rem;padding:.65rem .2rem;
+    border-bottom:1px solid var(--rule);text-align:left;font-size:.85rem;color:var(--ink);
+  }
+  .opt:last-child{border-bottom:none}
+  .opt .od{font-size:.68rem;color:var(--faint);display:block;font-weight:400}
+  .opt .ob{flex:1 1 auto;min-width:0}
+  .opt .ck{color:var(--s1);font-weight:700;flex:0 0 auto}
+  .kv{display:flex;justify-content:space-between;padding:.45rem .2rem;font-size:.8rem;border-bottom:1px solid var(--rule)}
+  .kv:last-child{border-bottom:none}
+  .kv span:first-child{color:var(--muted)}
+  .kv span:last-child{font-family:"IBM Plex Mono",monospace;color:var(--ink);font-weight:500}
+
+  /* 리포트 시트 */
+  .sheet{
+    position:absolute;left:0;right:0;bottom:0;top:50px;background:var(--app);z-index:30;
+    display:flex;flex-direction:column;
+    transform:translateY(100%);transition:transform .26s cubic-bezier(.32,.72,0,1);
+  }
+  .sheet.on{transform:none}
+  .sheet-h{
+    flex:0 0 auto;display:flex;align-items:center;gap:.6rem;padding:.8rem 1.15rem .6rem;
+  }
+  .sheet-h h2{font-family:"Gothic A1",sans-serif;font-weight:800;font-size:1.15rem;margin:0;flex:1 1 auto;letter-spacing:-.02em}
+  .close{width:32px;height:32px;border-radius:50%;background:var(--card-2);
+         display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:1rem;flex:0 0 auto}
+  .sheet-b{flex:1 1 auto;overflow-y:auto;padding:0 1.15rem 1.4rem}
+
+  .verd{border-radius:14px;padding:.85rem .9rem;margin-bottom:.7rem;background:var(--card);
+        border-left:4px solid var(--rule-2);box-shadow:var(--shadow)}
+  .verd.g{border-left-color:var(--good)} .verd.w{border-left-color:var(--warning)} .verd.s{border-left-color:var(--serious)}
+  .verd .vh{display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem}
+  .verd .vh b{font-family:"Gothic A1",sans-serif;font-weight:800;font-size:1rem}
+  .verd.g .vh b{color:var(--good)} .verd.w .vh b{color:var(--warning)} .verd.s .vh b{color:var(--serious)}
+  .verd p{margin:0;font-size:.82rem;color:var(--muted);line-height:1.65}
+  .rg{display:grid;grid-template-columns:1fr 1fr;gap:.45rem}
+  .rgi{background:var(--card);border-radius:12px;padding:.55rem .65rem;box-shadow:var(--shadow)}
+  .rgi .l{font-family:"IBM Plex Mono",monospace;font-size:.57rem;letter-spacing:.06em;
+          text-transform:uppercase;color:var(--faint);display:block}
+  .rgi .v{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+          font-size:1.02rem;font-weight:600}
+  .disc{font-size:.68rem;color:var(--faint);line-height:1.65;margin-top:.8rem}
+  .disc b{color:var(--muted)}
+
+  table.ch{width:100%;border-collapse:collapse;font-size:.72rem}
+  table.ch td{padding:.3rem .2rem;border-bottom:1px solid var(--rule)}
+  table.ch td.n{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;text-align:right;color:var(--muted)}
+  table.ch .bar{display:inline-block;height:4px;border-radius:2px;background:var(--s1);vertical-align:middle}
+  table.ch .bar.r{background:var(--s2)}
+
+  /* ═══ 탭바 ═══ */
+  .tabbar{
+    flex:0 0 auto;display:flex;background:var(--card);
+    border-top:1px solid var(--rule);padding:.4rem .3rem .55rem;
+  }
+  .tab{
+    flex:1 1 0;display:flex;flex-direction:column;align-items:center;gap:.12rem;
+    padding:.3rem 0;color:var(--faint);font-size:.62rem;font-weight:500;min-height:44px;
+  }
+  .tab svg{display:block}
+  .tab[aria-selected="true"]{color:var(--s1)}
+  .tab:focus-visible{outline:2px solid var(--s1);outline-offset:-3px;border-radius:8px}
+
+  .hint{
+    max-width:390px;margin:1rem auto 0;font-size:.72rem;color:var(--faint);
+    line-height:1.7;text-align:center;
+  }
+  .hint b{color:var(--muted)}
+  @media (max-width:520px){.hint{display:none}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="stage">
+<div class="device" id="device">
+  <div class="island"></div>
+  <div class="statusbar">
+    <span id="clock">9:41</span>
+    <span class="sb-r">
+      <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7.5" width="3" height="3.5" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor"><path d="M8 10.5 5.6 8.1a3.4 3.4 0 0 1 4.8 0L8 10.5Zm-4-4a6.4 6.4 0 0 1 8 0l1.4-1.4a8.4 8.4 0 0 0-10.8 0L4 6.5Zm-2.8-2.8a10.4 10.4 0 0 1 13.6 0L16 2.3a12.4 12.4 0 0 0-16 0l1.2 1.4Z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x=".5" y=".5" width="21" height="11" rx="3.2" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="16" height="8" rx="2" fill="currentColor"/><path d="M23 4v4a2.2 2.2 0 0 0 0-4Z" fill="currentColor" opacity=".4"/></svg>
+    </span>
+  </div>
+
+  <div class="appbar">
+    <h1 id="screenTitle">측정</h1>
+    <span class="conn" id="conn"><i></i><span id="connTxt">인솔 연결됨 · 82%</span></span>
+  </div>
+
+  <div class="screens">
+
+    <!-- 측정 -->
+    <section class="screen on" id="sc-live" role="tabpanel" aria-label="측정">
+      <div class="card">
+        <div class="card-t"><h2>압력 분포</h2><span class="n" id="liveT">대기 중</span></div>
+        <div class="feet">
+          <div class="foot">
+            <div class="foot-l"><span class="dot l"></span>왼발</div>
+            <canvas class="fc" id="footL" width="264" height="686" aria-label="왼발 압력 히트맵"></canvas>
+            <div class="foot-p" id="pctL">–</div>
+          </div>
+          <div class="foot">
+            <div class="foot-l"><span class="dot r"></span>오른발</div>
+            <canvas class="fc" id="footR" width="264" height="686" aria-label="오른발 압력 히트맵"></canvas>
+            <div class="foot-p" id="pctR">–</div>
+          </div>
+        </div>
+        <div class="ramp"><span class="ramp-t">약함</span><span class="ramp-b" id="rampBar"></span><span class="ramp-t">강함</span></div>
+      </div>
+
+      <div class="card">
+        <div class="bal">
+          <div class="bal-h"><span>좌우 균형</span><b id="balTxt">50 : 50</b></div>
+          <div class="bal-tr"><span class="bal-f" id="balFill"></span><span class="bal-m"></span></div>
+          <div class="bal-c"><span>왼발</span><span id="balDev">편차 0%p</span><span>오른발</span></div>
+        </div>
+        <div class="bal">
+          <div class="bal-h"><span>전후 균형</span><b id="apTxt">50 : 50</b></div>
+          <div class="bal-tr"><span class="bal-f" id="apFill"></span><span class="bal-m"></span></div>
+          <div class="bal-c"><span>앞</span><span id="apDev">편차 0%p</span><span>뒤</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="mrow">
+          <div class="m"><span class="l">총 압력</span><span class="v" id="mTot">0</span></div>
+          <div class="m"><span class="l">최대 채널</span><span class="v" id="mPeak">0</span></div>
+          <div class="m"><span class="l">반복</span><span class="v" id="mReps">0</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-t"><h2>압력 추이</h2><span class="n">최근 10초</span></div>
+        <canvas class="lc" id="chart" aria-label="좌우 총압력 추이"></canvas>
+        <div class="lgd">
+          <span class="lg"><i style="background:var(--s1);height:3.2px"></i>왼발</span>
+          <span class="lg"><i style="background:var(--s2)"></i>오른발</span>
+          <span class="lg" style="font-size:.62rem">겹치면 균형</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- 기록 -->
+    <section class="screen" id="sc-hist" role="tabpanel" aria-label="기록">
+      <div id="histList"></div>
+    </section>
+
+    <!-- 설정 -->
+    <section class="screen" id="sc-set" role="tabpanel" aria-label="설정">
+      <div class="card">
+        <div class="card-t"><h2>시연 시나리오</h2><span class="n">데모 전용</span></div>
+        <div id="scenList"></div>
+      </div>
+      <div class="card">
+        <div class="card-t"><h2>기기 정보</h2></div>
+        <div class="kv"><span>모델</span><span>INSOLE-16</span></div>
+        <div class="kv"><span>채널</span><span>16 (발당 8)</span></div>
+        <div class="kv"><span>샘플링</span><span>30 Hz</span></div>
+        <div class="kv"><span>통신</span><span>BLE 5.0</span></div>
+        <div class="kv"><span>배터리</span><span>82%</span></div>
+      </div>
+      <div class="card">
+        <div class="card-t"><h2>이 앱에 대해</h2></div>
+        <p style="margin:0;font-size:.76rem;color:var(--muted);line-height:1.75">
+          실제 센서 없이 <b style="color:var(--ink)">시뮬레이션 데이터</b>로 동작하는 프로토타입입니다.
+          사업 정의서의 필수 구현 기능 1·2·3·4번을 화면으로 확인하기 위한 것으로,
+          센서 연동·백엔드·크로스플랫폼은 포함되어 있지 않습니다.
+        </p>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- 리포트 시트 -->
+  <div class="sheet" id="sheet">
+    <div class="sheet-h">
+      <h2>세트 리포트</h2>
+      <button class="close" id="sheetClose" type="button" aria-label="닫기">✕</button>
+    </div>
+    <div class="sheet-b" id="sheetBody"></div>
+  </div>
+
+  <div class="recdock" id="recdock">
+    <button class="rec" id="recBtn" type="button"><span class="ci"></span><span id="recTxt">측정 시작</span></button>
+  </div>
+
+  <nav class="tabbar" role="tablist">
+    <button class="tab" data-t="live" role="tab" aria-selected="true" type="button">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3l2.5-7 4 14 2.5-7H21"/></svg>
+      측정
+    </button>
+    <button class="tab" data-t="hist" role="tab" aria-selected="false" type="button">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5h18M3 12h18M3 18.5h12"/></svg>
+      기록
+    </button>
+    <button class="tab" data-t="set" role="tab" aria-selected="false" type="button">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.9 19.3a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.7 8.9a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9v0a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1Z"/></svg>
+      설정
+    </button>
+  </nav>
+</div>
+
+<p class="hint"><b>데스크탑에서는 기기 화면으로 보입니다.</b><br>휴대폰으로 이 주소를 열면 화면 전체를 채웁니다.</p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var SENSORS=[
+    {x:30,y:30,n:"엄지"},{x:62,y:38,n:"2–3지"},{x:28,y:78,n:"제1중족골두"},{x:55,y:72,n:"제2–3중족골두"},
+    {x:80,y:85,n:"제5중족골두"},{x:78,y:145,n:"중족부 외측"},{x:36,y:210,n:"뒤꿈치 내측"},{x:66,y:208,n:"뒤꿈치 외측"}
+  ];
+  var FW=100, FH=260, MAXCH=1023, FORE_Y=60, HEEL_Y=209;
+
+  var RL=["#eef4fd","#cde2fb","#b7d3f6","#9ec5f4","#86b6ef","#6da7ec","#5598e7","#3987e5","#2a78d6","#256abf","#1c5cab","#184f95","#104281","#0d366b"];
+  var RD=["#15202e","#0d366b","#104281","#184f95","#1c5cab","#256abf","#2a78d6","#3987e5","#5598e7","#6da7ec","#86b6ef","#9ec5f4","#b7d3f6","#cde2fb"];
+  function h2r(h){return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
+  var ramp=[];
+  function isDark(){
+    var st=document.documentElement.getAttribute("data-theme");
+    if(st==="dark")return true; if(st==="light")return false;
+    return matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  function buildRamp(){
+    var d=isDark(); ramp=(d?RD:RL).map(h2r);
+    var b=document.getElementById("rampBar");
+    if(b) b.style.background="linear-gradient(90deg,"+(d?RD:RL).join(",")+")";
+  }
+  function rampAt(t){
+    t=t<0?0:t>1?1:t;
+    var p=t*(ramp.length-1),i=Math.floor(p),f=p-i;
+    var a=ramp[i],b=ramp[Math.min(i+1,ramp.length-1)];
+    return [a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f];
+  }
+  function cv(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+
+  function footPath(m){
+    var p=new Path2D();
+    function X(x){return m?FW-x:x;}
+    p.moveTo(X(46),2);
+    p.bezierCurveTo(X(74),2,X(90),22,X(88),48);
+    p.bezierCurveTo(X(86),70,X(92),86,X(90),104);
+    p.bezierCurveTo(X(88),128,X(80),142,X(80),162);
+    p.bezierCurveTo(X(80),186,X(88),196,X(86),216);
+    p.bezierCurveTo(X(84),244,X(66),258,X(50),258);
+    p.bezierCurveTo(X(32),258,X(16),244,X(15),218);
+    p.bezierCurveTo(X(14),196,X(22),184,X(23),162);
+    p.bezierCurveTo(X(24),138,X(14),120,X(13),96);
+    p.bezierCurveTo(X(12),58,X(20),2,X(46),2);
+    p.closePath(); return p;
+  }
+  var PL=footPath(true), PR=footPath(false);
+
+  /* 상태 */
+  var scen="normal", running=false, t0=0, elapsed=0, reps=0, lastPh=0;
+  var vals={L:new Array(8).fill(0),R:new Array(8).fill(0)};
+  var hist=[], sess=null, records=[], nextId=1;
+  var SCEN=[
+    {k:"normal",   t:"정상 스쿼트",   d:"양발에 고르게 실리는 이상적인 패턴"},
+    {k:"imbalance",t:"좌우 불균형",   d:"한쪽 발에 무게가 쏠리는 상황"},
+    {k:"heel",     t:"뒤꿈치 들림",   d:"무게가 앞쪽으로 쏠려 뒤꿈치가 뜨는 상황"},
+    {k:"stand",    t:"가만히 서기",   d:"움직임 없이 서 있는 기준 상태"}
+  ];
+  function scenName(k){for(var i=0;i<SCEN.length;i++)if(SCEN[i].k===k)return SCEN[i].t;return k;}
+
+  function nz(a){return (Math.random()-.5)*a;}
+  function simulate(ts){
+    var ph=0, load=0;
+    if(scen==="stand"){ load=.42+Math.sin(ts*.7)*.015+nz(.01); }
+    else{
+      var u=(ts%3)/3; ph=u;
+      load=.40+(.5-.5*Math.cos(u*Math.PI*2))*.48+nz(.012);
+    }
+    var lS=.5, fb=0;
+    if(scen==="imbalance") lS=.5-(.13+Math.sin(ts*.5)*.02);
+    if(scen==="heel") fb=.30+(.5-.5*Math.cos(ph*Math.PI*2))*.28;
+    if(scen==="normal") fb=-.10-(.5-.5*Math.cos(ph*Math.PI*2))*.10;
+    if(scen==="stand") fb=-.06;
+
+    ["L","R"].forEach(function(s){
+      var share=s==="L"?lS:1-lS;
+      var base=load*share*2*8*MAXCH*0.55;
+      for(var i=0;i<8;i++){
+        var w;
+        if(i<=4) w=.115+fb*.075;
+        else if(i>=6) w=.230-fb*.170;
+        else w=.070;
+        if(i===0)w*=1.15; if(i===5)w*=.75;
+        var v=base*w+nz(26);
+        if(scen==="heel"&&i>=6) v*=.35;
+        vals[s][i]=Math.max(0,Math.min(MAXCH,Math.round(v)));
+      }
+    });
+    if(scen!=="stand"&&lastPh>.75&&ph<.25) reps++;
+    lastPh=ph;
+  }
+
+  function sum(a){var s=0;for(var i=0;i<a.length;i++)s+=a[i];return s;}
+  function cop(side){
+    var v=vals[side],t=sum(v);
+    if(t<1)return {x:FW/2,y:FH/2,tot:0};
+    var x=0,y=0;
+    for(var i=0;i<8;i++){
+      var sx=side==="L"?FW-SENSORS[i].x:SENSORS[i].x;
+      x+=sx*v[i]; y+=SENSORS[i].y*v[i];
+    }
+    return {x:x/t,y:y/t,tot:t};
+  }
+  function apRatio(side){
+    var c=cop(side); if(c.tot<1)return .5;
+    return Math.max(0,Math.min(1,(HEEL_Y-c.y)/(HEEL_Y-FORE_Y)));
+  }
+
+  /* 히트맵 */
+  var GW=40,GH=104,offs={};
+  function drawFoot(id,side){
+    var c=document.getElementById(id); if(!c)return;
+    var ctx=c.getContext("2d"),W=c.width,sc=W/FW,m=(side==="L"),path=m?PL:PR,v=vals[side];
+    ctx.clearRect(0,0,c.width,c.height);
+    if(!offs[side]){var o=document.createElement("canvas");o.width=GW;o.height=GH;offs[side]=o;}
+    var oc=offs[side],octx=oc.getContext("2d");
+    var img=octx.createImageData(GW,GH),d=img.data;
+    for(var gy=0;gy<GH;gy++)for(var gx=0;gx<GW;gx++){
+      var px=(gx+.5)/GW*FW,py=(gy+.5)/GH*FH,num=0,den=0;
+      for(var i=0;i<8;i++){
+        var sx=m?FW-SENSORS[i].x:SENSORS[i].x;
+        var dx=px-sx,dy=py-SENSORS[i].y,dd=dx*dx+dy*dy; if(dd<1)dd=1;
+        var d1=Math.sqrt(dd),w=1/(d1*d1*d1+300);
+        num+=v[i]*w; den+=w;
+      }
+      var val=den>0?num/den:0,col=rampAt(val/MAXCH),off=(gy*GW+gx)*4;
+      d[off]=col[0]|0;d[off+1]=col[1]|0;d[off+2]=col[2]|0;d[off+3]=255;
+    }
+    octx.putImageData(img,0,0);
+    ctx.save();ctx.scale(sc,sc);ctx.clip(path);
+    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
+    ctx.drawImage(oc,0,0,FW,FH);ctx.restore();
+    ctx.save();ctx.scale(sc,sc);ctx.lineWidth=1.4;ctx.strokeStyle=cv("--rule-2");ctx.stroke(path);ctx.restore();
+    ctx.save();ctx.scale(sc,sc);
+    for(var j=0;j<8;j++){
+      var sxx=m?FW-SENSORS[j].x:SENSORS[j].x;
+      ctx.beginPath();ctx.arc(sxx,SENSORS[j].y,1.9,0,Math.PI*2);
+      ctx.fillStyle="rgba(255,255,255,.5)";ctx.fill();
+      ctx.lineWidth=.6;ctx.strokeStyle="rgba(0,0,0,.3)";ctx.stroke();
+    }
+    ctx.restore();
+    var cp=cop(side);
+    if(cp.tot>60){
+      ctx.save();ctx.scale(sc,sc);
+      ctx.beginPath();ctx.arc(cp.x,cp.y,5.2,0,Math.PI*2);
+      ctx.lineWidth=2.6;ctx.strokeStyle="#fff";ctx.stroke();
+      ctx.lineWidth=1.5;ctx.strokeStyle=cv(side==="L"?"--s1":"--s2");ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  /* 차트 */
+  var ch=document.getElementById("chart"),cx=ch.getContext("2d"),WIN=10;
+  function sizeChart(){
+    var r=ch.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
+    if(r.width<2)return;
+    ch.width=Math.round(r.width*dpr); ch.height=Math.round(104*dpr);
+    cx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  function drawChart(){
+    var r=ch.getBoundingClientRect(),W=r.width,H=104;
+    if(W<2)return;
+    var pL=30,pR=4,pT=7,pB=12,maxY=8184;
+    cx.clearRect(0,0,W,H);
+    cx.strokeStyle=cv("--grid");cx.lineWidth=1;
+    cx.fillStyle=cv("--faint");cx.font="9px 'IBM Plex Mono',monospace";cx.textAlign="right";
+    for(var g=0;g<=2;g++){
+      var y=pT+(H-pT-pB)*(1-g/2);
+      cx.beginPath();cx.moveTo(pL,y);cx.lineTo(W-pR,y);cx.stroke();
+      cx.fillText(String(Math.round(maxY*g/2)),pL-4,y+3);
+    }
+    if(hist.length<2)return;
+    var tE=hist[hist.length-1].t,tS=tE-WIN;
+    function X(t){return pL+(W-pL-pR)*((t-tS)/WIN);}
+    function Y(v){return pT+(H-pT-pB)*(1-Math.min(1,v/maxY));}
+    [["l","--s1",3.2],["r","--s2",2]].forEach(function(p){
+      cx.beginPath();var st=false;
+      for(var i=0;i<hist.length;i++){
+        var h=hist[i]; if(h.t<tS)continue;
+        var x=X(h.t),y=Y(h[p[0]]);
+        if(!st){cx.moveTo(x,y);st=true;}else cx.lineTo(x,y);
+      }
+      cx.strokeStyle=cv(p[1]);cx.lineWidth=p[2];cx.lineJoin="round";cx.lineCap="round";cx.stroke();
+    });
+  }
+
+  /* UI */
+  function pct(x){return Math.round(x*100);}
+  function setBal(fillId,txtId,devId,ratio){
+    var dev=ratio-.5,f=document.getElementById(fillId);
+    f.className="bal-f"+(dev>0?"":" b");
+    f.style.left=dev>0?(50-Math.abs(dev)*100)+"%":"50%";
+    f.style.width=(Math.abs(dev)*100)+"%";
+    document.getElementById(txtId).textContent=pct(ratio)+" : "+(100-pct(ratio));
+    document.getElementById(devId).textContent="편차 "+Math.abs(pct(ratio)-50)+"%p";
+  }
+  function updateUI(){
+    var tl=sum(vals.L),tr=sum(vals.R),tot=tl+tr;
+    var lr=tot<1?.5:tl/tot, ap=(apRatio("L")+apRatio("R"))/2;
+    setBal("balFill","balTxt","balDev",lr);
+    setBal("apFill","apTxt","apDev",ap);
+    document.getElementById("pctL").textContent=tot<1?"–":pct(lr)+"%";
+    document.getElementById("pctR").textContent=tot<1?"–":(100-pct(lr))+"%";
+    document.getElementById("mTot").textContent=tot;
+    var pk=0;["L","R"].forEach(function(s){vals[s].forEach(function(v){if(v>pk)pk=v;});});
+    document.getElementById("mPeak").textContent=pk;
+    document.getElementById("mReps").textContent=reps;
+    document.getElementById("liveT").textContent=running?(elapsed.toFixed(1)+"초 측정 중"):"대기 중";
+  }
+
+  function copRange(s){
+    if(!s||s.cps.length<2)return 0;
+    var xs=[],ys=[];
+    s.cps.forEach(function(p){xs.push(p.lx,p.rx);ys.push(p.ly,p.ry);});
+    return Math.hypot(Math.max.apply(null,xs)-Math.min.apply(null,xs),
+                      Math.max.apply(null,ys)-Math.min.apply(null,ys));
+  }
+
+  /* 루프 */
+  var raf=null,lastF=0;
+  function loop(ts){
+    if(!running)return;
+    if(!t0)t0=ts;
+    elapsed=(ts-t0)/1000;
+    if(ts-lastF>=33){
+      lastF=ts; simulate(elapsed);
+      var tl=sum(vals.L),tr=sum(vals.R);
+      hist.push({t:elapsed,l:tl,r:tr});
+      if(hist.length>900)hist.shift();
+      if(sess){
+        sess.lr.push(tl+tr<1?.5:tl/(tl+tr));
+        sess.ap.push((apRatio("L")+apRatio("R"))/2);
+        var cl=cop("L"),cr=cop("R");
+        if(cl.tot>60||cr.tot>60) sess.cps.push({lx:cl.x,ly:cl.y,rx:cr.x,ry:cr.y});
+      }
+      drawFoot("footL","L");drawFoot("footR","R");drawChart();updateUI();
+    }
+    raf=requestAnimationFrame(loop);
+  }
+
+  /* 판정 */
+  function judge(avgLR,avgAP){
+    var devPP=Math.abs(Math.round(avgLR*100)-50), apPP=Math.round(avgAP*100);
+    var lrSev=devPP<=3?0:devPP<=8?1:2, apSev=apPP>=70?2:apPP>=58?1:0;
+    var side=avgLR>.5?"왼":"오른";
+    var lrT=["좌우 균형 양호","한쪽으로 치우침","좌우 편차 큼"][lrSev];
+    var lrS=["양호","치우침","편차 큼"][lrSev];
+    var lrM=["세트 내내 양발에 고르게 실렸습니다. 이 감각을 유지하세요.",
+             side+"쪽에 평균 "+devPP+"%p 더 실렸습니다. 바벨 위치와 발 간격을 점검해 보세요.",
+             side+"쪽에 평균 "+devPP+"%p 더 실렸습니다. 중량을 낮추고 자세를 먼저 잡는 편이 좋습니다."][lrSev];
+    var apT=["앞뒤 배분 안정","무게가 앞쪽으로 쏠림","뒤꿈치가 뜬 것으로 보임"][apSev];
+    var apS=["양호","앞쏠림","뒤꿈치 뜸"][apSev];
+    var apM=[(apPP<=42?"무게가 뒤쪽에 실려 안정적입니다.":"앞뒤 배분이 균형적입니다."),
+             "평균 "+apPP+"%가 앞쪽에 실렸습니다. 뒤꿈치가 뜨는지 확인하세요.",
+             "무게의 "+apPP+"%가 앞쪽에 실렸습니다. 중량을 낮추고 발 전체로 바닥을 밀어내는 감각을 잡으세요."][apSev];
+    var lead=apSev>lrSev, sev=Math.max(lrSev,apSev);
+    return {sev:sev, cls:["g","w","s"][sev], chip:["c-good","c-warn","c-ser"][sev],
+            title:lead?apT:lrT, short:lead?apS:lrS, msg:lead?(apM+" "+lrM):(lrM+" "+apM),
+            devPP:devPP, apPP:apPP};
+  }
+
+  /* 리포트 시트 */
+  var sheet=document.getElementById("sheet");
+  function openReport(rec){
+    var j=rec.judge;
+    var h='<div class="verd '+j.cls+'"><div class="vh"><span style="color:var(--'+
+      (j.sev===0?"good":j.sev===1?"warning":"serious")+')">●</span><b>'+j.title+'</b></div><p>'+j.msg+'</p></div>';
+    h+='<div class="rg">'+
+       ri("평균 좌우",rec.lrTxt)+ri("최대 편차",rec.maxDev+"%p")+
+       ri("평균 전후",rec.apTxt)+ri("COP 이동폭",rec.cop+"mm")+
+       ri("반복 횟수",rec.reps+"회")+ri("측정 시간",rec.dur+"초")+'</div>';
+    h+='<div class="card" style="margin-top:.7rem"><div class="card-t"><h2>채널별 수치</h2><span class="n">측정 종료 시점</span></div><table class="ch">';
+    ["L","R"].forEach(function(s){
+      for(var i=0;i<8;i++){
+        var n=s==="L"?i+1:i+9, v=rec.snap[s][i];
+        h+='<tr><td class="n">ch'+n+'</td><td>'+(s==="L"?"왼":"오른")+'·'+SENSORS[i].n+
+           '</td><td class="n">'+v+'</td><td style="width:32%"><span class="bar'+(s==="R"?" r":"")+
+           '" style="width:'+(v/MAXCH*100)+'%"></span></td></tr>';
+      }
+    });
+    h+='</table></div>';
+    h+='<p class="disc"><b>본 리포트는 운동 자세 참고용입니다.</b> 의학적 진단이나 질환 판정이 아니며, 통증이나 이상이 있으면 전문가와 상담하세요.</p>';
+    document.getElementById("sheetBody").innerHTML=h;
+    sheet.classList.add("on");
+  }
+  function ri(l,v){return '<div class="rgi"><span class="l">'+l+'</span><span class="v">'+v+'</span></div>';}
+  document.getElementById("sheetClose").addEventListener("click",function(){sheet.classList.remove("on");});
+
+  /* 기록 */
+  function renderHist(){
+    var el=document.getElementById("histList");
+    if(!records.length){
+      el.innerHTML='<div class="empty"><b>기록이 없습니다</b>측정 탭에서 세트를 진행하면<br>여기에 자동으로 저장됩니다.</div>';
+      return;
+    }
+    var h="";
+    records.forEach(function(r){
+      h+='<button class="rec-item" type="button" data-id="'+r.id+'">'+
+         '<div class="ri-b"><span class="ri-t">'+r.scen+'</span>'+
+         '<span class="ri-s">'+r.time+' · '+r.dur+'초 · '+r.reps+'회 · 좌우 '+r.lrTxt+'</span></div>'+
+         '<span class="chip '+r.judge.chip+'">'+r.judge.short+'</span>'+
+         '<span class="arrow">›</span></button>';
+    });
+    el.innerHTML=h;
+  }
+  document.getElementById("histList").addEventListener("click",function(e){
+    var b=e.target.closest("button[data-id]"); if(!b)return;
+    var id=+b.getAttribute("data-id");
+    for(var i=0;i<records.length;i++) if(records[i].id===id){openReport(records[i]);return;}
+  });
+
+  /* 측정 시작·정지 */
+  var recBtn=document.getElementById("recBtn"),recTxt=document.getElementById("recTxt");
+  function start(){
+    running=true;t0=0;lastF=0;reps=0;lastPh=0;hist=[];
+    sess={lr:[],ap:[],cps:[]};
+    recBtn.classList.add("on");recTxt.textContent="측정 정지";
+    recBtn.querySelector("span").className="sq";
+    raf=requestAnimationFrame(loop);
+  }
+  function stop(){
+    running=false; if(raf)cancelAnimationFrame(raf);
+    recBtn.classList.remove("on");recTxt.textContent="측정 시작";
+    recBtn.querySelector("span").className="ci";
+    if(sess&&sess.lr.length>=10){
+      var avgLR=sess.lr.reduce(function(a,b){return a+b;},0)/sess.lr.length;
+      var avgAP=sess.ap.reduce(function(a,b){return a+b;},0)/sess.ap.length;
+      var mx=0;sess.lr.forEach(function(x){mx=Math.max(mx,Math.abs(x-.5));});
+      var now=new Date();
+      var rec={
+        id:nextId++, scen:scenName(scen),
+        time:String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0"),
+        dur:elapsed.toFixed(1), reps:reps,
+        lrTxt:pct(avgLR)+":"+(100-pct(avgLR)), apTxt:pct(avgAP)+" : "+(100-pct(avgAP)),
+        maxDev:Math.round(mx*100), cop:Math.round(copRange(sess)),
+        judge:judge(avgLR,avgAP),
+        snap:{L:vals.L.slice(),R:vals.R.slice()}
+      };
+      records.unshift(rec); renderHist(); openReport(rec);
+    }
+    sess=null;
+  }
+  recBtn.addEventListener("click",function(){running?stop():start();});
+
+  /* 탭 */
+  var TITLES={live:"측정",hist:"기록",set:"설정"};
+  document.querySelector(".tabbar").addEventListener("click",function(e){
+    var b=e.target.closest("button[data-t]"); if(!b)return;
+    var k=b.getAttribute("data-t");
+    [].forEach.call(this.querySelectorAll(".tab"),function(t){
+      t.setAttribute("aria-selected",String(t===b));
+    });
+    ["live","hist","set"].forEach(function(s){
+      document.getElementById("sc-"+s).classList.toggle("on",s===k);
+    });
+    document.getElementById("screenTitle").textContent=TITLES[k];
+    document.getElementById("recdock").hidden = (k!=="live");
+    sheet.classList.remove("on");
+    if(k==="live") requestAnimationFrame(function(){sizeChart();drawChart();});
+  });
+
+  /* 시나리오 목록 */
+  function renderScen(){
+    var h="";
+    SCEN.forEach(function(s){
+      h+='<button class="opt" type="button" data-s="'+s.k+'"><span class="ob">'+s.t+
+         '<span class="od">'+s.d+'</span></span><span class="ck">'+(s.k===scen?"✓":"")+'</span></button>';
+    });
+    document.getElementById("scenList").innerHTML=h;
+  }
+  document.getElementById("scenList").addEventListener("click",function(e){
+    var b=e.target.closest("button[data-s]"); if(!b)return;
+    scen=b.getAttribute("data-s"); renderScen();
+    if(running){t0=0;reps=0;hist=[];sess={lr:[],ap:[],cps:[]};}
+  });
+
+  /* 시계 */
+  function tick(){
+    var d=new Date();
+    document.getElementById("clock").textContent=
+      d.getHours()+":"+String(d.getMinutes()).padStart(2,"0");
+  }
+
+  /* 부트 */
+  function boot(){
+    buildRamp();renderScen();renderHist();tick();
+    setInterval(tick,20000);
+    sizeChart();drawFoot("footL","L");drawFoot("footR","R");drawChart();updateUI();
+  }
+  var mq=matchMedia("(prefers-color-scheme: dark)");
+  var onTheme=function(){buildRamp();drawFoot("footL","L");drawFoot("footR","R");drawChart();};
+  if(mq.addEventListener)mq.addEventListener("change",onTheme); else if(mq.addListener)mq.addListener(onTheme);
+  new MutationObserver(onTheme).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+  var rt=null;
+  addEventListener("resize",function(){clearTimeout(rt);rt=setTimeout(function(){sizeChart();drawChart();},140);});
+
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot); else boot();
+})();
+</script>
