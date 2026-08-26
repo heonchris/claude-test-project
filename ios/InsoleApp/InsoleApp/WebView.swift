@@ -13,6 +13,16 @@ struct WebView: UIViewRepresentable {
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
 
+        // <html> 에 native 클래스를 붙입니다.
+        // CSS 가 이걸 보고 기기 프레임을 벗고 전체화면으로 그립니다.
+        // (아이패드처럼 폭이 넓어도 폰 프레임이 뜨지 않게 하는 장치)
+        let flag = WKUserScript(
+            source: "document.documentElement.classList.add('native');",
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        )
+        config.userContentController.addUserScript(flag)
+
         let webView = WKWebView(frame: .zero, configuration: config)
 
         // 웹페이지가 아니라 앱처럼 보이게 하는 설정들

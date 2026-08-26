@@ -10,7 +10,6 @@ INSOLE.chart = (function () {
   var C = INSOLE.config;
   var canvas = null, ctx = null;
   var PAD = { l: 30, r: 4, t: 7, b: 12 };
-  var HEIGHT = 104;
 
   function attach(el) {
     canvas = el;
@@ -24,8 +23,9 @@ INSOLE.chart = (function () {
     var r = canvas.getBoundingClientRect();
     if (r.width < 2) return;
     var dpr = window.devicePixelRatio || 1;
+    /* 높이를 CSS 에서 읽습니다. 화면 크기에 따라 달라지므로 상수로 두면 안 됩니다. */
     canvas.width  = Math.round(r.width * dpr);
-    canvas.height = Math.round(HEIGHT * dpr);
+    canvas.height = Math.round(r.height * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
@@ -34,7 +34,7 @@ INSOLE.chart = (function () {
    */
   function draw(history) {
     if (!canvas) return;
-    var box = canvas.getBoundingClientRect(), W = box.width, H = HEIGHT;
+    var box = canvas.getBoundingClientRect(), W = box.width, H = box.height;
     if (W < 2) return;
 
     var maxY = C.footMax();

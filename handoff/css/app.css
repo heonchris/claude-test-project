@@ -80,10 +80,29 @@
   .sb-r{display:flex;align-items:center;gap:5px}
   .sb-r svg{display:block}
 
+  /* 네이티브 앱 안에서는 화면 폭과 무관하게 항상 전체화면입니다.
+     (아이패드에서 작은 폰 프레임이 뜨는 것을 막습니다)
+     WebView.swift 가 <html> 에 native 클래스를 붙여줍니다. */
+  /* 뷰포트 높이에 확실히 고정합니다. dvh 만 쓰면 브라우저별로 덜 채워지는 경우가 있습니다. */
+  .native{height:100%}
+  .native body{padding:0;align-items:stretch;justify-content:stretch;height:100%;min-height:100%}
+  .native .island,
+  .native .statusbar{display:none}
+  .native .hint{display:none}
+  .native .stage{display:block;width:100%;height:100%}
+  /* 뷰포트에 직접 고정합니다. 높이 상속 사슬(html→body→stage)에 기대지 않으므로
+     WKWebView·사파리·안드로이드 어디서도 아래 여백이 생기지 않습니다. */
+  .native .device{position:fixed;inset:0;width:auto;height:auto;
+                  border-radius:0;box-shadow:none;flex:0 0 auto}
+  .native .appbar{padding-top:calc(.6rem + env(safe-area-inset-top,0px))}
+  .native .tabbar{padding-bottom:calc(.4rem + env(safe-area-inset-bottom,0px))}
+  .native .sheet{top:0}
+  .native .sheet-h{padding-top:calc(.8rem + env(safe-area-inset-top,0px))}
+
   @media (max-width:520px){
     body{padding:0;align-items:stretch;justify-content:stretch}
-    .stage{width:100%;height:100vh;height:100dvh;min-height:36rem}
-    .device{width:100%;height:100%;min-height:36rem;flex:1 1 auto;border-radius:0;box-shadow:none}
+    .stage{width:100%;flex:1 1 auto;min-height:100vh;min-height:100dvh}
+    .device{width:100%;height:auto;flex:1 1 auto;border-radius:0;box-shadow:none}
     .island{display:none}
     .statusbar{display:none}
     .appbar{padding-top:calc(.6rem + env(safe-area-inset-top,0px))}
@@ -119,29 +138,41 @@
   }
   .screen.on{opacity:1;pointer-events:auto;transform:none}
 
+  /* 측정 화면은 스크롤 없이 화면 높이에 딱 맞춥니다.
+     발 히트맵이 남는 공간을 전부 가져가므로 기기 크기에 따라 알아서 커집니다. */
+  #sc-live{display:flex;flex-direction:column;gap:.55rem;overflow:hidden;padding-bottom:.55rem}
+  #sc-live .card{margin-bottom:0}
+  .card.grow{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+
   /* ═══ 카드 ═══ */
-  .card{background:var(--card);border-radius:16px;padding:.85rem .9rem;box-shadow:var(--shadow);margin-bottom:.7rem}
+  .card{background:var(--card);border-radius:16px;padding:.7rem .85rem;box-shadow:var(--shadow);margin-bottom:.7rem}
   .card-t{
-    display:flex;align-items:baseline;gap:.5rem;margin-bottom:.6rem;
+    display:flex;align-items:baseline;gap:.5rem;margin-bottom:.45rem;
   }
   .card-t h2{font-family:"Gothic A1",sans-serif;font-weight:700;font-size:.85rem;margin:0}
   .card-t .n{margin-left:auto;font-size:.66rem;color:var(--faint)}
 
   /* 발 */
-  .feet{display:flex;gap:.55rem;justify-content:center;align-items:flex-start}
-  .foot{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:.3rem}
-  .foot-l{display:flex;align-items:center;gap:.3rem;font-size:.7rem;color:var(--muted);font-weight:500}
-  .dot{width:.5rem;height:.5rem;border-radius:50%}
+  /* 발 이름·비율과 색상 범례를 한 줄에 놓아 세로를 아낍니다. */
+  .foot-heads{display:flex;align-items:center;justify-content:space-between;gap:.4rem;margin-bottom:.3rem}
+  .foot-l{display:flex;align-items:center;gap:.28rem;font-size:.7rem;color:var(--muted);font-weight:500;white-space:nowrap}
+  .foot-l b{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+            font-size:.9rem;font-weight:600;color:var(--ink)}
+  .dot{width:.5rem;height:.5rem;border-radius:50%;flex:0 0 auto}
   .dot.l{background:var(--s1)} .dot.r{background:var(--s2)}
-  canvas.fc{width:100%;max-width:116px;height:auto;display:block;touch-action:none}
-  .foot-p{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
-          font-size:1rem;font-weight:600;color:var(--ink)}
-  .ramp{display:flex;align-items:center;gap:.4rem;justify-content:center;margin-top:.55rem}
-  .ramp-b{height:6px;flex:0 1 130px;border-radius:99px}
-  .ramp-t{font-family:"IBM Plex Mono",monospace;font-size:.6rem;color:var(--faint)}
+
+  /* 캔버스를 높이 기준으로 키웁니다(width:auto 라 비율 유지).
+     그래서 화면이 길면 발이 커지고 짧으면 작아집니다. */
+  .feet{flex:1 1 auto;min-height:0;display:flex;gap:.35rem;justify-content:center}
+  .foot{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center}
+  canvas.fc{height:100%;width:auto;max-width:100%;display:block;touch-action:none}
+
+  .ramp{display:flex;align-items:center;gap:.3rem;flex:0 0 auto}
+  .ramp-b{height:5px;width:52px;border-radius:99px;flex:0 0 auto}
+  .ramp-t{font-family:"IBM Plex Mono",monospace;font-size:.58rem;color:var(--faint)}
 
   /* 균형 게이지 */
-  .bal{margin-bottom:.55rem}
+  .bal{margin-bottom:.35rem}
   .bal:last-child{margin-bottom:0}
   .bal-h{display:flex;justify-content:space-between;align-items:baseline;font-size:.7rem;color:var(--muted);margin-bottom:.25rem}
   .bal-h b{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600;font-size:.82rem}
@@ -149,29 +180,32 @@
   .bal-f{position:absolute;top:0;bottom:0;background:var(--s1);border-radius:99px}
   .bal-f.b{background:var(--div-b)}
   .bal-m{position:absolute;left:50%;top:0;bottom:0;width:2px;background:var(--axis);transform:translateX(-1px)}
-  .bal-c{display:flex;justify-content:space-between;font-size:.63rem;color:var(--faint);margin-top:.18rem}
+  .bal-c{display:flex;justify-content:space-between;font-size:.61rem;color:var(--faint);margin-top:.12rem}
 
   /* 지표 */
-  .mrow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.45rem}
-  .m{background:var(--card-2);border-radius:11px;padding:.45rem .5rem;text-align:center}
+  .mrow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.4rem;margin-top:.55rem}
+  .m{background:var(--card-2);border-radius:10px;padding:.35rem .4rem;text-align:center}
   .m .l{font-family:"IBM Plex Mono",monospace;font-size:.55rem;letter-spacing:.06em;
         text-transform:uppercase;color:var(--faint);display:block}
   .m .v{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
         font-size:.95rem;font-weight:600;color:var(--ink)}
 
-  canvas.lc{width:100%;height:104px;display:block;touch-action:none}
-  .lgd{display:flex;gap:.7rem;justify-content:center;margin-top:.35rem;flex-wrap:wrap}
+  .trend{margin-top:.4rem;padding-top:.35rem;border-top:1px solid var(--rule)}
+  .trend-h{display:flex;justify-content:space-between;align-items:center;font-size:.68rem;color:var(--muted);margin-bottom:.15rem}
+  .trend-h span:last-child{color:var(--faint);font-size:.66rem}
+  canvas.lc{width:100%;height:56px;display:block;touch-action:none}
+  .lgd{display:flex;gap:.5rem;align-items:center}
   .lg{display:flex;align-items:center;gap:.25rem;font-size:.66rem;color:var(--muted)}
   .lg i{width:12px;height:2.5px;border-radius:2px}
 
   /* 녹화 버튼 */
   .recdock{
-    flex:0 0 auto;padding:.5rem 1.15rem .55rem;background:var(--app);
+    flex:0 0 auto;padding:.4rem 1.15rem .45rem;background:var(--app);
     border-top:1px solid var(--rule);
   }
   .recdock[hidden]{display:none}
   .rec{
-    width:100%;height:52px;border-radius:15px;background:var(--s1);color:#fff;
+    width:100%;height:48px;border-radius:14px;background:var(--s1);color:#fff;
     font-size:.98rem;font-weight:600;display:flex;align-items:center;
     justify-content:center;gap:.5rem;letter-spacing:-.01em;
   }

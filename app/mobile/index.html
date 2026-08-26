@@ -2,8 +2,20 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@500;700;800&family=IBM+Plex+Sans+KR:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-
 <style>
+/* ============================================================
+ * app.css — 화면 스타일
+ *
+ * 색은 전부 CSS 변수로 잡혀 있고, :root / prefers-color-scheme /
+ * [data-theme] 세 곳에서 같은 변수 집합을 재정의합니다.
+ * 색을 바꾸려면 변수 값만 고치세요. 개별 규칙은 손대지 않아도 됩니다.
+ *
+ * 반응형 분기는 520px 하나뿐입니다.
+ *   초과 → 390×844 기기 프레임 (데스크탑에서 폰처럼 보이기)
+ *   이하 → 프레임 제거, 전체화면 (실제 휴대폰)
+ * ============================================================ */
+
+
   :root{
     --stage:#E8E9E5;
     --app:#F4F5F2; --card:#FFFFFF; --card-2:#EDEEEA; --sunk:#E4E5E1;
@@ -73,10 +85,29 @@
   .sb-r{display:flex;align-items:center;gap:5px}
   .sb-r svg{display:block}
 
+  /* 네이티브 앱 안에서는 화면 폭과 무관하게 항상 전체화면입니다.
+     (아이패드에서 작은 폰 프레임이 뜨는 것을 막습니다)
+     WebView.swift 가 <html> 에 native 클래스를 붙여줍니다. */
+  /* 뷰포트 높이에 확실히 고정합니다. dvh 만 쓰면 브라우저별로 덜 채워지는 경우가 있습니다. */
+  .native{height:100%}
+  .native body{padding:0;align-items:stretch;justify-content:stretch;height:100%;min-height:100%}
+  .native .island,
+  .native .statusbar{display:none}
+  .native .hint{display:none}
+  .native .stage{display:block;width:100%;height:100%}
+  /* 뷰포트에 직접 고정합니다. 높이 상속 사슬(html→body→stage)에 기대지 않으므로
+     WKWebView·사파리·안드로이드 어디서도 아래 여백이 생기지 않습니다. */
+  .native .device{position:fixed;inset:0;width:auto;height:auto;
+                  border-radius:0;box-shadow:none;flex:0 0 auto}
+  .native .appbar{padding-top:calc(.6rem + env(safe-area-inset-top,0px))}
+  .native .tabbar{padding-bottom:calc(.4rem + env(safe-area-inset-bottom,0px))}
+  .native .sheet{top:0}
+  .native .sheet-h{padding-top:calc(.8rem + env(safe-area-inset-top,0px))}
+
   @media (max-width:520px){
     body{padding:0;align-items:stretch;justify-content:stretch}
-    .stage{width:100%;height:100vh;height:100dvh;min-height:36rem}
-    .device{width:100%;height:100%;min-height:36rem;flex:1 1 auto;border-radius:0;box-shadow:none}
+    .stage{width:100%;flex:1 1 auto;min-height:100vh;min-height:100dvh}
+    .device{width:100%;height:auto;flex:1 1 auto;border-radius:0;box-shadow:none}
     .island{display:none}
     .statusbar{display:none}
     .appbar{padding-top:calc(.6rem + env(safe-area-inset-top,0px))}
@@ -112,29 +143,41 @@
   }
   .screen.on{opacity:1;pointer-events:auto;transform:none}
 
+  /* 측정 화면은 스크롤 없이 화면 높이에 딱 맞춥니다.
+     발 히트맵이 남는 공간을 전부 가져가므로 기기 크기에 따라 알아서 커집니다. */
+  #sc-live{display:flex;flex-direction:column;gap:.55rem;overflow:hidden;padding-bottom:.55rem}
+  #sc-live .card{margin-bottom:0}
+  .card.grow{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+
   /* ═══ 카드 ═══ */
-  .card{background:var(--card);border-radius:16px;padding:.85rem .9rem;box-shadow:var(--shadow);margin-bottom:.7rem}
+  .card{background:var(--card);border-radius:16px;padding:.7rem .85rem;box-shadow:var(--shadow);margin-bottom:.7rem}
   .card-t{
-    display:flex;align-items:baseline;gap:.5rem;margin-bottom:.6rem;
+    display:flex;align-items:baseline;gap:.5rem;margin-bottom:.45rem;
   }
   .card-t h2{font-family:"Gothic A1",sans-serif;font-weight:700;font-size:.85rem;margin:0}
   .card-t .n{margin-left:auto;font-size:.66rem;color:var(--faint)}
 
   /* 발 */
-  .feet{display:flex;gap:.55rem;justify-content:center;align-items:flex-start}
-  .foot{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:.3rem}
-  .foot-l{display:flex;align-items:center;gap:.3rem;font-size:.7rem;color:var(--muted);font-weight:500}
-  .dot{width:.5rem;height:.5rem;border-radius:50%}
+  /* 발 이름·비율과 색상 범례를 한 줄에 놓아 세로를 아낍니다. */
+  .foot-heads{display:flex;align-items:center;justify-content:space-between;gap:.4rem;margin-bottom:.3rem}
+  .foot-l{display:flex;align-items:center;gap:.28rem;font-size:.7rem;color:var(--muted);font-weight:500;white-space:nowrap}
+  .foot-l b{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+            font-size:.9rem;font-weight:600;color:var(--ink)}
+  .dot{width:.5rem;height:.5rem;border-radius:50%;flex:0 0 auto}
   .dot.l{background:var(--s1)} .dot.r{background:var(--s2)}
-  canvas.fc{width:100%;max-width:116px;height:auto;display:block;touch-action:none}
-  .foot-p{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
-          font-size:1rem;font-weight:600;color:var(--ink)}
-  .ramp{display:flex;align-items:center;gap:.4rem;justify-content:center;margin-top:.55rem}
-  .ramp-b{height:6px;flex:0 1 130px;border-radius:99px}
-  .ramp-t{font-family:"IBM Plex Mono",monospace;font-size:.6rem;color:var(--faint)}
+
+  /* 캔버스를 높이 기준으로 키웁니다(width:auto 라 비율 유지).
+     그래서 화면이 길면 발이 커지고 짧으면 작아집니다. */
+  .feet{flex:1 1 auto;min-height:0;display:flex;gap:.35rem;justify-content:center}
+  .foot{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center}
+  canvas.fc{height:100%;width:auto;max-width:100%;display:block;touch-action:none}
+
+  .ramp{display:flex;align-items:center;gap:.3rem;flex:0 0 auto}
+  .ramp-b{height:5px;width:52px;border-radius:99px;flex:0 0 auto}
+  .ramp-t{font-family:"IBM Plex Mono",monospace;font-size:.58rem;color:var(--faint)}
 
   /* 균형 게이지 */
-  .bal{margin-bottom:.55rem}
+  .bal{margin-bottom:.35rem}
   .bal:last-child{margin-bottom:0}
   .bal-h{display:flex;justify-content:space-between;align-items:baseline;font-size:.7rem;color:var(--muted);margin-bottom:.25rem}
   .bal-h b{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600;font-size:.82rem}
@@ -142,29 +185,32 @@
   .bal-f{position:absolute;top:0;bottom:0;background:var(--s1);border-radius:99px}
   .bal-f.b{background:var(--div-b)}
   .bal-m{position:absolute;left:50%;top:0;bottom:0;width:2px;background:var(--axis);transform:translateX(-1px)}
-  .bal-c{display:flex;justify-content:space-between;font-size:.63rem;color:var(--faint);margin-top:.18rem}
+  .bal-c{display:flex;justify-content:space-between;font-size:.61rem;color:var(--faint);margin-top:.12rem}
 
   /* 지표 */
-  .mrow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.45rem}
-  .m{background:var(--card-2);border-radius:11px;padding:.45rem .5rem;text-align:center}
+  .mrow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.4rem;margin-top:.55rem}
+  .m{background:var(--card-2);border-radius:10px;padding:.35rem .4rem;text-align:center}
   .m .l{font-family:"IBM Plex Mono",monospace;font-size:.55rem;letter-spacing:.06em;
         text-transform:uppercase;color:var(--faint);display:block}
   .m .v{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
         font-size:.95rem;font-weight:600;color:var(--ink)}
 
-  canvas.lc{width:100%;height:104px;display:block;touch-action:none}
-  .lgd{display:flex;gap:.7rem;justify-content:center;margin-top:.35rem;flex-wrap:wrap}
+  .trend{margin-top:.4rem;padding-top:.35rem;border-top:1px solid var(--rule)}
+  .trend-h{display:flex;justify-content:space-between;align-items:center;font-size:.68rem;color:var(--muted);margin-bottom:.15rem}
+  .trend-h span:last-child{color:var(--faint);font-size:.66rem}
+  canvas.lc{width:100%;height:56px;display:block;touch-action:none}
+  .lgd{display:flex;gap:.5rem;align-items:center}
   .lg{display:flex;align-items:center;gap:.25rem;font-size:.66rem;color:var(--muted)}
   .lg i{width:12px;height:2.5px;border-radius:2px}
 
   /* 녹화 버튼 */
   .recdock{
-    flex:0 0 auto;padding:.5rem 1.15rem .55rem;background:var(--app);
+    flex:0 0 auto;padding:.4rem 1.15rem .45rem;background:var(--app);
     border-top:1px solid var(--rule);
   }
   .recdock[hidden]{display:none}
   .rec{
-    width:100%;height:52px;border-radius:15px;background:var(--s1);color:#fff;
+    width:100%;height:48px;border-radius:14px;background:var(--s1);color:#fff;
     font-size:.98rem;font-weight:600;display:flex;align-items:center;
     justify-content:center;gap:.5rem;letter-spacing:-.01em;
   }
@@ -275,8 +321,8 @@
   .hint b{color:var(--muted)}
   @media (max-width:520px){.hint{display:none}}
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
-</style>
 
+</style>
 <div class="stage">
 <div class="device" id="device">
   <div class="island"></div>
@@ -298,23 +344,22 @@
 
     <!-- 측정 -->
     <section class="screen on" id="sc-live" role="tabpanel" aria-label="측정">
-      <div class="card">
+
+      <!-- 남는 세로 공간을 전부 차지합니다. 발 크기는 화면에 맞춰 자동 조절됩니다. -->
+      <div class="card grow">
         <div class="card-t"><h2>압력 분포</h2><span class="n" id="liveT">대기 중</span></div>
-        <div class="feet">
-          <div class="foot">
-            <div class="foot-l"><span class="dot l"></span>왼발</div>
-            <canvas class="fc" id="footL" width="264" height="686" aria-label="왼발 압력 히트맵"></canvas>
-            <div class="foot-p" id="pctL">–</div>
-          </div>
-          <div class="foot">
-            <div class="foot-l"><span class="dot r"></span>오른발</div>
-            <canvas class="fc" id="footR" width="264" height="686" aria-label="오른발 압력 히트맵"></canvas>
-            <div class="foot-p" id="pctR">–</div>
-          </div>
+        <div class="foot-heads">
+          <span class="foot-l"><span class="dot l"></span>왼발 <b id="pctL">–</b></span>
+          <span class="ramp"><span class="ramp-t">약함</span><span class="ramp-b" id="rampBar"></span><span class="ramp-t">강함</span></span>
+          <span class="foot-l"><span class="dot r"></span>오른발 <b id="pctR">–</b></span>
         </div>
-        <div class="ramp"><span class="ramp-t">약함</span><span class="ramp-b" id="rampBar"></span><span class="ramp-t">강함</span></div>
+        <div class="feet">
+          <div class="foot"><canvas class="fc" id="footL" width="264" height="686" aria-label="왼발 압력 히트맵"></canvas></div>
+          <div class="foot"><canvas class="fc" id="footR" width="264" height="686" aria-label="오른발 압력 히트맵"></canvas></div>
+        </div>
       </div>
 
+      <!-- 높이 고정. 균형·지표·추이를 한 카드에 모았습니다. -->
       <div class="card">
         <div class="bal">
           <div class="bal-h"><span>좌우 균형</span><b id="balTxt">50 : 50</b></div>
@@ -326,23 +371,20 @@
           <div class="bal-tr"><span class="bal-f" id="apFill"></span><span class="bal-m"></span></div>
           <div class="bal-c"><span>앞</span><span id="apDev">편차 0%p</span><span>뒤</span></div>
         </div>
-      </div>
-
-      <div class="card">
-        <div class="mrow">
-          <div class="m"><span class="l">총 압력</span><span class="v" id="mTot">0</span></div>
-          <div class="m"><span class="l">최대 채널</span><span class="v" id="mPeak">0</span></div>
-          <div class="m"><span class="l">반복</span><span class="v" id="mReps">0</span></div>
+        <div class="mline">
+          <span>총 압력 <b id="mTot">0</b></span>
+          <span>최대 채널 <b id="mPeak">0</b></span>
+          <span>반복 <b id="mReps">0</b></span>
         </div>
-      </div>
-
-      <div class="card">
-        <div class="card-t"><h2>압력 추이</h2><span class="n">최근 10초</span></div>
-        <canvas class="lc" id="chart" aria-label="좌우 총압력 추이"></canvas>
-        <div class="lgd">
-          <span class="lg"><i style="background:var(--s1);height:3.2px"></i>왼발</span>
-          <span class="lg"><i style="background:var(--s2)"></i>오른발</span>
-          <span class="lg" style="font-size:.62rem">겹치면 균형</span>
+        <div class="trend">
+          <div class="trend-h">
+            <span>압력 추이</span>
+            <span class="lgd">
+              <span class="lg"><i style="background:var(--s1);height:3.2px"></i>왼발</span>
+              <span class="lg"><i style="background:var(--s2)"></i>오른발</span>
+            </span>
+          </div>
+          <canvas class="lc" id="chart" aria-label="좌우 총압력 추이"></canvas>
         </div>
       </div>
 
@@ -410,404 +452,948 @@
 
 <p class="hint"><b>데스크탑에서는 기기 화면으로 보입니다.</b><br>휴대폰으로 이 주소를 열면 화면 전체를 채웁니다.</p>
 </div>
-
 <script>
-(function(){
+/* ============================================================
+ * 01-config.js — 설정값
+ *
+ * 튜닝이 필요한 값은 전부 이 파일에 있습니다.
+ * 다른 파일을 열지 않고도 센서 배치·판정 기준·색상을 바꿀 수 있습니다.
+ * ============================================================ */
+var INSOLE = window.INSOLE || {};
+
+INSOLE.config = (function () {
   "use strict";
 
-  var SENSORS=[
-    {x:30,y:30,n:"엄지"},{x:62,y:38,n:"2–3지"},{x:28,y:78,n:"제1중족골두"},{x:55,y:72,n:"제2–3중족골두"},
-    {x:80,y:85,n:"제5중족골두"},{x:78,y:145,n:"중족부 외측"},{x:36,y:210,n:"뒤꿈치 내측"},{x:66,y:208,n:"뒤꿈치 외측"}
+  /* ── 발 좌표계 ────────────────────────────────────────────
+   * 오른발 기준. 폭 100 × 길이 260, 위쪽이 발끝.
+   * 실측 mm 와 대략 1:1 로 맞춘 값이라 COP 이동폭이 mm 로 읽힙니다.
+   * 왼발은 x 를 좌우 반전(FOOT_W - x)해서 씁니다.
+   */
+  var FOOT_W = 100;
+  var FOOT_H = 260;
+
+  /* ── 센서 배치 (발당 8채널) ───────────────────────────────
+   * 순서가 곧 채널 번호입니다.
+   *   왼발  = ch1 ~ ch8   (배열 인덱스 0~7)
+   *   오른발 = ch9 ~ ch16  (배열 인덱스 0~7)
+   *
+   * 실제 인솔의 센서 위치가 확정되면 이 좌표만 고치면
+   * 히트맵·무게중심·전후 비율이 전부 따라 바뀝니다.
+   */
+  var SENSORS = [
+    { x: 30, y: 30,  name: "엄지",          group: "fore" },
+    { x: 62, y: 38,  name: "2–3지",         group: "fore" },
+    { x: 28, y: 78,  name: "제1중족골두",   group: "fore" },
+    { x: 55, y: 72,  name: "제2–3중족골두", group: "fore" },
+    { x: 80, y: 85,  name: "제5중족골두",   group: "fore" },
+    { x: 78, y: 145, name: "중족부 외측",   group: "mid"  },
+    { x: 36, y: 210, name: "뒤꿈치 내측",   group: "heel" },
+    { x: 66, y: 208, name: "뒤꿈치 외측",   group: "heel" }
   ];
-  var FW=100, FH=260, MAXCH=1023, FORE_Y=60, HEEL_Y=209;
 
-  var RL=["#eef4fd","#cde2fb","#b7d3f6","#9ec5f4","#86b6ef","#6da7ec","#5598e7","#3987e5","#2a78d6","#256abf","#1c5cab","#184f95","#104281","#0d366b"];
-  var RD=["#15202e","#0d366b","#104281","#184f95","#1c5cab","#256abf","#2a78d6","#3987e5","#5598e7","#6da7ec","#86b6ef","#9ec5f4","#b7d3f6","#cde2fb"];
-  function h2r(h){return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
-  var ramp=[];
-  function isDark(){
-    var st=document.documentElement.getAttribute("data-theme");
-    if(st==="dark")return true; if(st==="light")return false;
-    return matchMedia("(prefers-color-scheme: dark)").matches;
-  }
-  function buildRamp(){
-    var d=isDark(); ramp=(d?RD:RL).map(h2r);
-    var b=document.getElementById("rampBar");
-    if(b) b.style.background="linear-gradient(90deg,"+(d?RD:RL).join(",")+")";
-  }
-  function rampAt(t){
-    t=t<0?0:t>1?1:t;
-    var p=t*(ramp.length-1),i=Math.floor(p),f=p-i;
-    var a=ramp[i],b=ramp[Math.min(i+1,ramp.length-1)];
-    return [a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f];
-  }
-  function cv(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+  /* ── 신호 규격 ────────────────────────────────────────────
+   * MAX_RAW: 아두이노 10bit ADC 기준. ESP32(12bit)로 바꾸면 4095.
+   *          바꿀 경우 앱 전체가 이 값을 기준으로 정규화하므로
+   *          다른 파일은 손대지 않아도 됩니다.
+   */
+  var MAX_RAW   = 1023;
+  var CHANNELS  = 8;      // 발당
+  var SAMPLE_HZ = 30;
 
-  function footPath(m){
-    var p=new Path2D();
-    function X(x){return m?FW-x:x;}
-    p.moveTo(X(46),2);
-    p.bezierCurveTo(X(74),2,X(90),22,X(88),48);
-    p.bezierCurveTo(X(86),70,X(92),86,X(90),104);
-    p.bezierCurveTo(X(88),128,X(80),142,X(80),162);
-    p.bezierCurveTo(X(80),186,X(88),196,X(86),216);
-    p.bezierCurveTo(X(84),244,X(66),258,X(50),258);
-    p.bezierCurveTo(X(32),258,X(16),244,X(15),218);
-    p.bezierCurveTo(X(14),196,X(22),184,X(23),162);
-    p.bezierCurveTo(X(24),138,X(14),120,X(13),96);
-    p.bezierCurveTo(X(12),58,X(20),2,X(46),2);
-    p.closePath(); return p;
-  }
-  var PL=footPath(true), PR=footPath(false);
+  /* ── 전후 비율 기준선 ─────────────────────────────────────
+   * 무게중심 y 좌표를 0~1 로 환산할 때 쓰는 두 기준점.
+   * FORE_Y = 전족부 중심, HEEL_Y = 뒤꿈치 중심.
+   */
+  var FORE_Y = 60;
+  var HEEL_Y = 209;
 
-  /* 상태 */
-  var scen="normal", running=false, t0=0, elapsed=0, reps=0, lastPh=0;
-  var vals={L:new Array(8).fill(0),R:new Array(8).fill(0)};
-  var hist=[], sess=null, records=[], nextId=1;
-  var SCEN=[
-    {k:"normal",   t:"정상 스쿼트",   d:"양발에 고르게 실리는 이상적인 패턴"},
-    {k:"imbalance",t:"좌우 불균형",   d:"한쪽 발에 무게가 쏠리는 상황"},
-    {k:"heel",     t:"뒤꿈치 들림",   d:"무게가 앞쪽으로 쏠려 뒤꿈치가 뜨는 상황"},
-    {k:"stand",    t:"가만히 서기",   d:"움직임 없이 서 있는 기준 상태"}
+  /* ── 판정 임계값 ──────────────────────────────────────────
+   * ⚠️ 임시값입니다. 실측 데이터를 모은 뒤 반드시 재조정하세요.
+   *
+   * LR_*: 좌우 편차(%p). 50:50 에서 얼마나 벗어났는가.
+   * AP_*: 전후 비율(%). 앞쪽 비중이 이 값을 넘으면 경고.
+   */
+  var THRESHOLD = {
+    LR_OK:      3,    // 이하면 양호
+    LR_WARN:    8,    // 이하면 주의, 초과면 심각
+    AP_WARN:   58,    // 앞쪽 비중 % — 이상이면 주의
+    AP_SERIOUS: 70    // 이상이면 뒤꿈치 들림으로 판단
+  };
+
+  /* ── 히트맵 색상 램프 ─────────────────────────────────────
+   * 압력 "크기"를 나타내므로 단일 색상(파랑)의 밝기 단계입니다.
+   * 무지개 배색을 쓰지 마세요 — 어느 쪽이 큰지 눈에 읽히지 않습니다.
+   * 다크 모드는 어두운 배경에서 밝을수록 강한 압력이 되도록 뒤집습니다.
+   */
+  var RAMP_LIGHT = ["#eef4fd","#cde2fb","#b7d3f6","#9ec5f4","#86b6ef","#6da7ec","#5598e7",
+                    "#3987e5","#2a78d6","#256abf","#1c5cab","#184f95","#104281","#0d366b"];
+  var RAMP_DARK  = ["#15202e","#0d366b","#104281","#184f95","#1c5cab","#256abf","#2a78d6",
+                    "#3987e5","#5598e7","#6da7ec","#86b6ef","#9ec5f4","#b7d3f6","#cde2fb"];
+
+  /* ── 히트맵 렌더 해상도 ───────────────────────────────────
+   * 이 격자로 보간한 뒤 확대합니다. 올리면 선명해지고 느려집니다.
+   */
+  var GRID_W = 40;
+  var GRID_H = 104;
+
+  /* ── 시계열 창 ────────────────────────────────────────────*/
+  var CHART_WINDOW_SEC = 10;
+
+  return {
+    FOOT_W: FOOT_W, FOOT_H: FOOT_H,
+    SENSORS: SENSORS,
+    MAX_RAW: MAX_RAW, CHANNELS: CHANNELS, SAMPLE_HZ: SAMPLE_HZ,
+    FORE_Y: FORE_Y, HEEL_Y: HEEL_Y,
+    THRESHOLD: THRESHOLD,
+    RAMP_LIGHT: RAMP_LIGHT, RAMP_DARK: RAMP_DARK,
+    GRID_W: GRID_W, GRID_H: GRID_H,
+    CHART_WINDOW_SEC: CHART_WINDOW_SEC,
+    /* 발당 채널이 전부 최대일 때의 합. 게이지 상한으로 씁니다. */
+    footMax: function () { return CHANNELS * MAX_RAW; }
+  };
+})();
+
+/* ============================================================
+ * 02-sensor.js — 데이터 소스
+ *
+ * ★ 실제 센서로 교체할 때 고칠 파일은 여기 하나입니다.
+ *
+ * 앱의 나머지 부분은 INSOLE.sensor.read() 가 돌려주는
+ *   { L: [8개 정수], R: [8개 정수] }   각 값 0 ~ MAX_RAW
+ * 이 형태만 알고 있습니다. 이 형태만 지키면 됩니다.
+ *
+ * 교체 방법은 파일 맨 아래 INSOLE.sensor.connectBLE() 주석 참고.
+ * ============================================================ */
+var INSOLE = window.INSOLE || {};
+
+INSOLE.sensor = (function () {
+  "use strict";
+  var C = INSOLE.config;
+
+  /* 현재 채널값. 앱 전체가 이 객체를 읽습니다. */
+  var values = { L: new Array(C.CHANNELS).fill(0), R: new Array(C.CHANNELS).fill(0) };
+
+  /* ── 시연용 시나리오 ──────────────────────────────────────
+   * 실제 센서를 붙이면 이 블록은 통째로 지워도 됩니다.
+   */
+  var SCENARIOS = [
+    { key: "normal",    label: "정상 스쿼트",  desc: "양발에 고르게 실리는 이상적인 패턴" },
+    { key: "imbalance", label: "좌우 불균형",  desc: "한쪽 발에 무게가 쏠리는 상황" },
+    { key: "heel",      label: "뒤꿈치 들림",  desc: "무게가 앞쪽으로 쏠려 뒤꿈치가 뜨는 상황" },
+    { key: "stand",     label: "가만히 서기",  desc: "움직임 없이 서 있는 기준 상태" }
   ];
-  function scenName(k){for(var i=0;i<SCEN.length;i++)if(SCEN[i].k===k)return SCEN[i].t;return k;}
+  var scenario = "normal";
+  var reps = 0, lastPhase = 0;
 
-  function nz(a){return (Math.random()-.5)*a;}
-  function simulate(ts){
-    var ph=0, load=0;
-    if(scen==="stand"){ load=.42+Math.sin(ts*.7)*.015+nz(.01); }
-    else{
-      var u=(ts%3)/3; ph=u;
-      load=.40+(.5-.5*Math.cos(u*Math.PI*2))*.48+nz(.012);
+  function labelOf(key) {
+    for (var i = 0; i < SCENARIOS.length; i++) if (SCENARIOS[i].key === key) return SCENARIOS[i].label;
+    return key;
+  }
+  function noise(amp) { return (Math.random() - 0.5) * amp; }
+
+  /* 스쿼트 1회를 3초 주기로 흉내냅니다.
+   * load   : 전체 하중 (0.4 = 서 있는 상태, 0.88 = 스쿼트 바닥)
+   * leftShare : 왼발이 가져가는 비율
+   * fwdBias   : + 면 앞쪽으로, - 면 뒤꿈치로 무게가 이동
+   */
+  function step(tSec) {
+    var phase = 0, load;
+    if (scenario === "stand") {
+      load = 0.42 + Math.sin(tSec * 0.7) * 0.015 + noise(0.01);
+    } else {
+      var u = (tSec % 3) / 3;
+      phase = u;
+      load = 0.40 + (0.5 - 0.5 * Math.cos(u * Math.PI * 2)) * 0.48 + noise(0.012);
     }
-    var lS=.5, fb=0;
-    if(scen==="imbalance") lS=.5-(.13+Math.sin(ts*.5)*.02);
-    if(scen==="heel") fb=.30+(.5-.5*Math.cos(ph*Math.PI*2))*.28;
-    if(scen==="normal") fb=-.10-(.5-.5*Math.cos(ph*Math.PI*2))*.10;
-    if(scen==="stand") fb=-.06;
 
-    ["L","R"].forEach(function(s){
-      var share=s==="L"?lS:1-lS;
-      var base=load*share*2*8*MAXCH*0.55;
-      for(var i=0;i<8;i++){
-        var w;
-        if(i<=4) w=.115+fb*.075;
-        else if(i>=6) w=.230-fb*.170;
-        else w=.070;
-        if(i===0)w*=1.15; if(i===5)w*=.75;
-        var v=base*w+nz(26);
-        if(scen==="heel"&&i>=6) v*=.35;
-        vals[s][i]=Math.max(0,Math.min(MAXCH,Math.round(v)));
+    var leftShare = 0.5, fwdBias = 0;
+    if (scenario === "imbalance") leftShare = 0.5 - (0.13 + Math.sin(tSec * 0.5) * 0.02);
+    if (scenario === "heel")      fwdBias = 0.30 + (0.5 - 0.5 * Math.cos(phase * Math.PI * 2)) * 0.28;
+    if (scenario === "normal")    fwdBias = -0.10 - (0.5 - 0.5 * Math.cos(phase * Math.PI * 2)) * 0.10;
+    if (scenario === "stand")     fwdBias = -0.06;
+
+    ["L", "R"].forEach(function (side) {
+      var share = side === "L" ? leftShare : 1 - leftShare;
+      /* 발당 총합 스케일. 채널별 가중치의 합이 대략 1 이 되도록 잡혀 있습니다. */
+      var base = load * share * 2 * C.CHANNELS * C.MAX_RAW * 0.55;
+
+      for (var i = 0; i < C.CHANNELS; i++) {
+        var g = C.SENSORS[i].group, w;
+        if (g === "fore")      w = 0.115 + fwdBias * 0.075;
+        else if (g === "heel") w = 0.230 - fwdBias * 0.170;
+        else                   w = 0.070;
+        if (i === 0) w *= 1.15;   // 엄지에 조금 더
+        if (i === 5) w *= 0.75;   // 중족부는 약하게
+
+        var v = base * w + noise(26);
+        if (scenario === "heel" && g === "heel") v *= 0.35;
+        values[side][i] = Math.max(0, Math.min(C.MAX_RAW, Math.round(v)));
       }
     });
-    if(scen!=="stand"&&lastPh>.75&&ph<.25) reps++;
-    lastPh=ph;
+
+    /* 한 주기가 끝나면 1회로 셉니다. */
+    if (scenario !== "stand" && lastPhase > 0.75 && phase < 0.25) reps++;
+    lastPhase = phase;
   }
 
-  function sum(a){var s=0;for(var i=0;i<a.length;i++)s+=a[i];return s;}
-  function cop(side){
-    var v=vals[side],t=sum(v);
-    if(t<1)return {x:FW/2,y:FH/2,tot:0};
-    var x=0,y=0;
-    for(var i=0;i<8;i++){
-      var sx=side==="L"?FW-SENSORS[i].x:SENSORS[i].x;
-      x+=sx*v[i]; y+=SENSORS[i].y*v[i];
+  return {
+    SCENARIOS: SCENARIOS,
+    values: values,
+    labelOf: labelOf,
+
+    /** 현재 채널값을 돌려줍니다. { L: [...], R: [...] } */
+    read: function () { return values; },
+
+    /** 시뮬레이터를 한 프레임 진행시킵니다. 실제 센서를 쓰면 호출하지 않습니다. */
+    step: step,
+
+    getScenario: function () { return scenario; },
+    setScenario: function (k) { scenario = k; },
+
+    getReps: function () { return reps; },
+    resetReps: function () { reps = 0; lastPhase = 0; },
+
+    /* ────────────────────────────────────────────────────────
+     * 실제 BLE 인솔을 붙이는 자리
+     *
+     * 아래 주석을 참고해 구현하고, 07-app.js 의 루프에서
+     * INSOLE.sensor.step() 호출만 지우면 됩니다.
+     * (step 은 시뮬레이터 전용이고, 실제 센서는 알림으로 값이 들어옵니다.)
+     *
+     * 패킷 규격은 DATA_CONTRACT.md 를 따르세요.
+     *
+     *   connectBLE: async function () {
+     *     var device = await navigator.bluetooth.requestDevice({
+     *       filters: [{ services: ["0000fff0-0000-1000-8000-00805f9b34fb"] }]
+     *     });
+     *     var server = await device.gatt.connect();
+     *     var svc    = await server.getPrimaryService("0000fff0-...");
+     *     var ch     = await svc.getCharacteristic("0000fff1-...");
+     *     await ch.startNotifications();
+     *     ch.addEventListener("characteristicvaluechanged", function (e) {
+     *       var dv = e.target.value;               // DataView, 34 bytes
+     *       for (var i = 0; i < 8; i++) {
+     *         values.L[i] = dv.getUint16(2 + i * 2, true);       // little endian
+     *         values.R[i] = dv.getUint16(2 + (i + 8) * 2, true);
+     *       }
+     *     });
+     *   }
+     * ──────────────────────────────────────────────────────── */
+    connectBLE: function () {
+      throw new Error("미구현: DATA_CONTRACT.md 규격에 맞춰 구현하세요.");
     }
-    return {x:x/t,y:y/t,tot:t};
-  }
-  function apRatio(side){
-    var c=cop(side); if(c.tot<1)return .5;
-    return Math.max(0,Math.min(1,(HEEL_Y-c.y)/(HEEL_Y-FORE_Y)));
+  };
+})();
+
+/* ============================================================
+ * 03-metrics.js — 파생 지표
+ *
+ * 채널값에서 무게중심·좌우 비율·전후 비율을 계산합니다.
+ * 화면과 무관한 순수 계산이라 다른 플랫폼으로 옮기기 쉽습니다.
+ * ============================================================ */
+var INSOLE = window.INSOLE || {};
+
+INSOLE.metrics = (function () {
+  "use strict";
+  var C = INSOLE.config;
+
+  function sum(arr) {
+    var s = 0;
+    for (var i = 0; i < arr.length; i++) s += arr[i];
+    return s;
   }
 
-  /* 히트맵 */
-  var GW=40,GH=104,offs={};
-  function drawFoot(id,side){
-    var c=document.getElementById(id); if(!c)return;
-    var ctx=c.getContext("2d"),W=c.width,sc=W/FW,m=(side==="L"),path=m?PL:PR,v=vals[side];
-    ctx.clearRect(0,0,c.width,c.height);
-    if(!offs[side]){var o=document.createElement("canvas");o.width=GW;o.height=GH;offs[side]=o;}
-    var oc=offs[side],octx=oc.getContext("2d");
-    var img=octx.createImageData(GW,GH),d=img.data;
-    for(var gy=0;gy<GH;gy++)for(var gx=0;gx<GW;gx++){
-      var px=(gx+.5)/GW*FW,py=(gy+.5)/GH*FH,num=0,den=0;
-      for(var i=0;i<8;i++){
-        var sx=m?FW-SENSORS[i].x:SENSORS[i].x;
-        var dx=px-sx,dy=py-SENSORS[i].y,dd=dx*dx+dy*dy; if(dd<1)dd=1;
-        var d1=Math.sqrt(dd),w=1/(d1*d1*d1+300);
-        num+=v[i]*w; den+=w;
+  /** 한쪽 발의 무게중심. { x, y, total } — 좌표는 발 좌표계(≈mm). */
+  function centerOfPressure(values, side) {
+    var v = values[side], total = sum(v);
+    if (total < 1) return { x: C.FOOT_W / 2, y: C.FOOT_H / 2, total: 0 };
+    var x = 0, y = 0;
+    for (var i = 0; i < C.CHANNELS; i++) {
+      /* 왼발은 좌우 반전된 위치에 센서가 있습니다. */
+      var sx = side === "L" ? C.FOOT_W - C.SENSORS[i].x : C.SENSORS[i].x;
+      x += sx * v[i];
+      y += C.SENSORS[i].y * v[i];
+    }
+    return { x: x / total, y: y / total, total: total };
+  }
+
+  /* ── 전후 비율 ────────────────────────────────────────────
+   * ⚠️ 채널 합계로 계산하지 마세요.
+   *
+   * 전족부는 5채널, 뒤꿈치는 2채널입니다. 단순 합계로 재면
+   * 채널 개수가 많은 전족부가 항상 커져서, 히트맵은 뒤꿈치가
+   * 새까만데 지표는 "앞쪽 56%"라고 나오는 모순이 생깁니다.
+   *
+   * 그래서 무게중심 y 위치를 기준선 두 개 사이에서 환산합니다.
+   * 화면이 보여주는 것과 숫자가 항상 일치합니다.
+   *
+   * 반환값: 1에 가까울수록 앞쪽, 0에 가까울수록 뒤꿈치.
+   */
+  function foreAftRatio(values, side) {
+    var cop = centerOfPressure(values, side);
+    if (cop.total < 1) return 0.5;
+    var r = (C.HEEL_Y - cop.y) / (C.HEEL_Y - C.FORE_Y);
+    return Math.max(0, Math.min(1, r));
+  }
+
+  /** 좌우 비율. 1에 가까울수록 왼발에 쏠린 것. */
+  function leftRightRatio(values) {
+    var l = sum(values.L), r = sum(values.R), t = l + r;
+    return t < 1 ? 0.5 : l / t;
+  }
+
+  /** 양발 평균 전후 비율. */
+  function foreAftAverage(values) {
+    return (foreAftRatio(values, "L") + foreAftRatio(values, "R")) / 2;
+  }
+
+  /** 채널 전체에서 가장 큰 값. */
+  function peak(values) {
+    var p = 0;
+    ["L", "R"].forEach(function (s) {
+      values[s].forEach(function (v) { if (v > p) p = v; });
+    });
+    return p;
+  }
+
+  /** 세션 동안 무게중심이 움직인 범위(대각 길이, ≈mm). */
+  function copRange(points) {
+    if (!points || points.length < 2) return 0;
+    var xs = [], ys = [];
+    points.forEach(function (p) { xs.push(p.lx, p.rx); ys.push(p.ly, p.ry); });
+    return Math.hypot(
+      Math.max.apply(null, xs) - Math.min.apply(null, xs),
+      Math.max.apply(null, ys) - Math.min.apply(null, ys)
+    );
+  }
+
+  return {
+    sum: sum,
+    centerOfPressure: centerOfPressure,
+    foreAftRatio: foreAftRatio,
+    foreAftAverage: foreAftAverage,
+    leftRightRatio: leftRightRatio,
+    peak: peak,
+    copRange: copRange
+  };
+})();
+
+/* ============================================================
+ * 04-heatmap.js — 발바닥 히트맵
+ *
+ * 측정점 8개 사이를 역거리가중(IDW)으로 보간해 연속적인
+ * 압력 분포로 그립니다. 이 보간이 없으면 점 8개만 찍혀
+ * 히트맵이 성립하지 않습니다. (사업 정의서 기능 1번의 숨은 작업)
+ * ============================================================ */
+var INSOLE = window.INSOLE || {};
+
+INSOLE.heatmap = (function () {
+  "use strict";
+  var C = INSOLE.config;
+  var ramp = [], offscreen = {};
+
+  function hexToRgb(h) {
+    return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  }
+  function isDark() {
+    var stamp = document.documentElement.getAttribute("data-theme");
+    if (stamp === "dark") return true;
+    if (stamp === "light") return false;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  /** 테마가 바뀔 때마다 호출해야 램프가 갱신됩니다. */
+  function buildRamp() {
+    var dark = isDark();
+    ramp = (dark ? C.RAMP_DARK : C.RAMP_LIGHT).map(hexToRgb);
+    return dark ? C.RAMP_DARK : C.RAMP_LIGHT;
+  }
+  /** 0~1 을 색으로. 구간 사이는 선형 보간. */
+  function colorAt(t) {
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    var p = t * (ramp.length - 1), i = Math.floor(p), f = p - i;
+    var a = ramp[i], b = ramp[Math.min(i + 1, ramp.length - 1)];
+    return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
+  }
+  function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  /* 발 외곽선. mirror=true 면 왼발.
+   * 좌표는 발 좌표계(100 × 260) 기준입니다. */
+  function footPath(mirror) {
+    var p = new Path2D(), W = C.FOOT_W;
+    function X(x) { return mirror ? W - x : x; }
+    p.moveTo(X(46), 2);
+    p.bezierCurveTo(X(74), 2,   X(90), 22,  X(88), 48);
+    p.bezierCurveTo(X(86), 70,  X(92), 86,  X(90), 104);
+    p.bezierCurveTo(X(88), 128, X(80), 142, X(80), 162);
+    p.bezierCurveTo(X(80), 186, X(88), 196, X(86), 216);
+    p.bezierCurveTo(X(84), 244, X(66), 258, X(50), 258);
+    p.bezierCurveTo(X(32), 258, X(16), 244, X(15), 218);
+    p.bezierCurveTo(X(14), 196, X(22), 184, X(23), 162);
+    p.bezierCurveTo(X(24), 138, X(14), 120, X(13), 96);
+    p.bezierCurveTo(X(12), 58,  X(20), 2,   X(46), 2);
+    p.closePath();
+    return p;
+  }
+  var PATH_L = null, PATH_R = null;
+
+  /**
+   * 한쪽 발을 캔버스에 그립니다.
+   * @param {HTMLCanvasElement} canvas
+   * @param {"L"|"R"} side
+   * @param {{L:number[],R:number[]}} values
+   */
+  function draw(canvas, side, values) {
+    if (!canvas) return;
+    if (!PATH_L) { PATH_L = footPath(true); PATH_R = footPath(false); }
+
+    var ctx = canvas.getContext("2d");
+    var scale = canvas.width / C.FOOT_W;
+    var mirror = side === "L";
+    var path = mirror ? PATH_L : PATH_R;
+    var v = values[side];
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    /* 1) 저해상도 격자에 보간값을 채운 뒤 확대합니다.
+     *    격자를 그대로 크게 그리면 느리고, 확대하면 자연스럽게 부드러워집니다. */
+    if (!offscreen[side]) {
+      var o = document.createElement("canvas");
+      o.width = C.GRID_W; o.height = C.GRID_H;
+      offscreen[side] = o;
+    }
+    var oc = offscreen[side], octx = oc.getContext("2d");
+    var img = octx.createImageData(C.GRID_W, C.GRID_H), d = img.data;
+
+    for (var gy = 0; gy < C.GRID_H; gy++) {
+      for (var gx = 0; gx < C.GRID_W; gx++) {
+        var px = (gx + 0.5) / C.GRID_W * C.FOOT_W;
+        var py = (gy + 0.5) / C.GRID_H * C.FOOT_H;
+        var num = 0, den = 0;
+
+        for (var i = 0; i < C.CHANNELS; i++) {
+          var sx = mirror ? C.FOOT_W - C.SENSORS[i].x : C.SENSORS[i].x;
+          var dx = px - sx, dy = py - C.SENSORS[i].y;
+          var dd = dx * dx + dy * dy;
+          if (dd < 1) dd = 1;
+          /* 거리 3승 반비례. 낮추면 뭉개지고, 높이면 점처럼 도드라집니다.
+           * +300 은 센서 바로 위에서 값이 발산하지 않게 막는 항입니다. */
+          var dist = Math.sqrt(dd);
+          var w = 1 / (dist * dist * dist + 300);
+          num += v[i] * w;
+          den += w;
+        }
+        var val = den > 0 ? num / den : 0;
+        var col = colorAt(val / C.MAX_RAW);
+        var off = (gy * C.GRID_W + gx) * 4;
+        d[off] = col[0] | 0; d[off + 1] = col[1] | 0; d[off + 2] = col[2] | 0; d[off + 3] = 255;
       }
-      var val=den>0?num/den:0,col=rampAt(val/MAXCH),off=(gy*GW+gx)*4;
-      d[off]=col[0]|0;d[off+1]=col[1]|0;d[off+2]=col[2]|0;d[off+3]=255;
     }
-    octx.putImageData(img,0,0);
-    ctx.save();ctx.scale(sc,sc);ctx.clip(path);
-    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";
-    ctx.drawImage(oc,0,0,FW,FH);ctx.restore();
-    ctx.save();ctx.scale(sc,sc);ctx.lineWidth=1.4;ctx.strokeStyle=cv("--rule-2");ctx.stroke(path);ctx.restore();
-    ctx.save();ctx.scale(sc,sc);
-    for(var j=0;j<8;j++){
-      var sxx=m?FW-SENSORS[j].x:SENSORS[j].x;
-      ctx.beginPath();ctx.arc(sxx,SENSORS[j].y,1.9,0,Math.PI*2);
-      ctx.fillStyle="rgba(255,255,255,.5)";ctx.fill();
-      ctx.lineWidth=.6;ctx.strokeStyle="rgba(0,0,0,.3)";ctx.stroke();
+    octx.putImageData(img, 0, 0);
+
+    /* 2) 발 모양으로 잘라서 확대 그리기 */
+    ctx.save();
+    ctx.scale(scale, scale);
+    ctx.clip(path);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(oc, 0, 0, C.FOOT_W, C.FOOT_H);
+    ctx.restore();
+
+    /* 3) 외곽선 */
+    ctx.save();
+    ctx.scale(scale, scale);
+    ctx.lineWidth = 1.4;
+    ctx.strokeStyle = cssVar("--rule-2");
+    ctx.stroke(path);
+    ctx.restore();
+
+    /* 4) 센서 위치 표시 */
+    ctx.save();
+    ctx.scale(scale, scale);
+    for (var j = 0; j < C.CHANNELS; j++) {
+      var jx = mirror ? C.FOOT_W - C.SENSORS[j].x : C.SENSORS[j].x;
+      ctx.beginPath();
+      ctx.arc(jx, C.SENSORS[j].y, 1.9, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,255,255,.5)";
+      ctx.fill();
+      ctx.lineWidth = 0.6;
+      ctx.strokeStyle = "rgba(0,0,0,.3)";
+      ctx.stroke();
     }
     ctx.restore();
-    var cp=cop(side);
-    if(cp.tot>60){
-      ctx.save();ctx.scale(sc,sc);
-      ctx.beginPath();ctx.arc(cp.x,cp.y,5.2,0,Math.PI*2);
-      ctx.lineWidth=2.6;ctx.strokeStyle="#fff";ctx.stroke();
-      ctx.lineWidth=1.5;ctx.strokeStyle=cv(side==="L"?"--s1":"--s2");ctx.stroke();
+
+    /* 5) 무게중심. 흰 테두리를 덧대야 어느 색 위에서도 보입니다. */
+    var cop = INSOLE.metrics.centerOfPressure(values, side);
+    if (cop.total > 60) {
+      ctx.save();
+      ctx.scale(scale, scale);
+      ctx.beginPath();
+      ctx.arc(cop.x, cop.y, 5.2, 0, Math.PI * 2);
+      ctx.lineWidth = 2.6; ctx.strokeStyle = "#fff"; ctx.stroke();
+      ctx.lineWidth = 1.5; ctx.strokeStyle = cssVar(side === "L" ? "--s1" : "--s2"); ctx.stroke();
       ctx.restore();
     }
   }
 
-  /* 차트 */
-  var ch=document.getElementById("chart"),cx=ch.getContext("2d"),WIN=10;
-  function sizeChart(){
-    var r=ch.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
-    if(r.width<2)return;
-    ch.width=Math.round(r.width*dpr); ch.height=Math.round(104*dpr);
-    cx.setTransform(dpr,0,0,dpr,0,0);
+  return { buildRamp: buildRamp, colorAt: colorAt, draw: draw, footPath: footPath, cssVar: cssVar };
+})();
+
+/* ============================================================
+ * 05-chart.js — 압력 추이 그래프
+ *
+ * 왼발/오른발 총압력 2계열을 롤링 윈도우로 그립니다.
+ * ============================================================ */
+var INSOLE = window.INSOLE || {};
+
+INSOLE.chart = (function () {
+  "use strict";
+  var C = INSOLE.config;
+  var canvas = null, ctx = null;
+  var PAD = { l: 30, r: 4, t: 7, b: 12 };
+
+  function attach(el) {
+    canvas = el;
+    ctx = canvas.getContext("2d");
+    resize();
   }
-  function drawChart(){
-    var r=ch.getBoundingClientRect(),W=r.width,H=104;
-    if(W<2)return;
-    var pL=30,pR=4,pT=7,pB=12,maxY=8184;
-    cx.clearRect(0,0,W,H);
-    cx.strokeStyle=cv("--grid");cx.lineWidth=1;
-    cx.fillStyle=cv("--faint");cx.font="9px 'IBM Plex Mono',monospace";cx.textAlign="right";
-    for(var g=0;g<=2;g++){
-      var y=pT+(H-pT-pB)*(1-g/2);
-      cx.beginPath();cx.moveTo(pL,y);cx.lineTo(W-pR,y);cx.stroke();
-      cx.fillText(String(Math.round(maxY*g/2)),pL-4,y+3);
+
+  /** 레티나 대응. 창 크기가 바뀌면 다시 호출해야 합니다. */
+  function resize() {
+    if (!canvas) return;
+    var r = canvas.getBoundingClientRect();
+    if (r.width < 2) return;
+    var dpr = window.devicePixelRatio || 1;
+    /* 높이를 CSS 에서 읽습니다. 화면 크기에 따라 달라지므로 상수로 두면 안 됩니다. */
+    canvas.width  = Math.round(r.width * dpr);
+    canvas.height = Math.round(r.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  /**
+   * @param {Array<{t:number,l:number,r:number}>} history 시간(초)과 좌우 총압력
+   */
+  function draw(history) {
+    if (!canvas) return;
+    var box = canvas.getBoundingClientRect(), W = box.width, H = box.height;
+    if (W < 2) return;
+
+    var maxY = C.footMax();
+    ctx.clearRect(0, 0, W, H);
+
+    /* 그리드는 배경으로 물러나야 합니다. 데이터보다 눈에 띄면 안 됩니다. */
+    ctx.strokeStyle = INSOLE.heatmap.cssVar("--grid");
+    ctx.lineWidth = 1;
+    ctx.fillStyle = INSOLE.heatmap.cssVar("--faint");
+    ctx.font = "9px 'IBM Plex Mono', monospace";
+    ctx.textAlign = "right";
+    for (var g = 0; g <= 2; g++) {
+      var y = PAD.t + (H - PAD.t - PAD.b) * (1 - g / 2);
+      ctx.beginPath();
+      ctx.moveTo(PAD.l, y); ctx.lineTo(W - PAD.r, y);
+      ctx.stroke();
+      ctx.fillText(String(Math.round(maxY * g / 2)), PAD.l - 4, y + 3);
     }
-    if(hist.length<2)return;
-    var tE=hist[hist.length-1].t,tS=tE-WIN;
-    function X(t){return pL+(W-pL-pR)*((t-tS)/WIN);}
-    function Y(v){return pT+(H-pT-pB)*(1-Math.min(1,v/maxY));}
-    [["l","--s1",3.2],["r","--s2",2]].forEach(function(p){
-      cx.beginPath();var st=false;
-      for(var i=0;i<hist.length;i++){
-        var h=hist[i]; if(h.t<tS)continue;
-        var x=X(h.t),y=Y(h[p[0]]);
-        if(!st){cx.moveTo(x,y);st=true;}else cx.lineTo(x,y);
+
+    if (history.length < 2) return;
+    var tEnd = history[history.length - 1].t;
+    var tStart = tEnd - C.CHART_WINDOW_SEC;
+
+    function X(t) { return PAD.l + (W - PAD.l - PAD.r) * ((t - tStart) / C.CHART_WINDOW_SEC); }
+    function Y(v) { return PAD.t + (H - PAD.t - PAD.b) * (1 - Math.min(1, v / maxY)); }
+
+    /* 좌우가 균형이면 두 선이 완전히 겹칩니다. 같은 굵기로 그리면
+     * 아래 선이 사라진 것처럼 보이므로, 왼발을 굵게 깔고 오른발을 얹습니다.
+     * 겹쳐 보이는 파란 테두리가 곧 "균형 잡혔다"는 신호가 됩니다. */
+    [["l", "--s1", 3.2], ["r", "--s2", 2]].forEach(function (series) {
+      ctx.beginPath();
+      var started = false;
+      for (var i = 0; i < history.length; i++) {
+        var h = history[i];
+        if (h.t < tStart) continue;
+        var x = X(h.t), y = Y(h[series[0]]);
+        if (!started) { ctx.moveTo(x, y); started = true; } else { ctx.lineTo(x, y); }
       }
-      cx.strokeStyle=cv(p[1]);cx.lineWidth=p[2];cx.lineJoin="round";cx.lineCap="round";cx.stroke();
+      ctx.strokeStyle = INSOLE.heatmap.cssVar(series[1]);
+      ctx.lineWidth = series[2];
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      ctx.stroke();
     });
   }
 
-  /* UI */
-  function pct(x){return Math.round(x*100);}
-  function setBal(fillId,txtId,devId,ratio){
-    var dev=ratio-.5,f=document.getElementById(fillId);
-    f.className="bal-f"+(dev>0?"":" b");
-    f.style.left=dev>0?(50-Math.abs(dev)*100)+"%":"50%";
-    f.style.width=(Math.abs(dev)*100)+"%";
-    document.getElementById(txtId).textContent=pct(ratio)+" : "+(100-pct(ratio));
-    document.getElementById(devId).textContent="편차 "+Math.abs(pct(ratio)-50)+"%p";
-  }
-  function updateUI(){
-    var tl=sum(vals.L),tr=sum(vals.R),tot=tl+tr;
-    var lr=tot<1?.5:tl/tot, ap=(apRatio("L")+apRatio("R"))/2;
-    setBal("balFill","balTxt","balDev",lr);
-    setBal("apFill","apTxt","apDev",ap);
-    document.getElementById("pctL").textContent=tot<1?"–":pct(lr)+"%";
-    document.getElementById("pctR").textContent=tot<1?"–":(100-pct(lr))+"%";
-    document.getElementById("mTot").textContent=tot;
-    var pk=0;["L","R"].forEach(function(s){vals[s].forEach(function(v){if(v>pk)pk=v;});});
-    document.getElementById("mPeak").textContent=pk;
-    document.getElementById("mReps").textContent=reps;
-    document.getElementById("liveT").textContent=running?(elapsed.toFixed(1)+"초 측정 중"):"대기 중";
+  return { attach: attach, resize: resize, draw: draw };
+})();
+
+/* ============================================================
+ * 06-report.js — 세트 판정
+ *
+ * 세션 평균값에서 자세 피드백 문구를 만듭니다.
+ *
+ * ⚠️ 규제 주의
+ * 문구는 반드시 "운동 자세 피드백" 범위 안에 있어야 합니다.
+ * 진단·질환·치료를 시사하는 표현을 쓰면 의료기기 인허가
+ * 대상이 될 수 있습니다. 문구를 고칠 때 이 선을 넘지 마세요.
+ * ============================================================ */
+var INSOLE = window.INSOLE || {};
+
+INSOLE.report = (function () {
+  "use strict";
+  var C = INSOLE.config;
+
+  /**
+   * @param {number} avgLR 세션 평균 좌우 비율 (1에 가까울수록 왼발)
+   * @param {number} avgAP 세션 평균 전후 비율 (1에 가까울수록 앞쪽)
+   */
+  function judge(avgLR, avgAP) {
+    var T = C.THRESHOLD;
+    var lrDev = Math.abs(Math.round(avgLR * 100) - 50);   // %p
+    var apPct = Math.round(avgAP * 100);                  // %
+    var side  = avgLR > 0.5 ? "왼" : "오른";
+
+    var lrSev = lrDev <= T.LR_OK ? 0 : lrDev <= T.LR_WARN ? 1 : 2;
+    var apSev = apPct >= T.AP_SERIOUS ? 2 : apPct >= T.AP_WARN ? 1 : 0;
+
+    var lrTitle = ["좌우 균형 양호", "한쪽으로 치우침", "좌우 편차 큼"][lrSev];
+    var lrShort = ["양호", "치우침", "편차 큼"][lrSev];
+    var lrMsg = [
+      "세트 내내 양발에 고르게 실렸습니다. 이 감각을 유지하세요.",
+      side + "쪽에 평균 " + lrDev + "%p 더 실렸습니다. 바벨 위치와 발 간격을 점검해 보세요.",
+      side + "쪽에 평균 " + lrDev + "%p 더 실렸습니다. 중량을 낮추고 자세를 먼저 잡는 편이 좋습니다."
+    ][lrSev];
+
+    var apTitle = ["앞뒤 배분 안정", "무게가 앞쪽으로 쏠림", "뒤꿈치가 뜬 것으로 보임"][apSev];
+    var apShort = ["양호", "앞쏠림", "뒤꿈치 뜸"][apSev];
+    var apMsg = [
+      apPct <= 42 ? "무게가 뒤쪽에 실려 안정적입니다." : "앞뒤 배분이 균형적입니다.",
+      "평균 " + apPct + "%가 앞쪽에 실렸습니다. 뒤꿈치가 뜨는지 확인하세요.",
+      "무게의 " + apPct + "%가 앞쪽에 실렸습니다. 중량을 낮추고 발 전체로 바닥을 밀어내는 감각을 잡으세요."
+    ][apSev];
+
+    /* 좌우와 전후 중 더 심한 쪽을 제목으로 올립니다.
+     * 좌우만 보면 뒤꿈치가 떠도 "좌우 균형 양호"가 제목이 되어
+     * 정작 중요한 문제가 묻힙니다. */
+    var apLeads = apSev > lrSev;
+    var severity = Math.max(lrSev, apSev);
+
+    return {
+      severity: severity,                                  // 0 양호 · 1 주의 · 2 심각
+      cls:   ["g", "w", "s"][severity],                    // CSS 클래스
+      chip:  ["c-good", "c-warn", "c-ser"][severity],      // 목록용 칩 클래스
+      title: apLeads ? apTitle : lrTitle,
+      short: apLeads ? apShort : lrShort,                  // 기록 목록용 짧은 라벨
+      message: apLeads ? (apMsg + " " + lrMsg) : (lrMsg + " " + apMsg),
+      lrDev: lrDev,
+      apPct: apPct
+    };
   }
 
-  function copRange(s){
-    if(!s||s.cps.length<2)return 0;
-    var xs=[],ys=[];
-    s.cps.forEach(function(p){xs.push(p.lx,p.rx);ys.push(p.ly,p.ry);});
-    return Math.hypot(Math.max.apply(null,xs)-Math.min.apply(null,xs),
-                      Math.max.apply(null,ys)-Math.min.apply(null,ys));
+  /** 세션 원본에서 리포트 한 건을 만듭니다. */
+  function build(session, meta) {
+    var avgLR = session.lr.reduce(function (a, b) { return a + b; }, 0) / session.lr.length;
+    var avgAP = session.ap.reduce(function (a, b) { return a + b; }, 0) / session.ap.length;
+    var maxDev = 0;
+    session.lr.forEach(function (x) { maxDev = Math.max(maxDev, Math.abs(x - 0.5)); });
+
+    var lrPct = Math.round(avgLR * 100);
+    var apPct = Math.round(avgAP * 100);
+
+    return {
+      id: meta.id,
+      scenario: meta.scenario,
+      time: meta.time,
+      duration: meta.duration,
+      reps: meta.reps,
+      lrText: lrPct + ":" + (100 - lrPct),
+      apText: apPct + " : " + (100 - apPct),
+      maxDev: Math.round(maxDev * 100),
+      copRange: Math.round(INSOLE.metrics.copRange(session.cop)),
+      judge: judge(avgLR, avgAP),
+      snapshot: { L: meta.snapshot.L.slice(), R: meta.snapshot.R.slice() }
+    };
   }
 
-  /* 루프 */
-  var raf=null,lastF=0;
-  function loop(ts){
-    if(!running)return;
-    if(!t0)t0=ts;
-    elapsed=(ts-t0)/1000;
-    if(ts-lastF>=33){
-      lastF=ts; simulate(elapsed);
-      var tl=sum(vals.L),tr=sum(vals.R);
-      hist.push({t:elapsed,l:tl,r:tr});
-      if(hist.length>900)hist.shift();
-      if(sess){
-        sess.lr.push(tl+tr<1?.5:tl/(tl+tr));
-        sess.ap.push((apRatio("L")+apRatio("R"))/2);
-        var cl=cop("L"),cr=cop("R");
-        if(cl.tot>60||cr.tot>60) sess.cps.push({lx:cl.x,ly:cl.y,rx:cr.x,ry:cr.y});
+  return { judge: judge, build: build };
+})();
+
+/* ============================================================
+ * 07-app.js — 화면 배선
+ *
+ * 탭 전환, 측정 시작/정지, 기록 저장, 리포트 시트를 담당합니다.
+ * 계산 로직은 03-metrics / 06-report 에 있고 여기엔 없습니다.
+ * ============================================================ */
+(function () {
+  "use strict";
+  var C = INSOLE.config, S = INSOLE.sensor, M = INSOLE.metrics;
+
+  var running = false, rafId = null, t0 = 0, lastFrame = 0, elapsed = 0;
+  var history = [], session = null, records = [], nextId = 1;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var pct = function (x) { return Math.round(x * 100); };
+
+  /* ── 발산형 게이지 ────────────────────────────────────────
+   * 중앙(50:50)을 기준으로 어느 쪽으로 얼마나 벗어났는지를
+   * 막대의 방향과 길이로 보여줍니다. */
+  function setGauge(fillId, textId, devId, ratio) {
+    var dev = ratio - 0.5;
+    var fill = $(fillId);
+    fill.className = "bal-f" + (dev > 0 ? "" : " b");
+    fill.style.left  = dev > 0 ? (50 - Math.abs(dev) * 100) + "%" : "50%";
+    fill.style.width = (Math.abs(dev) * 100) + "%";
+    $(textId).textContent = pct(ratio) + " : " + (100 - pct(ratio));
+    $(devId).textContent  = "편차 " + Math.abs(pct(ratio) - 50) + "%p";
+  }
+
+  function renderLive() {
+    var v = S.read();
+    var total = M.sum(v.L) + M.sum(v.R);
+    var lr = M.leftRightRatio(v);
+    var ap = M.foreAftAverage(v);
+
+    setGauge("balFill", "balTxt", "balDev", lr);
+    setGauge("apFill",  "apTxt",  "apDev",  ap);
+
+    $("pctL").textContent = total < 1 ? "–" : pct(lr) + "%";
+    $("pctR").textContent = total < 1 ? "–" : (100 - pct(lr)) + "%";
+    $("mTot").textContent  = total;
+    $("mPeak").textContent = M.peak(v);
+    $("mReps").textContent = S.getReps();
+    $("liveT").textContent = running ? (elapsed.toFixed(1) + "초 측정 중") : "대기 중";
+  }
+
+  function frame(ts) {
+    if (!running) return;
+    if (!t0) t0 = ts;
+    elapsed = (ts - t0) / 1000;
+
+    /* 화면은 브라우저 주사율로 돌지만 데이터는 SAMPLE_HZ 로 고정합니다. */
+    if (ts - lastFrame >= 1000 / C.SAMPLE_HZ) {
+      lastFrame = ts;
+
+      /* ★ 실제 센서를 붙이면 이 한 줄을 지우세요.
+       *   BLE 알림이 INSOLE.sensor.values 를 직접 갱신합니다. */
+      S.step(elapsed);
+
+      var v = S.read();
+      var tl = M.sum(v.L), tr = M.sum(v.R);
+      history.push({ t: elapsed, l: tl, r: tr });
+      if (history.length > 900) history.shift();
+
+      if (session) {
+        session.lr.push(M.leftRightRatio(v));
+        session.ap.push(M.foreAftAverage(v));
+        var cl = M.centerOfPressure(v, "L"), cr = M.centerOfPressure(v, "R");
+        if (cl.total > 60 || cr.total > 60) {
+          session.cop.push({ lx: cl.x, ly: cl.y, rx: cr.x, ry: cr.y });
+        }
       }
-      drawFoot("footL","L");drawFoot("footR","R");drawChart();updateUI();
+
+      INSOLE.heatmap.draw($("footL"), "L", v);
+      INSOLE.heatmap.draw($("footR"), "R", v);
+      INSOLE.chart.draw(history);
+      renderLive();
     }
-    raf=requestAnimationFrame(loop);
+    rafId = requestAnimationFrame(frame);
   }
 
-  /* 판정 */
-  function judge(avgLR,avgAP){
-    var devPP=Math.abs(Math.round(avgLR*100)-50), apPP=Math.round(avgAP*100);
-    var lrSev=devPP<=3?0:devPP<=8?1:2, apSev=apPP>=70?2:apPP>=58?1:0;
-    var side=avgLR>.5?"왼":"오른";
-    var lrT=["좌우 균형 양호","한쪽으로 치우침","좌우 편차 큼"][lrSev];
-    var lrS=["양호","치우침","편차 큼"][lrSev];
-    var lrM=["세트 내내 양발에 고르게 실렸습니다. 이 감각을 유지하세요.",
-             side+"쪽에 평균 "+devPP+"%p 더 실렸습니다. 바벨 위치와 발 간격을 점검해 보세요.",
-             side+"쪽에 평균 "+devPP+"%p 더 실렸습니다. 중량을 낮추고 자세를 먼저 잡는 편이 좋습니다."][lrSev];
-    var apT=["앞뒤 배분 안정","무게가 앞쪽으로 쏠림","뒤꿈치가 뜬 것으로 보임"][apSev];
-    var apS=["양호","앞쏠림","뒤꿈치 뜸"][apSev];
-    var apM=[(apPP<=42?"무게가 뒤쪽에 실려 안정적입니다.":"앞뒤 배분이 균형적입니다."),
-             "평균 "+apPP+"%가 앞쪽에 실렸습니다. 뒤꿈치가 뜨는지 확인하세요.",
-             "무게의 "+apPP+"%가 앞쪽에 실렸습니다. 중량을 낮추고 발 전체로 바닥을 밀어내는 감각을 잡으세요."][apSev];
-    var lead=apSev>lrSev, sev=Math.max(lrSev,apSev);
-    return {sev:sev, cls:["g","w","s"][sev], chip:["c-good","c-warn","c-ser"][sev],
-            title:lead?apT:lrT, short:lead?apS:lrS, msg:lead?(apM+" "+lrM):(lrM+" "+apM),
-            devPP:devPP, apPP:apPP};
+  function start() {
+    running = true; t0 = 0; lastFrame = 0; history = [];
+    S.resetReps();
+    session = { lr: [], ap: [], cop: [] };
+    $("recBtn").classList.add("on");
+    $("recTxt").textContent = "측정 정지";
+    $("recBtn").querySelector("span").className = "sq";
+    rafId = requestAnimationFrame(frame);
   }
 
-  /* 리포트 시트 */
-  var sheet=document.getElementById("sheet");
-  function openReport(rec){
-    var j=rec.judge;
-    var h='<div class="verd '+j.cls+'"><div class="vh"><span style="color:var(--'+
-      (j.sev===0?"good":j.sev===1?"warning":"serious")+')">●</span><b>'+j.title+'</b></div><p>'+j.msg+'</p></div>';
-    h+='<div class="rg">'+
-       ri("평균 좌우",rec.lrTxt)+ri("최대 편차",rec.maxDev+"%p")+
-       ri("평균 전후",rec.apTxt)+ri("COP 이동폭",rec.cop+"mm")+
-       ri("반복 횟수",rec.reps+"회")+ri("측정 시간",rec.dur+"초")+'</div>';
-    h+='<div class="card" style="margin-top:.7rem"><div class="card-t"><h2>채널별 수치</h2><span class="n">측정 종료 시점</span></div><table class="ch">';
-    ["L","R"].forEach(function(s){
-      for(var i=0;i<8;i++){
-        var n=s==="L"?i+1:i+9, v=rec.snap[s][i];
-        h+='<tr><td class="n">ch'+n+'</td><td>'+(s==="L"?"왼":"오른")+'·'+SENSORS[i].n+
-           '</td><td class="n">'+v+'</td><td style="width:32%"><span class="bar'+(s==="R"?" r":"")+
-           '" style="width:'+(v/MAXCH*100)+'%"></span></td></tr>';
+  function stop() {
+    running = false;
+    if (rafId) cancelAnimationFrame(rafId);
+    $("recBtn").classList.remove("on");
+    $("recTxt").textContent = "측정 시작";
+    $("recBtn").querySelector("span").className = "ci";
+
+    /* 너무 짧은 세션은 통계가 무의미하므로 버립니다. */
+    if (session && session.lr.length >= 10) {
+      var now = new Date();
+      var v = S.read();
+      var rec = INSOLE.report.build(session, {
+        id: nextId++,
+        scenario: S.labelOf(S.getScenario()),
+        time: String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0"),
+        duration: elapsed.toFixed(1),
+        reps: S.getReps(),
+        snapshot: v
+      });
+      records.unshift(rec);
+      renderHistory();
+      openReport(rec);
+    }
+    session = null;
+  }
+
+  /* ── 리포트 시트 ──────────────────────────────────────────*/
+  function tile(label, value) {
+    return '<div class="rgi"><span class="l">' + label + '</span><span class="v">' + value + '</span></div>';
+  }
+  function openReport(rec) {
+    var j = rec.judge;
+    var statusVar = j.severity === 0 ? "good" : j.severity === 1 ? "warning" : "serious";
+    var html =
+      '<div class="verd ' + j.cls + '"><div class="vh">' +
+      '<span style="color:var(--' + statusVar + ')">●</span><b>' + j.title + '</b></div>' +
+      '<p>' + j.message + '</p></div>' +
+      '<div class="rg">' +
+        tile("평균 좌우", rec.lrText) + tile("최대 편차", rec.maxDev + "%p") +
+        tile("평균 전후", rec.apText) + tile("COP 이동폭", rec.copRange + "mm") +
+        tile("반복 횟수", rec.reps + "회") + tile("측정 시간", rec.duration + "초") +
+      '</div>' +
+      '<div class="card" style="margin-top:.7rem"><div class="card-t"><h2>채널별 수치</h2>' +
+      '<span class="n">측정 종료 시점</span></div><table class="ch">';
+
+    ["L", "R"].forEach(function (side) {
+      for (var i = 0; i < C.CHANNELS; i++) {
+        var num = side === "L" ? i + 1 : i + 1 + C.CHANNELS;
+        var val = rec.snapshot[side][i];
+        html += '<tr><td class="n">ch' + num + '</td><td>' +
+                (side === "L" ? "왼" : "오른") + '·' + C.SENSORS[i].name + '</td>' +
+                '<td class="n">' + val + '</td><td style="width:32%">' +
+                '<span class="bar' + (side === "R" ? " r" : "") + '" style="width:' +
+                (val / C.MAX_RAW * 100) + '%"></span></td></tr>';
       }
     });
-    h+='</table></div>';
-    h+='<p class="disc"><b>본 리포트는 운동 자세 참고용입니다.</b> 의학적 진단이나 질환 판정이 아니며, 통증이나 이상이 있으면 전문가와 상담하세요.</p>';
-    document.getElementById("sheetBody").innerHTML=h;
-    sheet.classList.add("on");
-  }
-  function ri(l,v){return '<div class="rgi"><span class="l">'+l+'</span><span class="v">'+v+'</span></div>';}
-  document.getElementById("sheetClose").addEventListener("click",function(){sheet.classList.remove("on");});
+    html += '</table></div><p class="disc"><b>본 리포트는 운동 자세 참고용입니다.</b> ' +
+            '의학적 진단이나 질환 판정이 아니며, 통증이나 이상이 있으면 전문가와 상담하세요.</p>';
 
-  /* 기록 */
-  function renderHist(){
-    var el=document.getElementById("histList");
-    if(!records.length){
-      el.innerHTML='<div class="empty"><b>기록이 없습니다</b>측정 탭에서 세트를 진행하면<br>여기에 자동으로 저장됩니다.</div>';
+    $("sheetBody").innerHTML = html;
+    $("sheet").classList.add("on");
+  }
+
+  /* ── 기록 목록 ────────────────────────────────────────────*/
+  function renderHistory() {
+    var el = $("histList");
+    if (!records.length) {
+      el.innerHTML = '<div class="empty"><b>기록이 없습니다</b>' +
+                     '측정 탭에서 세트를 진행하면<br>여기에 자동으로 저장됩니다.</div>';
       return;
     }
-    var h="";
-    records.forEach(function(r){
-      h+='<button class="rec-item" type="button" data-id="'+r.id+'">'+
-         '<div class="ri-b"><span class="ri-t">'+r.scen+'</span>'+
-         '<span class="ri-s">'+r.time+' · '+r.dur+'초 · '+r.reps+'회 · 좌우 '+r.lrTxt+'</span></div>'+
-         '<span class="chip '+r.judge.chip+'">'+r.judge.short+'</span>'+
-         '<span class="arrow">›</span></button>';
-    });
-    el.innerHTML=h;
+    el.innerHTML = records.map(function (r) {
+      return '<button class="rec-item" type="button" data-id="' + r.id + '">' +
+             '<div class="ri-b"><span class="ri-t">' + r.scenario + '</span>' +
+             '<span class="ri-s">' + r.time + ' · ' + r.duration + '초 · ' + r.reps +
+             '회 · 좌우 ' + r.lrText + '</span></div>' +
+             '<span class="chip ' + r.judge.chip + '">' + r.judge.short + '</span>' +
+             '<span class="arrow">›</span></button>';
+    }).join("");
   }
-  document.getElementById("histList").addEventListener("click",function(e){
-    var b=e.target.closest("button[data-id]"); if(!b)return;
-    var id=+b.getAttribute("data-id");
-    for(var i=0;i<records.length;i++) if(records[i].id===id){openReport(records[i]);return;}
+
+  /* ── 시나리오 목록 (시연 전용) ────────────────────────────*/
+  function renderScenarios() {
+    $("scenList").innerHTML = S.SCENARIOS.map(function (s) {
+      return '<button class="opt" type="button" data-s="' + s.key + '">' +
+             '<span class="ob">' + s.label + '<span class="od">' + s.desc + '</span></span>' +
+             '<span class="ck">' + (s.key === S.getScenario() ? "✓" : "") + '</span></button>';
+    }).join("");
+  }
+
+  /* ── 배선 ─────────────────────────────────────────────────*/
+  var TITLES = { live: "측정", hist: "기록", set: "설정" };
+
+  function wire() {
+    $("recBtn").addEventListener("click", function () { running ? stop() : start(); });
+    $("sheetClose").addEventListener("click", function () { $("sheet").classList.remove("on"); });
+
+    document.querySelector(".tabbar").addEventListener("click", function (e) {
+      var btn = e.target.closest("button[data-t]");
+      if (!btn) return;
+      var key = btn.getAttribute("data-t");
+      Array.prototype.forEach.call(this.querySelectorAll(".tab"), function (t) {
+        t.setAttribute("aria-selected", String(t === btn));
+      });
+      ["live", "hist", "set"].forEach(function (s) {
+        $("sc-" + s).classList.toggle("on", s === key);
+      });
+      $("screenTitle").textContent = TITLES[key];
+      $("recdock").hidden = (key !== "live");
+      $("sheet").classList.remove("on");
+      if (key === "live") requestAnimationFrame(function () {
+        INSOLE.chart.resize(); INSOLE.chart.draw(history);
+      });
+    });
+
+    $("histList").addEventListener("click", function (e) {
+      var btn = e.target.closest("button[data-id]");
+      if (!btn) return;
+      var id = +btn.getAttribute("data-id");
+      for (var i = 0; i < records.length; i++) {
+        if (records[i].id === id) { openReport(records[i]); return; }
+      }
+    });
+
+    $("scenList").addEventListener("click", function (e) {
+      var btn = e.target.closest("button[data-s]");
+      if (!btn) return;
+      S.setScenario(btn.getAttribute("data-s"));
+      renderScenarios();
+      if (running) { t0 = 0; history = []; S.resetReps(); session = { lr: [], ap: [], cop: [] }; }
+    });
+  }
+
+  function paintRamp() {
+    var stops = INSOLE.heatmap.buildRamp();
+    var bar = $("rampBar");
+    if (bar) bar.style.background = "linear-gradient(90deg," + stops.join(",") + ")";
+  }
+
+  function tickClock() {
+    var d = new Date();
+    $("clock").textContent = d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
+  }
+
+  function boot() {
+    paintRamp();
+    INSOLE.chart.attach($("chart"));
+    wire();
+    renderScenarios();
+    renderHistory();
+    tickClock();
+    setInterval(tickClock, 20000);
+
+    var v = S.read();
+    INSOLE.heatmap.draw($("footL"), "L", v);
+    INSOLE.heatmap.draw($("footR"), "R", v);
+    INSOLE.chart.draw(history);
+    renderLive();
+  }
+
+  /* 테마가 바뀌면 램프를 다시 만들고 캔버스를 다시 그립니다.
+   * 캔버스는 CSS 변수를 자동으로 따라가지 않기 때문입니다. */
+  function onThemeChange() {
+    paintRamp();
+    var v = S.read();
+    INSOLE.heatmap.draw($("footL"), "L", v);
+    INSOLE.heatmap.draw($("footR"), "R", v);
+    INSOLE.chart.draw(history);
+  }
+  var mq = window.matchMedia("(prefers-color-scheme: dark)");
+  if (mq.addEventListener) mq.addEventListener("change", onThemeChange);
+  else if (mq.addListener) mq.addListener(onThemeChange);
+  new MutationObserver(onThemeChange).observe(document.documentElement,
+    { attributes: true, attributeFilter: ["data-theme"] });
+
+  var resizeTimer = null;
+  window.addEventListener("resize", function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+      INSOLE.chart.resize();
+      INSOLE.chart.draw(history);
+    }, 140);
   });
 
-  /* 측정 시작·정지 */
-  var recBtn=document.getElementById("recBtn"),recTxt=document.getElementById("recTxt");
-  function start(){
-    running=true;t0=0;lastF=0;reps=0;lastPh=0;hist=[];
-    sess={lr:[],ap:[],cps:[]};
-    recBtn.classList.add("on");recTxt.textContent="측정 정지";
-    recBtn.querySelector("span").className="sq";
-    raf=requestAnimationFrame(loop);
-  }
-  function stop(){
-    running=false; if(raf)cancelAnimationFrame(raf);
-    recBtn.classList.remove("on");recTxt.textContent="측정 시작";
-    recBtn.querySelector("span").className="ci";
-    if(sess&&sess.lr.length>=10){
-      var avgLR=sess.lr.reduce(function(a,b){return a+b;},0)/sess.lr.length;
-      var avgAP=sess.ap.reduce(function(a,b){return a+b;},0)/sess.ap.length;
-      var mx=0;sess.lr.forEach(function(x){mx=Math.max(mx,Math.abs(x-.5));});
-      var now=new Date();
-      var rec={
-        id:nextId++, scen:scenName(scen),
-        time:String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0"),
-        dur:elapsed.toFixed(1), reps:reps,
-        lrTxt:pct(avgLR)+":"+(100-pct(avgLR)), apTxt:pct(avgAP)+" : "+(100-pct(avgAP)),
-        maxDev:Math.round(mx*100), cop:Math.round(copRange(sess)),
-        judge:judge(avgLR,avgAP),
-        snap:{L:vals.L.slice(),R:vals.R.slice()}
-      };
-      records.unshift(rec); renderHist(); openReport(rec);
-    }
-    sess=null;
-  }
-  recBtn.addEventListener("click",function(){running?stop():start();});
-
-  /* 탭 */
-  var TITLES={live:"측정",hist:"기록",set:"설정"};
-  document.querySelector(".tabbar").addEventListener("click",function(e){
-    var b=e.target.closest("button[data-t]"); if(!b)return;
-    var k=b.getAttribute("data-t");
-    [].forEach.call(this.querySelectorAll(".tab"),function(t){
-      t.setAttribute("aria-selected",String(t===b));
-    });
-    ["live","hist","set"].forEach(function(s){
-      document.getElementById("sc-"+s).classList.toggle("on",s===k);
-    });
-    document.getElementById("screenTitle").textContent=TITLES[k];
-    document.getElementById("recdock").hidden = (k!=="live");
-    sheet.classList.remove("on");
-    if(k==="live") requestAnimationFrame(function(){sizeChart();drawChart();});
-  });
-
-  /* 시나리오 목록 */
-  function renderScen(){
-    var h="";
-    SCEN.forEach(function(s){
-      h+='<button class="opt" type="button" data-s="'+s.k+'"><span class="ob">'+s.t+
-         '<span class="od">'+s.d+'</span></span><span class="ck">'+(s.k===scen?"✓":"")+'</span></button>';
-    });
-    document.getElementById("scenList").innerHTML=h;
-  }
-  document.getElementById("scenList").addEventListener("click",function(e){
-    var b=e.target.closest("button[data-s]"); if(!b)return;
-    scen=b.getAttribute("data-s"); renderScen();
-    if(running){t0=0;reps=0;hist=[];sess={lr:[],ap:[],cps:[]};}
-  });
-
-  /* 시계 */
-  function tick(){
-    var d=new Date();
-    document.getElementById("clock").textContent=
-      d.getHours()+":"+String(d.getMinutes()).padStart(2,"0");
-  }
-
-  /* 부트 */
-  function boot(){
-    buildRamp();renderScen();renderHist();tick();
-    setInterval(tick,20000);
-    sizeChart();drawFoot("footL","L");drawFoot("footR","R");drawChart();updateUI();
-  }
-  var mq=matchMedia("(prefers-color-scheme: dark)");
-  var onTheme=function(){buildRamp();drawFoot("footL","L");drawFoot("footR","R");drawChart();};
-  if(mq.addEventListener)mq.addEventListener("change",onTheme); else if(mq.addListener)mq.addListener(onTheme);
-  new MutationObserver(onTheme).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
-  var rt=null;
-  addEventListener("resize",function(){clearTimeout(rt);rt=setTimeout(function(){sizeChart();drawChart();},140);});
-
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot); else boot();
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+  else boot();
 })();
+
 </script>

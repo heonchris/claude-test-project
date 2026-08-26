@@ -37,23 +37,22 @@
 
     <!-- 측정 -->
     <section class="screen on" id="sc-live" role="tabpanel" aria-label="측정">
-      <div class="card">
+
+      <!-- 남는 세로 공간을 전부 차지합니다. 발 크기는 화면에 맞춰 자동 조절됩니다. -->
+      <div class="card grow">
         <div class="card-t"><h2>압력 분포</h2><span class="n" id="liveT">대기 중</span></div>
-        <div class="feet">
-          <div class="foot">
-            <div class="foot-l"><span class="dot l"></span>왼발</div>
-            <canvas class="fc" id="footL" width="264" height="686" aria-label="왼발 압력 히트맵"></canvas>
-            <div class="foot-p" id="pctL">–</div>
-          </div>
-          <div class="foot">
-            <div class="foot-l"><span class="dot r"></span>오른발</div>
-            <canvas class="fc" id="footR" width="264" height="686" aria-label="오른발 압력 히트맵"></canvas>
-            <div class="foot-p" id="pctR">–</div>
-          </div>
+        <div class="foot-heads">
+          <span class="foot-l"><span class="dot l"></span>왼발 <b id="pctL">–</b></span>
+          <span class="ramp"><span class="ramp-t">약함</span><span class="ramp-b" id="rampBar"></span><span class="ramp-t">강함</span></span>
+          <span class="foot-l"><span class="dot r"></span>오른발 <b id="pctR">–</b></span>
         </div>
-        <div class="ramp"><span class="ramp-t">약함</span><span class="ramp-b" id="rampBar"></span><span class="ramp-t">강함</span></div>
+        <div class="feet">
+          <div class="foot"><canvas class="fc" id="footL" width="264" height="686" aria-label="왼발 압력 히트맵"></canvas></div>
+          <div class="foot"><canvas class="fc" id="footR" width="264" height="686" aria-label="오른발 압력 히트맵"></canvas></div>
+        </div>
       </div>
 
+      <!-- 높이 고정. 균형·지표·추이를 한 카드에 모았습니다. -->
       <div class="card">
         <div class="bal">
           <div class="bal-h"><span>좌우 균형</span><b id="balTxt">50 : 50</b></div>
@@ -65,23 +64,20 @@
           <div class="bal-tr"><span class="bal-f" id="apFill"></span><span class="bal-m"></span></div>
           <div class="bal-c"><span>앞</span><span id="apDev">편차 0%p</span><span>뒤</span></div>
         </div>
-      </div>
-
-      <div class="card">
-        <div class="mrow">
-          <div class="m"><span class="l">총 압력</span><span class="v" id="mTot">0</span></div>
-          <div class="m"><span class="l">최대 채널</span><span class="v" id="mPeak">0</span></div>
-          <div class="m"><span class="l">반복</span><span class="v" id="mReps">0</span></div>
+        <div class="mline">
+          <span>총 압력 <b id="mTot">0</b></span>
+          <span>최대 채널 <b id="mPeak">0</b></span>
+          <span>반복 <b id="mReps">0</b></span>
         </div>
-      </div>
-
-      <div class="card">
-        <div class="card-t"><h2>압력 추이</h2><span class="n">최근 10초</span></div>
-        <canvas class="lc" id="chart" aria-label="좌우 총압력 추이"></canvas>
-        <div class="lgd">
-          <span class="lg"><i style="background:var(--s1);height:3.2px"></i>왼발</span>
-          <span class="lg"><i style="background:var(--s2)"></i>오른발</span>
-          <span class="lg" style="font-size:.62rem">겹치면 균형</span>
+        <div class="trend">
+          <div class="trend-h">
+            <span>압력 추이</span>
+            <span class="lgd">
+              <span class="lg"><i style="background:var(--s1);height:3.2px"></i>왼발</span>
+              <span class="lg"><i style="background:var(--s2)"></i>오른발</span>
+            </span>
+          </div>
+          <canvas class="lc" id="chart" aria-label="좌우 총압력 추이"></canvas>
         </div>
       </div>
 
