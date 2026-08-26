@@ -2,11 +2,13 @@ import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import {
   getActivePlan,
+  getLastMeal,
   getSettings,
   getWaterCups,
   listMeals,
   listWorkouts,
   syncPlanChecks,
+  type Meal,
   type Plan,
   type PlanCheck,
 } from '../db/queries';
@@ -23,6 +25,9 @@ export type DayData = {
   planDay: number;
   planTotal: number;
   catName: string;
+  /** 날짜와 상관없이 가장 최근 식사. 공복 시간의 시작점 */
+  lastMeal: Meal | null;
+  fastingGoalHours: number;
   loading: boolean;
 };
 
@@ -46,6 +51,8 @@ export function useDayData(dateKey: string) {
     planDay: 0,
     planTotal: 0,
     catName: '나비',
+    lastMeal: null,
+    fastingGoalHours: 16,
     loading: true,
   }));
 
@@ -54,11 +61,12 @@ export function useDayData(dateKey: string) {
     const waterGoal = Number(settings.water_goal) || 8;
     const workoutGoal = Number(settings.workout_goal_minutes) || 30;
 
-    const [meals, cups, workouts, plan] = await Promise.all([
+    const [meals, cups, workouts, plan, lastMeal] = await Promise.all([
       listMeals(dateKey),
       getWaterCups(dateKey),
       listWorkouts(dateKey),
       getActivePlan(),
+      getLastMeal(),
     ]);
 
     let planItems: PlanItem[] = [];
@@ -90,6 +98,8 @@ export function useDayData(dateKey: string) {
       planDay,
       planTotal,
       catName: settings.cat_name || '나비',
+      lastMeal,
+      fastingGoalHours: Number(settings.fasting_goal_hours) || 16,
       loading: false,
     });
   }, [dateKey]);

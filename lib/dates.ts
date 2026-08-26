@@ -44,6 +44,39 @@ export function useToday(): string {
   return today;
 }
 
+/** 흘러가는 시간을 보여주는 화면용. 기본 1분마다 갱신한다. */
+export function useNow(intervalMs = 60_000): Date {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), intervalMs);
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') setNow(new Date());
+    });
+    return () => {
+      clearInterval(timer);
+      sub.remove();
+    };
+  }, [intervalMs]);
+
+  return now;
+}
+
+/** 'HH:MM' 문자열을 그 날짜의 시각으로 바꾼다. 형식이 틀리면 null */
+export function applyTimeString(base: Date, value: string): Date | null {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h > 23 || min > 59) return null;
+  const next = new Date(base);
+  next.setHours(h, min, 0, 0);
+  return next;
+}
+
+export const toTimeString = (d: Date) =>
+  `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
 /** SPEC 4-2. 현재 시각으로 끼니를 추천하되, 사용자가 바꿀 수 있다. */
 export function suggestMealType(now = new Date()): MealType {
   const h = now.getHours();

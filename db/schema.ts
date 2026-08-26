@@ -66,4 +66,5 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   reminder_meal_time: '12:30',
   reminder_water_time: '15:00',
   workout_goal_minutes: '30',
+  fasting_goal_hours: '16',
 };

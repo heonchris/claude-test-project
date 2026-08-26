@@ -156,6 +156,25 @@ export async function deleteMeal(id: number): Promise<string | null> {
   return row?.photo_uri ?? null;
 }
 
+/** 날짜와 상관없이 가장 최근 식사. 공복 시간의 시작점이 된다. */
+export async function getLastMeal(): Promise<Meal | null> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<Meal>(
+    'SELECT * FROM meals ORDER BY COALESCE(taken_at, created_at) DESC, id DESC LIMIT 1'
+  );
+  return row ?? null;
+}
+
+/** 어떤 시각보다 앞선 마지막 식사. 그날 아침까지의 공복을 구할 때 쓴다. */
+export async function getMealBefore(iso: string): Promise<Meal | null> {
+  const db = await getDb();
+  const row = await db.getFirstAsync<Meal>(
+    'SELECT * FROM meals WHERE COALESCE(taken_at, created_at) < ? ORDER BY COALESCE(taken_at, created_at) DESC, id DESC LIMIT 1',
+    iso
+  );
+  return row ?? null;
+}
+
 /* -------------------------------- 물 -------------------------------- */
 
 export async function getWaterCups(date: string): Promise<number> {

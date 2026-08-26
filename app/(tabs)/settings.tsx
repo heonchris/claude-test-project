@@ -13,12 +13,15 @@ import { colors, radius, screenPadding, space } from '../../theme/colors';
 
 const MIN_CUPS = 4;
 const MAX_CUPS = 15;
+const MIN_FASTING = 12;
+const MAX_FASTING = 24;
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
 
   const [catName, setCatName] = useState('나비');
   const [waterGoal, setWaterGoal] = useState(8);
+  const [fastingGoal, setFastingGoal] = useState(16);
   const [reminderOn, setReminderOn] = useState(false);
   const [mealTime, setMealTime] = useState('12:30');
   const [waterTime, setWaterTime] = useState('15:00');
@@ -29,6 +32,7 @@ export default function SettingsScreen() {
     const s = await getSettings();
     setCatName(s.cat_name || '나비');
     setWaterGoal(Number(s.water_goal) || 8);
+    setFastingGoal(Number(s.fasting_goal_hours) || 16);
     setReminderOn(s.reminder_on === '1');
     setMealTime(s.reminder_meal_time || '12:30');
     setWaterTime(s.reminder_water_time || '15:00');
@@ -51,6 +55,12 @@ export default function SettingsScreen() {
     const clamped = Math.min(MAX_CUPS, Math.max(MIN_CUPS, next));
     setWaterGoal(clamped);
     await setSetting('water_goal', String(clamped));
+  };
+
+  const changeFasting = async (next: number) => {
+    const clamped = Math.min(MAX_FASTING, Math.max(MIN_FASTING, next));
+    setFastingGoal(clamped);
+    await setSetting('fasting_goal_hours', String(clamped));
   };
 
   const syncReminders = async (next: {
@@ -199,6 +209,46 @@ export default function SettingsScreen() {
         </View>
         <Txt variant="caption" color={colors.textSub}>
           {MIN_CUPS}컵부터 {MAX_CUPS}컵까지 정할 수 있어요
+        </Txt>
+      </Card>
+
+      <Card accent={colors.meal}>
+        <SectionTitle
+          right={
+            <Txt variant="sub" color={colors.textSub}>
+              {fastingGoal}시간
+            </Txt>
+          }
+        >
+          공복 목표
+        </SectionTitle>
+        <View style={styles.stepper}>
+          <Pressable
+            onPress={() => changeFasting(fastingGoal - 1)}
+            disabled={fastingGoal <= MIN_FASTING}
+            style={({ pressed }) => [
+              styles.stepButton,
+              fastingGoal <= MIN_FASTING && styles.disabled,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Txt variant="title">−</Txt>
+          </Pressable>
+          <Txt variant="display">{fastingGoal}</Txt>
+          <Pressable
+            onPress={() => changeFasting(fastingGoal + 1)}
+            disabled={fastingGoal >= MAX_FASTING}
+            style={({ pressed }) => [
+              styles.stepButton,
+              fastingGoal >= MAX_FASTING && styles.disabled,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Txt variant="title">+</Txt>
+          </Pressable>
+        </View>
+        <Txt variant="caption" color={colors.textSub}>
+          마지막 식사 시각부터 자동으로 셉니다. 따로 시작 버튼을 누르지 않아도 돼요.
         </Txt>
       </Card>
 

@@ -13,13 +13,15 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddSheet, type AddKind } from '../../components/AddSheet';
 import { CatWall } from '../../components/CatWall';
+import { FastingCard } from '../../components/FastingCard';
 import { CheckIcon, PlusIcon, TrashIcon } from '../../components/Icons';
 import { ProgressRing } from '../../components/ProgressRing';
 import { Txt } from '../../components/Txt';
 import { WaterCups } from '../../components/WaterCups';
 import { Button, Card, EmptyHint, SectionTitle } from '../../components/ui';
 import { addWaterCup, deleteMeal, togglePlanCheck, type Meal } from '../../db/queries';
-import { formatKorean, formatTimeOfDay, useToday } from '../../lib/dates';
+import { formatKorean, formatTimeOfDay, useNow, useToday } from '../../lib/dates';
+import { computeFasting } from '../../lib/fasting';
 import { deletePhoto } from '../../lib/photos';
 import { catLine, catStateFor, type CatState } from '../../lib/progress';
 import { consumeSaved } from '../../lib/savedSignal';
@@ -32,6 +34,7 @@ export default function TodayScreen() {
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
   const day = useDayData(today);
+  const now = useNow();
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [startled, setStartled] = useState(false);
@@ -57,9 +60,15 @@ export default function TodayScreen() {
 
   const { progress, snapshot } = day;
   const waterDone = snapshot.cups >= snapshot.waterGoal && snapshot.waterGoal > 0;
+  const fasting = computeFasting(day.lastMeal, day.fastingGoalHours, now);
   const baseState = catStateFor(progress, waterDone);
   const state: CatState = startled ? 'startled' : baseState;
-  const line = catLine(baseState, waterDone, snapshot.meals.length + snapshot.cups);
+  const line = catLine(
+    baseState,
+    waterDone,
+    snapshot.meals.length + snapshot.cups,
+    fasting.reached
+  );
 
   const changeWater = async (delta: number) => {
     await addWaterCup(today, delta);
@@ -143,6 +152,9 @@ export default function TodayScreen() {
             value={`${progress.workoutMinutes}분`}
           />
         </View>
+
+        {/* 공복 - 식사 기록이 곧 타이머다 */}
+        <FastingCard fasting={fasting} />
 
         {/* 물 */}
         <Card accent={colors.water} style={styles.section}>

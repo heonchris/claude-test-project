@@ -19,6 +19,7 @@ import {
   deleteMeal,
   deleteWorkout,
   getMarksBetween,
+  getMealBefore,
   getRangeSummary,
   getSettings,
   getWaterCups,
@@ -40,6 +41,13 @@ import {
   WEEKDAYS,
 } from '../../lib/dates';
 import { deletePhoto } from '../../lib/photos';
+import {
+  dayFraction,
+  eatingWindow,
+  formatDuration,
+  mealTime,
+  type EatingWindow,
+} from '../../lib/fasting';
 import { colors, radius, screenPadding, space } from '../../theme/colors';
 
 type Mode = 'month' | 'week';
@@ -58,8 +66,11 @@ export default function HistoryScreen() {
   const [cups, setCups] = useState(0);
   const [waterGoal, setWaterGoal] = useState(8);
 
+  const [eatWindow, setEatWindow] = useState<EatingWindow>(null);
+  const [fastBefore, setFastBefore] = useState<number | null>(null);
+
   const [week, setWeek] = useState<WeekPoint[]>([]);
-  const [weekMeals, setWeekMeals] = useState<Meal[]>([]);
+  const [weekAll, setWeekAll] = useState<Meal[]>([]);
 
   const loadMonth = useCallback(async () => {
     const from = toKey(subDays(startOfMonth(cursor), 7));
@@ -70,9 +81,24 @@ export default function HistoryScreen() {
   const loadDay = useCallback(async (dateKey: string) => {
     const settings = await getSettings();
     setWaterGoal(Number(settings.water_goal) || 8);
-    setMeals(await listMeals(dateKey));
+    const dayMeals = await listMeals(dateKey);
+    setMeals(dayMeals);
     setWorkouts(await listWorkouts(dateKey));
     setCups(await getWaterCups(dateKey));
+
+    // 먹은 시간대와, 그날 첫 끼까지의 공복
+    const w = eatingWindow(dayMeals);
+    setEatWindow(w);
+    if (w) {
+      const previous = await getMealBefore(w.first.toISOString());
+      setFastBefore(
+        previous
+          ? Math.max(0, Math.round((w.first.getTime() - mealTime(previous).getTime()) / 60000))
+          : null
+      );
+    } else {
+      setFastBefore(null);
+    }
   }, []);
 
   const loadWeek = useCallback(async () => {
@@ -85,7 +111,7 @@ export default function HistoryScreen() {
       return summary[key] ?? { date: key, cups: 0, minutes: 0, meals: 0 };
     });
     setWeek(points);
-    setWeekMeals((await listMealsBetween(from, to)).filter((m) => !!m.photo_uri));
+    setWeekAll(await listMealsBetween(from, to));
   }, []);
 
   useFocusEffect(
@@ -138,6 +164,7 @@ export default function HistoryScreen() {
     ]);
   };
 
+  const weekMeals = weekAll.filter((m) => !!m.photo_uri);
   const maxCups = Math.max(waterGoal, ...week.map((w) => w.cups), 1);
   const maxMinutes = Math.max(30, ...week.map((w) => w.minutes), 1);
 
@@ -237,6 +264,24 @@ export default function HistoryScreen() {
               <EmptyHint text="이 날은 조용히 지나갔어요." />
             ) : (
               <View style={{ gap: space(4) }}>
+                {eatWindow && (
+                  <View>
+                    <Txt variant="sub" color={colors.textSub}>
+                      먹은 시간대
+                    </Txt>
+                    <Txt variant="body">
+                      {formatTimeOfDay(eatWindow.first.toISOString())} ~{' '}
+                      {formatTimeOfDay(eatWindow.last.toISOString())}
+                      {eatWindow.minutes > 0 ? `  (${formatDuration(eatWindow.minutes)})` : ''}
+                    </Txt>
+                    {fastBefore != null && fastBefore > 0 && (
+                      <Txt variant="caption" color={colors.textSub}>
+                        첫 끼까지 공복 {formatDuration(fastBefore)}
+                      </Txt>
+                    )}
+                  </View>
+                )}
+
                 {cups > 0 && (
                   <View>
                     <Txt variant="sub" color={colors.textSub}>
@@ -341,6 +386,11 @@ export default function HistoryScreen() {
           </Card>
 
           <Card accent={colors.meal}>
+            <SectionTitle>최근 7일 식사 시간</SectionTitle>
+            <MealTimeline points={week} meals={weekAll} />
+          </Card>
+
+          <Card accent={colors.meal}>
             <SectionTitle>최근 7일 식단</SectionTitle>
             {weekMeals.length === 0 ? (
               <EmptyHint text="이번 주 사진은 아직 없어요." />
@@ -368,6 +418,64 @@ export default function HistoryScreen() {
 
 function Mark({ on, color }: { on: boolean; color: string }) {
   return <View style={[styles.mark, { backgroundColor: on ? color : 'transparent' }]} />;
+}
+
+/** 하루를 24시간 가로선으로 놓고, 먹은 시간대를 막대로 보여준다. */
+function MealTimeline({ points, meals }: { points: WeekPoint[]; meals: Meal[] }) {
+  const byDate = new Map<string, Meal[]>();
+  for (const meal of meals) {
+    const list = byDate.get(meal.date) ?? [];
+    list.push(meal);
+    byDate.set(meal.date, list);
+  }
+
+  return (
+    <View style={{ gap: space(1) }}>
+      <View style={styles.timelineHeader}>
+        <View style={styles.timelineLabel} />
+        {[0, 6, 12, 18].map((h) => (
+          <Txt key={h} variant="caption" color={colors.textSub} style={{ flex: 1 }}>
+            {h}시
+          </Txt>
+        ))}
+      </View>
+
+      {points.map((p) => {
+        const dayMeals = byDate.get(p.date) ?? [];
+        const win = eatingWindow(dayMeals);
+        return (
+          <View key={p.date} style={styles.timelineRow}>
+            <Txt variant="caption" color={colors.textSub} style={styles.timelineLabel}>
+              {WEEKDAYS[fromKey(p.date).getDay()]}
+            </Txt>
+            <View style={styles.track}>
+              {win && (
+                <View
+                  style={[
+                    styles.window,
+                    {
+                      left: `${dayFraction(win.first) * 100}%`,
+                      width: `${Math.max(1.5, (dayFraction(win.last) - dayFraction(win.first)) * 100)}%`,
+                    },
+                  ]}
+                />
+              )}
+              {dayMeals.map((m) => (
+                <View
+                  key={m.id}
+                  style={[styles.mealDot, { left: `${dayFraction(mealTime(m)) * 100}%` }]}
+                />
+              ))}
+            </View>
+          </View>
+        );
+      })}
+
+      <Txt variant="caption" color={colors.textSub} style={{ marginTop: space(2) }}>
+        막대가 짧을수록 먹은 시간대가 좁고, 공복이 길었다는 뜻이에요
+      </Txt>
+    </View>
+  );
 }
 
 function BarChart({
@@ -476,4 +584,31 @@ const styles = StyleSheet.create({
   },
   barColumn: { alignItems: 'center', gap: space(1), flex: 1 },
   bar: { width: 18, borderRadius: 9 },
+  timelineHeader: { flexDirection: 'row', alignItems: 'center' },
+  timelineRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
+  timelineLabel: { width: 20 },
+  track: {
+    flex: 1,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.bg,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  window: {
+    position: 'absolute',
+    top: 3,
+    bottom: 3,
+    borderRadius: 6,
+    backgroundColor: `${colors.meal}55`,
+  },
+  mealDot: {
+    position: 'absolute',
+    top: 6,
+    width: 6,
+    height: 6,
+    marginLeft: -3,
+    borderRadius: 3,
+    backgroundColor: colors.meal,
+  },
 });

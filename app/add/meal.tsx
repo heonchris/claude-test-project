@@ -26,7 +26,15 @@ import {
   MEAL_TYPES,
   type MealType,
 } from '../../db/queries';
-import { formatShortDate, formatTimeOfDay, suggestMealType, toKey, todayKey } from '../../lib/dates';
+import {
+  applyTimeString,
+  formatShortDate,
+  fromKey,
+  suggestMealType,
+  toKey,
+  todayKey,
+  toTimeString,
+} from '../../lib/dates';
 import { takenAtFromExif } from '../../lib/exif';
 import { deletePhoto, savePhoto } from '../../lib/photos';
 import { markSaved } from '../../lib/savedSignal';
@@ -48,6 +56,8 @@ export default function MealScreen() {
   const [date, setDate] = useState(todayKey());
   /** 사진을 찍은 시각. 사진이 없거나 정보가 없으면 저장할 때 현재 시각으로 채운다. */
   const [takenAt, setTakenAt] = useState<Date | null>(null);
+  /** 시각 직접 고치기용 'HH:MM' */
+  const [timeText, setTimeText] = useState('');
   /** 어제 찍은 사진이면 그날 기록으로 넣을지 */
   const [useTakenDate, setUseTakenDate] = useState(true);
 
@@ -60,7 +70,9 @@ export default function MealScreen() {
       setMealType(meal.meal_type);
       setMemo(meal.memo ?? '');
       setDate(meal.date);
-      setTakenAt(meal.taken_at ? new Date(meal.taken_at) : null);
+      const at = meal.taken_at ? new Date(meal.taken_at) : null;
+      setTakenAt(at);
+      setTimeText(at ? toTimeString(at) : '');
       if (meal.calories != null) {
         setCalories(String(meal.calories));
         setShowCalories(true);
@@ -102,6 +114,7 @@ export default function MealScreen() {
       // 사진에 찍힌 시각이 있으면 그 시각을 쓰고, 끼니도 그 시각 기준으로 추천한다
       const shot = takenAtFromExif(asset.exif) ?? (from === 'camera' ? new Date() : null);
       setTakenAt(shot);
+      setTimeText(shot ? toTimeString(shot) : '');
       if (shot && editingId == null) {
         setMealType(suggestMealType(shot));
         setUseTakenDate(true);
@@ -217,15 +230,44 @@ export default function MealScreen() {
           </View>
         )}
 
-        {takenAt ? (
-          <Txt variant="caption" color={colors.textSub} center>
-            {formatShortDate(takenAt)} {formatTimeOfDay(takenAt.toISOString())}에 찍은 사진
-          </Txt>
-        ) : (
+        {!takenAt && !photoUri && (
           <Txt variant="caption" color={colors.textSub} center>
             사진 없이 메모만 남겨도 괜찮아요
           </Txt>
         )}
+
+        <Card>
+          <View style={styles.timeRow}>
+            <View style={{ flex: 1 }}>
+              <Txt variant="sub" color={colors.textSub}>
+                먹은 시각
+              </Txt>
+              <Txt variant="caption" color={colors.textSub}>
+                {takenAt
+                  ? `${formatShortDate(takenAt)} · 공복 시간이 여기서부터 다시 시작돼요`
+                  : '비워두면 저장하는 시각으로 남습니다'}
+              </Txt>
+            </View>
+            <Input
+              value={timeText}
+              onChangeText={setTimeText}
+              onBlur={() => {
+                const base = takenAt ?? fromKey(date);
+                const next = applyTimeString(base, timeText);
+                if (next) {
+                  setTakenAt(next);
+                  setTimeText(toTimeString(next));
+                  if (editingId == null) setMealType(suggestMealType(next));
+                } else {
+                  setTimeText(takenAt ? toTimeString(takenAt) : '');
+                }
+              }}
+              placeholder="12:30"
+              keyboardType="numbers-and-punctuation"
+              style={styles.timeInput}
+            />
+          </View>
+        </Card>
 
         {isOtherDay && (
           <Card>
@@ -342,6 +384,8 @@ const styles = StyleSheet.create({
   },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space(2) },
   switchRow: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
+  timeRow: { flexDirection: 'row', alignItems: 'center', gap: space(3) },
+  timeInput: { textAlign: 'right', minWidth: 76, fontSize: 20, lineHeight: 28 },
   input: {
     fontSize: 15,
     color: colors.text,

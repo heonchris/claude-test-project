@@ -76,7 +76,13 @@ const LINES: Record<CatState, string[]> = {
 };
 
 /** 잔소리·재촉·죄책감 주는 대사는 넣지 않는다 (SPEC 6-3). */
-export function catLine(state: CatState, waterDone: boolean, seed: number): string {
+export function catLine(
+  state: CatState,
+  waterDone: boolean,
+  seed: number,
+  fastingDone = false
+): string {
+  if (state !== 'top' && fastingDone) return '공복 시간 다 채웠다냥';
   if (state !== 'top' && state !== 'napping' && waterDone) return '물 다 마셨다냥';
   const pool = LINES[state];
   return pool[Math.abs(seed) % pool.length];
