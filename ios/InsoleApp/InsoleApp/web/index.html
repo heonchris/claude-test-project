@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>족저압 인솔 앱</title>
+
+<!-- 폰트: 인터넷이 없으면 기기 기본 서체로 대체됩니다 (레이아웃은 유지) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@500;700;800&family=IBM+Plex+Sans+KR:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+
+<div class="stage">
+<div class="device" id="device">
+  <div class="island"></div>
+  <div class="statusbar">
+    <span id="clock">9:41</span>
+    <span class="sb-r">
+      <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="7.5" width="3" height="3.5" rx="1"/><rect x="4.5" y="5" width="3" height="6" rx="1"/><rect x="9" y="2.5" width="3" height="8.5" rx="1"/><rect x="13.5" y="0" width="3" height="11" rx="1"/></svg>
+      <svg width="16" height="11" viewBox="0 0 16 11" fill="currentColor"><path d="M8 10.5 5.6 8.1a3.4 3.4 0 0 1 4.8 0L8 10.5Zm-4-4a6.4 6.4 0 0 1 8 0l1.4-1.4a8.4 8.4 0 0 0-10.8 0L4 6.5Zm-2.8-2.8a10.4 10.4 0 0 1 13.6 0L16 2.3a12.4 12.4 0 0 0-16 0l1.2 1.4Z"/></svg>
+      <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x=".5" y=".5" width="21" height="11" rx="3.2" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="16" height="8" rx="2" fill="currentColor"/><path d="M23 4v4a2.2 2.2 0 0 0 0-4Z" fill="currentColor" opacity=".4"/></svg>
+    </span>
+  </div>
+
+  <div class="appbar">
+    <h1 id="screenTitle">측정</h1>
+    <span class="conn" id="conn"><i></i><span id="connTxt">인솔 연결됨 · 82%</span></span>
+  </div>
+
+  <div class="screens">
+
+    <!-- 측정 -->
+    <section class="screen on" id="sc-live" role="tabpanel" aria-label="측정">
+      <div class="card">
+        <div class="card-t"><h2>압력 분포</h2><span class="n" id="liveT">대기 중</span></div>
+        <div class="feet">
+          <div class="foot">
+            <div class="foot-l"><span class="dot l"></span>왼발</div>
+            <canvas class="fc" id="footL" width="264" height="686" aria-label="왼발 압력 히트맵"></canvas>
+            <div class="foot-p" id="pctL">–</div>
+          </div>
+          <div class="foot">
+            <div class="foot-l"><span class="dot r"></span>오른발</div>
+            <canvas class="fc" id="footR" width="264" height="686" aria-label="오른발 압력 히트맵"></canvas>
+            <div class="foot-p" id="pctR">–</div>
+          </div>
+        </div>
+        <div class="ramp"><span class="ramp-t">약함</span><span class="ramp-b" id="rampBar"></span><span class="ramp-t">강함</span></div>
+      </div>
+
+      <div class="card">
+        <div class="bal">
+          <div class="bal-h"><span>좌우 균형</span><b id="balTxt">50 : 50</b></div>
+          <div class="bal-tr"><span class="bal-f" id="balFill"></span><span class="bal-m"></span></div>
+          <div class="bal-c"><span>왼발</span><span id="balDev">편차 0%p</span><span>오른발</span></div>
+        </div>
+        <div class="bal">
+          <div class="bal-h"><span>전후 균형</span><b id="apTxt">50 : 50</b></div>
+          <div class="bal-tr"><span class="bal-f" id="apFill"></span><span class="bal-m"></span></div>
+          <div class="bal-c"><span>앞</span><span id="apDev">편차 0%p</span><span>뒤</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="mrow">
+          <div class="m"><span class="l">총 압력</span><span class="v" id="mTot">0</span></div>
+          <div class="m"><span class="l">최대 채널</span><span class="v" id="mPeak">0</span></div>
+          <div class="m"><span class="l">반복</span><span class="v" id="mReps">0</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-t"><h2>압력 추이</h2><span class="n">최근 10초</span></div>
+        <canvas class="lc" id="chart" aria-label="좌우 총압력 추이"></canvas>
+        <div class="lgd">
+          <span class="lg"><i style="background:var(--s1);height:3.2px"></i>왼발</span>
+          <span class="lg"><i style="background:var(--s2)"></i>오른발</span>
+          <span class="lg" style="font-size:.62rem">겹치면 균형</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- 기록 -->
+    <section class="screen" id="sc-hist" role="tabpanel" aria-label="기록">
+      <div id="histList"></div>
+    </section>
+
+    <!-- 설정 -->
+    <section class="screen" id="sc-set" role="tabpanel" aria-label="설정">
+      <div class="card">
+        <div class="card-t"><h2>시연 시나리오</h2><span class="n">데모 전용</span></div>
+        <div id="scenList"></div>
+      </div>
+      <div class="card">
+        <div class="card-t"><h2>기기 정보</h2></div>
+        <div class="kv"><span>모델</span><span>INSOLE-16</span></div>
+        <div class="kv"><span>채널</span><span>16 (발당 8)</span></div>
+        <div class="kv"><span>샘플링</span><span>30 Hz</span></div>
+        <div class="kv"><span>통신</span><span>BLE 5.0</span></div>
+        <div class="kv"><span>배터리</span><span>82%</span></div>
+      </div>
+      <div class="card">
+        <div class="card-t"><h2>이 앱에 대해</h2></div>
+        <p style="margin:0;font-size:.76rem;color:var(--muted);line-height:1.75">
+          실제 센서 없이 <b style="color:var(--ink)">시뮬레이션 데이터</b>로 동작하는 프로토타입입니다.
+          사업 정의서의 필수 구현 기능 1·2·3·4번을 화면으로 확인하기 위한 것으로,
+          센서 연동·백엔드·크로스플랫폼은 포함되어 있지 않습니다.
+        </p>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- 리포트 시트 -->
+  <div class="sheet" id="sheet">
+    <div class="sheet-h">
+      <h2>세트 리포트</h2>
+      <button class="close" id="sheetClose" type="button" aria-label="닫기">✕</button>
+    </div>
+    <div class="sheet-b" id="sheetBody"></div>
+  </div>
+
+  <div class="recdock" id="recdock">
+    <button class="rec" id="recBtn" type="button"><span class="ci"></span><span id="recTxt">측정 시작</span></button>
+  </div>
+
+  <nav class="tabbar" role="tablist">
+    <button class="tab" data-t="live" role="tab" aria-selected="true" type="button">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h3l2.5-7 4 14 2.5-7H21"/></svg>
+      측정
+    </button>
+    <button class="tab" data-t="hist" role="tab" aria-selected="false" type="button">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5h18M3 12h18M3 18.5h12"/></svg>
+      기록
+    </button>
+    <button class="tab" data-t="set" role="tab" aria-selected="false" type="button">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.9 19.3a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.7 8.9a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9v0a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1Z"/></svg>
+      설정
+    </button>
+  </nav>
+</div>
+
+<p class="hint"><b>데스크탑에서는 기기 화면으로 보입니다.</b><br>휴대폰으로 이 주소를 열면 화면 전체를 채웁니다.</p>
+</div>
+
+
+<!-- 로드 순서가 중요합니다. 번호 순서대로 읽어주세요.
+     ES 모듈이 아닌 일반 스크립트라 file:// 로 그냥 열어도 동작합니다. -->
+<script src="js/01-config.js"></script>
+<script src="js/02-sensor.js"></script>
+<script src="js/03-metrics.js"></script>
+<script src="js/04-heatmap.js"></script>
+<script src="js/05-chart.js"></script>
+<script src="js/06-report.js"></script>
+<script src="js/07-app.js"></script>
+</body>
+</html>

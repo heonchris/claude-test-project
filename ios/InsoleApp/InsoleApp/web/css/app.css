@@ -1,0 +1,287 @@
+/* ============================================================
+ * app.css — 화면 스타일
+ *
+ * 색은 전부 CSS 변수로 잡혀 있고, :root / prefers-color-scheme /
+ * [data-theme] 세 곳에서 같은 변수 집합을 재정의합니다.
+ * 색을 바꾸려면 변수 값만 고치세요. 개별 규칙은 손대지 않아도 됩니다.
+ *
+ * 반응형 분기는 520px 하나뿐입니다.
+ *   초과 → 390×844 기기 프레임 (데스크탑에서 폰처럼 보이기)
+ *   이하 → 프레임 제거, 전체화면 (실제 휴대폰)
+ * ============================================================ */
+
+
+  :root{
+    --stage:#E8E9E5;
+    --app:#F4F5F2; --card:#FFFFFF; --card-2:#EDEEEA; --sunk:#E4E5E1;
+    --ink:#0B0B0B; --ink-2:#3B3B38; --muted:#52514E; --faint:#84837C;
+    --rule:#DEDFDA; --rule-2:#C7C8C1;
+    --s1:#2a78d6; --s2:#eb6834;
+    --div-b:#d03b3b;
+    --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+    --grid:rgba(11,11,11,.07); --axis:rgba(11,11,11,.3);
+    --bezel-a:#1B1B1D; --bezel-b:#37373B;
+    --shadow:0 1px 2px rgba(11,11,11,.05),0 8px 22px -16px rgba(11,11,11,.3);
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --stage:#0A0A0A;
+      --app:#121212; --card:#1C1C1B; --card-2:#242423; --sunk:#0E0E0E;
+      --ink:#FFFFFF; --ink-2:#D8D8D0; --muted:#c3c2b7; --faint:#8B8A82;
+      --rule:#2C2C2A; --rule-2:#3E3E3C;
+      --s1:#3987e5; --s2:#d95926;
+      --div-b:#d03b3b;
+      --grid:rgba(255,255,255,.08); --axis:rgba(255,255,255,.32);
+      --bezel-a:#000000; --bezel-b:#2A2A2E;
+      --shadow:0 1px 2px rgba(0,0,0,.5),0 8px 22px -16px rgba(0,0,0,.9);
+    }
+  }
+  :root[data-theme="dark"]{
+    --stage:#0A0A0A;
+    --app:#121212; --card:#1C1C1B; --card-2:#242423; --sunk:#0E0E0E;
+    --ink:#FFFFFF; --ink-2:#D8D8D0; --muted:#c3c2b7; --faint:#8B8A82;
+    --rule:#2C2C2A; --rule-2:#3E3E3C;
+    --s1:#3987e5; --s2:#d95926;
+    --div-b:#d03b3b;
+    --grid:rgba(255,255,255,.08); --axis:rgba(255,255,255,.32);
+    --bezel-a:#000000; --bezel-b:#2A2A2E;
+    --shadow:0 1px 2px rgba(0,0,0,.5),0 8px 22px -16px rgba(0,0,0,.9);
+  }
+
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  /* iOS 네이티브 느낌: 길게 누르기 메뉴와 텍스트 선택을 막습니다.
+     수치를 복사해야 한다면 이 두 줄을 지우세요. */
+  body{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+  body{
+    background:var(--stage);color:var(--ink);margin:0;
+    font-family:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo",sans-serif;
+    line-height:1.5;-webkit-font-smoothing:antialiased;word-break:keep-all;
+    display:flex;align-items:center;justify-content:center;
+    min-height:100vh;min-height:100dvh;padding:1.5rem 1rem;
+  }
+  button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+
+  /* ═══ 기기 프레임 ═══ */
+  .stage{display:flex;flex-direction:column;align-items:center}
+  .device{
+    width:390px;height:844px;flex:0 0 auto;position:relative;
+    background:var(--app);border-radius:46px;overflow:hidden;
+    box-shadow:0 0 0 11px var(--bezel-a),0 0 0 13px var(--bezel-b),
+               0 36px 70px -24px rgba(0,0,0,.55);
+    display:flex;flex-direction:column;
+  }
+  .island{
+    position:absolute;top:11px;left:50%;transform:translateX(-50%);
+    width:104px;height:29px;background:#000;border-radius:16px;z-index:40;
+  }
+  .statusbar{
+    height:50px;flex:0 0 auto;display:flex;align-items:center;
+    justify-content:space-between;padding:0 1.6rem 0 1.9rem;
+    font-family:"IBM Plex Mono",monospace;font-size:.8rem;font-weight:600;
+    color:var(--ink);position:relative;z-index:41;padding-top:8px;
+  }
+  .sb-r{display:flex;align-items:center;gap:5px}
+  .sb-r svg{display:block}
+
+  @media (max-width:520px){
+    body{padding:0;align-items:stretch;justify-content:stretch}
+    .stage{width:100%;height:100vh;height:100dvh;min-height:36rem}
+    .device{width:100%;height:100%;min-height:36rem;flex:1 1 auto;border-radius:0;box-shadow:none}
+    .island{display:none}
+    .statusbar{display:none}
+    .appbar{padding-top:calc(.6rem + env(safe-area-inset-top,0px))}
+    .sheet{top:0}
+    .sheet-h{padding-top:calc(.8rem + env(safe-area-inset-top,0px))}
+    .tabbar{padding-bottom:calc(.4rem + env(safe-area-inset-bottom,0px))}
+  }
+
+  /* ═══ 앱바 ═══ */
+  .appbar{
+    flex:0 0 auto;padding:.15rem 1.15rem .6rem;display:flex;
+    align-items:center;gap:.6rem;
+  }
+  .appbar h1{
+    font-family:"Gothic A1",sans-serif;font-weight:800;font-size:1.35rem;
+    margin:0;letter-spacing:-.03em;flex:1 1 auto;min-width:0;
+  }
+  .conn{
+    display:flex;align-items:center;gap:.35rem;font-size:.68rem;font-weight:500;
+    background:var(--card);border:1px solid var(--rule);border-radius:99px;
+    padding:.25rem .55rem;color:var(--muted);white-space:nowrap;
+  }
+  .conn i{width:6px;height:6px;border-radius:50%;background:var(--good);flex:0 0 auto}
+  .conn.off i{background:var(--faint)}
+
+  /* ═══ 화면 ═══ */
+  .screens{flex:1 1 auto;position:relative;overflow:hidden}
+  .screen{
+    position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;
+    padding:0 1.15rem .9rem;-webkit-overflow-scrolling:touch;
+    opacity:0;pointer-events:none;transform:translateX(8px);
+    transition:opacity .18s ease,transform .18s ease;
+  }
+  .screen.on{opacity:1;pointer-events:auto;transform:none}
+
+  /* ═══ 카드 ═══ */
+  .card{background:var(--card);border-radius:16px;padding:.85rem .9rem;box-shadow:var(--shadow);margin-bottom:.7rem}
+  .card-t{
+    display:flex;align-items:baseline;gap:.5rem;margin-bottom:.6rem;
+  }
+  .card-t h2{font-family:"Gothic A1",sans-serif;font-weight:700;font-size:.85rem;margin:0}
+  .card-t .n{margin-left:auto;font-size:.66rem;color:var(--faint)}
+
+  /* 발 */
+  .feet{display:flex;gap:.55rem;justify-content:center;align-items:flex-start}
+  .foot{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;gap:.3rem}
+  .foot-l{display:flex;align-items:center;gap:.3rem;font-size:.7rem;color:var(--muted);font-weight:500}
+  .dot{width:.5rem;height:.5rem;border-radius:50%}
+  .dot.l{background:var(--s1)} .dot.r{background:var(--s2)}
+  canvas.fc{width:100%;max-width:116px;height:auto;display:block;touch-action:none}
+  .foot-p{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+          font-size:1rem;font-weight:600;color:var(--ink)}
+  .ramp{display:flex;align-items:center;gap:.4rem;justify-content:center;margin-top:.55rem}
+  .ramp-b{height:6px;flex:0 1 130px;border-radius:99px}
+  .ramp-t{font-family:"IBM Plex Mono",monospace;font-size:.6rem;color:var(--faint)}
+
+  /* 균형 게이지 */
+  .bal{margin-bottom:.55rem}
+  .bal:last-child{margin-bottom:0}
+  .bal-h{display:flex;justify-content:space-between;align-items:baseline;font-size:.7rem;color:var(--muted);margin-bottom:.25rem}
+  .bal-h b{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600;font-size:.82rem}
+  .bal-tr{position:relative;height:9px;background:var(--sunk);border-radius:99px;overflow:hidden}
+  .bal-f{position:absolute;top:0;bottom:0;background:var(--s1);border-radius:99px}
+  .bal-f.b{background:var(--div-b)}
+  .bal-m{position:absolute;left:50%;top:0;bottom:0;width:2px;background:var(--axis);transform:translateX(-1px)}
+  .bal-c{display:flex;justify-content:space-between;font-size:.63rem;color:var(--faint);margin-top:.18rem}
+
+  /* 지표 */
+  .mrow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.45rem}
+  .m{background:var(--card-2);border-radius:11px;padding:.45rem .5rem;text-align:center}
+  .m .l{font-family:"IBM Plex Mono",monospace;font-size:.55rem;letter-spacing:.06em;
+        text-transform:uppercase;color:var(--faint);display:block}
+  .m .v{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+        font-size:.95rem;font-weight:600;color:var(--ink)}
+
+  canvas.lc{width:100%;height:104px;display:block;touch-action:none}
+  .lgd{display:flex;gap:.7rem;justify-content:center;margin-top:.35rem;flex-wrap:wrap}
+  .lg{display:flex;align-items:center;gap:.25rem;font-size:.66rem;color:var(--muted)}
+  .lg i{width:12px;height:2.5px;border-radius:2px}
+
+  /* 녹화 버튼 */
+  .recdock{
+    flex:0 0 auto;padding:.5rem 1.15rem .55rem;background:var(--app);
+    border-top:1px solid var(--rule);
+  }
+  .recdock[hidden]{display:none}
+  .rec{
+    width:100%;height:52px;border-radius:15px;background:var(--s1);color:#fff;
+    font-size:.98rem;font-weight:600;display:flex;align-items:center;
+    justify-content:center;gap:.5rem;letter-spacing:-.01em;
+  }
+  .rec.on{background:var(--critical)}
+  .rec:active{transform:scale(.985)}
+  .rec .sq{width:12px;height:12px;border-radius:3px;background:#fff}
+  .rec .ci{width:13px;height:13px;border-radius:50%;background:#fff}
+  .rec.on .ci{animation:pulse 1.1s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  /* 기록 목록 */
+  .rec-item{
+    width:100%;text-align:left;background:var(--card);border-radius:14px;
+    padding:.7rem .85rem;box-shadow:var(--shadow);margin-bottom:.55rem;
+    display:flex;align-items:center;gap:.7rem;
+  }
+  .rec-item:active{background:var(--card-2)}
+  .ri-b{flex:1 1 auto;min-width:0}
+  .ri-t{font-size:.85rem;font-weight:600;color:var(--ink);display:block}
+  .ri-s{font-family:"IBM Plex Mono",monospace;font-size:.68rem;color:var(--faint);
+        display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ri-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .chip{
+    font-size:.63rem;font-weight:700;padding:.16rem .45rem;border-radius:99px;white-space:nowrap;flex:0 0 auto;
+  }
+  .c-good{background:rgba(12,163,12,.13);color:var(--good)}
+  .c-warn{background:rgba(250,178,25,.16);color:#8a6206}
+  .c-ser{background:rgba(236,131,90,.16);color:#a4462a}
+  :root[data-theme="dark"] .c-warn{color:var(--warning)}
+  :root[data-theme="dark"] .c-ser{color:var(--serious)}
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]) .c-warn{color:var(--warning)}
+    :root:not([data-theme="light"]) .c-ser{color:var(--serious)}
+  }
+  .arrow{color:var(--faint);font-size:.9rem;flex:0 0 auto}
+
+  .empty{text-align:center;padding:3rem 1rem;color:var(--faint);font-size:.82rem;line-height:1.7}
+  .empty b{display:block;color:var(--muted);font-weight:600;font-size:.9rem;margin-bottom:.3rem}
+
+  /* 설정 */
+  .opt{
+    width:100%;display:flex;align-items:center;gap:.6rem;padding:.65rem .2rem;
+    border-bottom:1px solid var(--rule);text-align:left;font-size:.85rem;color:var(--ink);
+  }
+  .opt:last-child{border-bottom:none}
+  .opt .od{font-size:.68rem;color:var(--faint);display:block;font-weight:400}
+  .opt .ob{flex:1 1 auto;min-width:0}
+  .opt .ck{color:var(--s1);font-weight:700;flex:0 0 auto}
+  .kv{display:flex;justify-content:space-between;padding:.45rem .2rem;font-size:.8rem;border-bottom:1px solid var(--rule)}
+  .kv:last-child{border-bottom:none}
+  .kv span:first-child{color:var(--muted)}
+  .kv span:last-child{font-family:"IBM Plex Mono",monospace;color:var(--ink);font-weight:500}
+
+  /* 리포트 시트 */
+  .sheet{
+    position:absolute;left:0;right:0;bottom:0;top:50px;background:var(--app);z-index:30;
+    display:flex;flex-direction:column;
+    transform:translateY(100%);transition:transform .26s cubic-bezier(.32,.72,0,1);
+  }
+  .sheet.on{transform:none}
+  .sheet-h{
+    flex:0 0 auto;display:flex;align-items:center;gap:.6rem;padding:.8rem 1.15rem .6rem;
+  }
+  .sheet-h h2{font-family:"Gothic A1",sans-serif;font-weight:800;font-size:1.15rem;margin:0;flex:1 1 auto;letter-spacing:-.02em}
+  .close{width:32px;height:32px;border-radius:50%;background:var(--card-2);
+         display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:1rem;flex:0 0 auto}
+  .sheet-b{flex:1 1 auto;overflow-y:auto;padding:0 1.15rem 1.4rem}
+
+  .verd{border-radius:14px;padding:.85rem .9rem;margin-bottom:.7rem;background:var(--card);
+        border-left:4px solid var(--rule-2);box-shadow:var(--shadow)}
+  .verd.g{border-left-color:var(--good)} .verd.w{border-left-color:var(--warning)} .verd.s{border-left-color:var(--serious)}
+  .verd .vh{display:flex;align-items:center;gap:.4rem;margin-bottom:.3rem}
+  .verd .vh b{font-family:"Gothic A1",sans-serif;font-weight:800;font-size:1rem}
+  .verd.g .vh b{color:var(--good)} .verd.w .vh b{color:var(--warning)} .verd.s .vh b{color:var(--serious)}
+  .verd p{margin:0;font-size:.82rem;color:var(--muted);line-height:1.65}
+  .rg{display:grid;grid-template-columns:1fr 1fr;gap:.45rem}
+  .rgi{background:var(--card);border-radius:12px;padding:.55rem .65rem;box-shadow:var(--shadow)}
+  .rgi .l{font-family:"IBM Plex Mono",monospace;font-size:.57rem;letter-spacing:.06em;
+          text-transform:uppercase;color:var(--faint);display:block}
+  .rgi .v{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+          font-size:1.02rem;font-weight:600}
+  .disc{font-size:.68rem;color:var(--faint);line-height:1.65;margin-top:.8rem}
+  .disc b{color:var(--muted)}
+
+  table.ch{width:100%;border-collapse:collapse;font-size:.72rem}
+  table.ch td{padding:.3rem .2rem;border-bottom:1px solid var(--rule)}
+  table.ch td.n{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;text-align:right;color:var(--muted)}
+  table.ch .bar{display:inline-block;height:4px;border-radius:2px;background:var(--s1);vertical-align:middle}
+  table.ch .bar.r{background:var(--s2)}
+
+  /* ═══ 탭바 ═══ */
+  .tabbar{
+    flex:0 0 auto;display:flex;background:var(--card);
+    border-top:1px solid var(--rule);padding:.4rem .3rem .55rem;
+  }
+  .tab{
+    flex:1 1 0;display:flex;flex-direction:column;align-items:center;gap:.12rem;
+    padding:.3rem 0;color:var(--faint);font-size:.62rem;font-weight:500;min-height:44px;
+  }
+  .tab svg{display:block}
+  .tab[aria-selected="true"]{color:var(--s1)}
+  .tab:focus-visible{outline:2px solid var(--s1);outline-offset:-3px;border-radius:8px}
+
+  .hint{
+    max-width:390px;margin:1rem auto 0;font-size:.72rem;color:var(--faint);
+    line-height:1.7;text-align:center;
+  }
+  .hint b{color:var(--muted)}
+  @media (max-width:520px){.hint{display:none}}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
