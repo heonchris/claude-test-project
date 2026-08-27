@@ -51,6 +51,9 @@
     <section class="screen on" id="sc-live" role="tabpanel" aria-label="측정">
 
       <!-- 남는 세로 공간을 전부 차지합니다. 발 크기는 화면에 맞춰 자동 조절됩니다. -->
+      <!-- 채널에 문제가 있을 때만 나타납니다 -->
+      <button class="alertbar" id="alertBar" type="button" hidden></button>
+
       <div class="card grow">
         <div class="card-t"><h2>압력 분포</h2><span class="n" id="liveT">대기 중</span></div>
         <div class="foot-heads">
@@ -97,7 +100,49 @@
 
     <!-- 기록 -->
     <section class="screen" id="sc-hist" role="tabpanel" aria-label="기록">
+      <div class="histbar" id="histBar" hidden>
+        <button class="mini" id="exportBtn" type="button">CSV 내보내기</button>
+        <button class="mini danger" id="clearBtn" type="button">전체 삭제</button>
+      </div>
       <div id="histList"></div>
+      <div class="card" id="exportBox" hidden>
+        <div class="card-t"><h2>내보내기</h2><span class="n">엑셀에서 열 수 있습니다</span></div>
+        <p class="hintline">내려받기가 막힌 환경이면 아래 내용을 복사해 쓰세요.</p>
+        <textarea id="exportText" class="exp" readonly rows="6"></textarea>
+        <div class="exp-btns">
+          <button class="mini" id="copyBtn" type="button">복사</button>
+          <button class="mini ghost" id="exportClose" type="button">닫기</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 진단 -->
+    <section class="screen" id="sc-diag" role="tabpanel" aria-label="진단">
+      <div class="card">
+        <div class="card-t"><h2>수신 상태</h2><span class="n">실물 연결 시 여기부터 확인</span></div>
+        <div class="dgrid">
+          <div class="d"><span class="l">데이터</span><span class="v" id="dState">대기</span></div>
+          <div class="d"><span class="l">실제 주기</span><span class="v" id="dHz">–<small>Hz</small></span></div>
+          <div class="d"><span class="l">정상 채널</span><span class="v" id="dOk">–<small>/16</small></span></div>
+          <div class="d"><span class="l">문제 채널</span><span class="v" id="dBad">–</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-t"><h2>영점 보정</h2><span class="n" id="zeroState">설정 안 됨</span></div>
+        <p class="hintline">인솔에 <b>발을 올리지 않은 상태</b>에서 누르세요. 센서마다 다른 무부하 값을 기준으로 잡아 좌우 비교를 정확하게 만듭니다.</p>
+        <div class="exp-btns">
+          <button class="mini" id="zeroBtn" type="button">지금 영점 잡기</button>
+          <button class="mini ghost" id="zeroClear" type="button">해제</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-t"><h2>채널별 원시값</h2><span class="n">0 ~ 1023</span></div>
+        <div class="tw">
+          <table class="ch" id="diagTable"><tbody></tbody></table>
+        </div>
+      </div>
     </section>
 
     <!-- 설정 -->
@@ -148,6 +193,10 @@
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5h18M3 12h18M3 18.5h12"/></svg>
       기록
     </button>
+    <button class="tab" data-t="diag" role="tab" aria-selected="false" type="button">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-5 4 10 2-5h6"/><circle cx="12" cy="12" r="9.2" opacity=".35"/></svg>
+      진단
+    </button>
     <button class="tab" data-t="set" role="tab" aria-selected="false" type="button">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.9 19.3a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.7 8.9a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9v0a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1Z"/></svg>
       설정
@@ -167,6 +216,18 @@
 <script src="js/04-heatmap.js"></script>
 <script src="js/05-chart.js"></script>
 <script src="js/06-report.js"></script>
+<script src="js/08-health.js"></script>
+<script src="js/09-storage.js"></script>
+<script src="js/10-wakelock.js"></script>
 <script src="js/07-app.js"></script>
+
+<!-- 오프라인 지원. https 에서만 동작하므로 file:// 로 열면 조용히 건너뜁니다. -->
+<script>
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("./sw.js").catch(function () {});
+  });
+}
+</script>
 </body>
 </html>

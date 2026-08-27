@@ -24,6 +24,7 @@
     --s1:#2a78d6; --s2:#eb6834;
     --div-b:#d03b3b;
     --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+    --warn-ink:#8a6206; --warn-soft:#FCF3DF;
     --grid:rgba(11,11,11,.07); --axis:rgba(11,11,11,.3);
     --bezel-a:#1B1B1D; --bezel-b:#37373B;
     --shadow:0 1px 2px rgba(11,11,11,.05),0 8px 22px -16px rgba(11,11,11,.3);
@@ -36,6 +37,7 @@
       --rule:#2C2C2A; --rule-2:#3E3E3C;
       --s1:#3987e5; --s2:#d95926;
       --div-b:#d03b3b;
+      --warn-ink:#fab219; --warn-soft:#2A2113;
       --grid:rgba(255,255,255,.08); --axis:rgba(255,255,255,.32);
       --bezel-a:#000000; --bezel-b:#2A2A2E;
       --shadow:0 1px 2px rgba(0,0,0,.5),0 8px 22px -16px rgba(0,0,0,.9);
@@ -48,6 +50,7 @@
     --rule:#2C2C2A; --rule-2:#3E3E3C;
     --s1:#3987e5; --s2:#d95926;
     --div-b:#d03b3b;
+    --warn-ink:#fab219; --warn-soft:#2A2113;
     --grid:rgba(255,255,255,.08); --axis:rgba(255,255,255,.32);
     --bezel-a:#000000; --bezel-b:#2A2A2E;
     --shadow:0 1px 2px rgba(0,0,0,.5),0 8px 22px -16px rgba(0,0,0,.9);
@@ -304,6 +307,58 @@
   table.ch .bar{display:inline-block;height:4px;border-radius:2px;background:var(--s1);vertical-align:middle}
   table.ch .bar.r{background:var(--s2)}
 
+  /* ═══ 진단 · 경고 · 내보내기 ═══ */
+
+  /* 채널에 문제가 생겼을 때만 나타나는 줄. 누르면 진단 탭으로 갑니다. */
+  .alertbar{
+    width:100%;display:flex;align-items:center;gap:.5rem;
+    background:var(--warn-soft);border:1px solid var(--warning);border-radius:12px;
+    padding:.55rem .75rem;font-size:.8rem;color:var(--warn-ink);
+    font-family:inherit;text-align:left;margin-bottom:.55rem;flex:0 0 auto;
+  }
+  .alertbar[hidden]{display:none}
+  .alertbar b{font-weight:700}
+  .alertbar .go{margin-left:auto;color:var(--faint);font-size:.9rem}
+
+  .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:.45rem}
+  .d{background:var(--card-2);border-radius:11px;padding:.5rem .6rem}
+  .d .l{font-family:"IBM Plex Mono",monospace;font-size:.58rem;letter-spacing:.07em;
+        text-transform:uppercase;color:var(--faint);display:block}
+  .d .v{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+        font-size:1.05rem;font-weight:600;color:var(--ink)}
+  .d .v small{font-size:.62rem;font-weight:400;color:var(--muted);margin-left:.1rem}
+  .d .v.bad{color:var(--critical)}
+  .d .v.good{color:var(--good)}
+
+  .hintline{font-size:.78rem;color:var(--muted);margin:0 0 .6rem;line-height:1.65}
+  .hintline b{color:var(--ink);font-weight:600}
+
+  .mini{
+    font-family:inherit;font-size:.76rem;font-weight:600;
+    background:var(--s1);color:#fff;border:none;border-radius:9px;
+    padding:.42rem .8rem;white-space:nowrap;
+  }
+  .mini.ghost{background:transparent;color:var(--muted);border:1px solid var(--rule-2)}
+  .mini.danger{background:transparent;color:var(--critical);border:1px solid var(--critical)}
+  .mini:active{transform:scale(.97)}
+  .mini:focus-visible{outline:2px solid var(--s1);outline-offset:2px}
+
+  .histbar{display:flex;gap:.45rem;margin-bottom:.6rem}
+  .histbar[hidden]{display:none}
+  .exp-btns{display:flex;gap:.45rem;margin-top:.5rem}
+  textarea.exp{
+    width:100%;font-family:"IBM Plex Mono",monospace;font-size:.66rem;line-height:1.6;
+    background:var(--sunk);color:var(--ink);border:1px solid var(--rule);border-radius:9px;
+    padding:.5rem .6rem;resize:vertical;
+  }
+
+  /* 채널 상태 칩 */
+  .st{font-size:.62rem;font-weight:700;padding:.1rem .38rem;border-radius:99px;white-space:nowrap}
+  .st-ok{background:rgba(12,163,12,.13);color:var(--good)}
+  .st-dead{background:rgba(208,59,59,.14);color:var(--critical)}
+  .st-sat{background:rgba(250,178,25,.18);color:var(--warn-ink)}
+  .st-unknown{background:var(--card-2);color:var(--faint)}
+
   /* ═══ 탭바 ═══ */
   .tabbar{
     flex:0 0 auto;display:flex;background:var(--card);
@@ -311,7 +366,7 @@
   }
   .tab{
     flex:1 1 0;display:flex;flex-direction:column;align-items:center;gap:.12rem;
-    padding:.3rem 0;color:var(--faint);font-size:.62rem;font-weight:500;min-height:44px;
+    padding:.3rem 0;color:var(--faint);font-size:.58rem;font-weight:500;min-height:44px;
   }
   .tab svg{display:block}
   .tab[aria-selected="true"]{color:var(--s1)}
@@ -349,6 +404,9 @@
     <section class="screen on" id="sc-live" role="tabpanel" aria-label="측정">
 
       <!-- 남는 세로 공간을 전부 차지합니다. 발 크기는 화면에 맞춰 자동 조절됩니다. -->
+      <!-- 채널에 문제가 있을 때만 나타납니다 -->
+      <button class="alertbar" id="alertBar" type="button" hidden></button>
+
       <div class="card grow">
         <div class="card-t"><h2>압력 분포</h2><span class="n" id="liveT">대기 중</span></div>
         <div class="foot-heads">
@@ -395,7 +453,49 @@
 
     <!-- 기록 -->
     <section class="screen" id="sc-hist" role="tabpanel" aria-label="기록">
+      <div class="histbar" id="histBar" hidden>
+        <button class="mini" id="exportBtn" type="button">CSV 내보내기</button>
+        <button class="mini danger" id="clearBtn" type="button">전체 삭제</button>
+      </div>
       <div id="histList"></div>
+      <div class="card" id="exportBox" hidden>
+        <div class="card-t"><h2>내보내기</h2><span class="n">엑셀에서 열 수 있습니다</span></div>
+        <p class="hintline">내려받기가 막힌 환경이면 아래 내용을 복사해 쓰세요.</p>
+        <textarea id="exportText" class="exp" readonly rows="6"></textarea>
+        <div class="exp-btns">
+          <button class="mini" id="copyBtn" type="button">복사</button>
+          <button class="mini ghost" id="exportClose" type="button">닫기</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 진단 -->
+    <section class="screen" id="sc-diag" role="tabpanel" aria-label="진단">
+      <div class="card">
+        <div class="card-t"><h2>수신 상태</h2><span class="n">실물 연결 시 여기부터 확인</span></div>
+        <div class="dgrid">
+          <div class="d"><span class="l">데이터</span><span class="v" id="dState">대기</span></div>
+          <div class="d"><span class="l">실제 주기</span><span class="v" id="dHz">–<small>Hz</small></span></div>
+          <div class="d"><span class="l">정상 채널</span><span class="v" id="dOk">–<small>/16</small></span></div>
+          <div class="d"><span class="l">문제 채널</span><span class="v" id="dBad">–</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-t"><h2>영점 보정</h2><span class="n" id="zeroState">설정 안 됨</span></div>
+        <p class="hintline">인솔에 <b>발을 올리지 않은 상태</b>에서 누르세요. 센서마다 다른 무부하 값을 기준으로 잡아 좌우 비교를 정확하게 만듭니다.</p>
+        <div class="exp-btns">
+          <button class="mini" id="zeroBtn" type="button">지금 영점 잡기</button>
+          <button class="mini ghost" id="zeroClear" type="button">해제</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-t"><h2>채널별 원시값</h2><span class="n">0 ~ 1023</span></div>
+        <div class="tw">
+          <table class="ch" id="diagTable"><tbody></tbody></table>
+        </div>
+      </div>
     </section>
 
     <!-- 설정 -->
@@ -445,6 +545,10 @@
     <button class="tab" data-t="hist" role="tab" aria-selected="false" type="button">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5h18M3 12h18M3 18.5h12"/></svg>
       기록
+    </button>
+    <button class="tab" data-t="diag" role="tab" aria-selected="false" type="button">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2-5 4 10 2-5h6"/><circle cx="12" cy="12" r="9.2" opacity=".35"/></svg>
+      진단
     </button>
     <button class="tab" data-t="set" role="tab" aria-selected="false" type="button">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 1.55V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.9 19.3a1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-1.55-1H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.7 8.9a1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.55V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9v0a1.7 1.7 0 0 0 1.55 1H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1Z"/></svg>
@@ -542,6 +646,29 @@ INSOLE.config = (function () {
   /* ── 시계열 창 ────────────────────────────────────────────*/
   var CHART_WINDOW_SEC = 10;
 
+  /* ── 채널 상태 판정 ───────────────────────────────────────
+   * 최근 HEALTH_WINDOW 프레임을 보고 채널이 정상인지 판정합니다.
+   * 30Hz 기준 90프레임 = 3초.
+   *
+   * DEAD_MAX  : 이 값 이하에서만 머물면 '끊김'.
+   *             배선이 빠졌거나 센서가 죽은 경우입니다.
+   * SAT_MIN   : 이 값 이상에서만 머물면 '포화'.
+   *             힘이 측정 범위를 넘어 더 이상 구분이 안 되는 상태입니다.
+   */
+  var HEALTH_WINDOW = 90;
+  var DEAD_MAX = 4;
+  var SAT_MIN  = MAX_RAW - 2;
+
+  /* ── 값 떨림 완화 ─────────────────────────────────────────
+   * 최근 N개의 이동평균을 씁니다. 1이면 필터 없음.
+   * FSR 은 값이 미세하게 계속 떨리므로 3~5 정도가 적당합니다.
+   */
+  var SMOOTH_N = 3;
+
+  /* ── 저장 ─────────────────────────────────────────────────*/
+  var STORAGE_KEY = "insole.records.v1";
+  var MAX_RECORDS = 50;
+
   return {
     FOOT_W: FOOT_W, FOOT_H: FOOT_H,
     SENSORS: SENSORS,
@@ -551,6 +678,9 @@ INSOLE.config = (function () {
     RAMP_LIGHT: RAMP_LIGHT, RAMP_DARK: RAMP_DARK,
     GRID_W: GRID_W, GRID_H: GRID_H,
     CHART_WINDOW_SEC: CHART_WINDOW_SEC,
+    HEALTH_WINDOW: HEALTH_WINDOW, DEAD_MAX: DEAD_MAX, SAT_MIN: SAT_MIN,
+    SMOOTH_N: SMOOTH_N,
+    STORAGE_KEY: STORAGE_KEY, MAX_RECORDS: MAX_RECORDS,
     /* 발당 채널이 전부 최대일 때의 합. 게이지 상한으로 씁니다. */
     footMax: function () { return CHANNELS * MAX_RAW; }
   };
@@ -637,6 +767,11 @@ INSOLE.sensor = (function () {
     /* 한 주기가 끝나면 1회로 셉니다. */
     if (scenario !== "stand" && lastPhase > 0.75 && phase < 0.25) reps++;
     lastPhase = phase;
+
+    /* 새 데이터가 들어온 시점을 기록합니다.
+     * 실제 BLE 를 붙일 때도 패킷 수신 핸들러에서 이 줄을 호출하세요.
+     * 화면 갱신 루프에서 부르면 데이터가 끊겨도 정상으로 보입니다. */
+    if (INSOLE.health) INSOLE.health.markFrame();
   }
 
   return {
@@ -679,6 +814,7 @@ INSOLE.sensor = (function () {
      *         values.L[i] = dv.getUint16(2 + i * 2, true);       // little endian
      *         values.R[i] = dv.getUint16(2 + (i + 8) * 2, true);
      *       }
+     *       INSOLE.health.markFrame();   // ← 수신 주기 측정. 빠뜨리지 마세요
      *     });
      *   }
      * ──────────────────────────────────────────────────────── */
@@ -1132,6 +1268,8 @@ INSOLE.report = (function () {
 
   var running = false, rafId = null, t0 = 0, lastFrame = 0, elapsed = 0;
   var history = [], session = null, records = [], nextId = 1;
+  /* 화면에 쓰는 값. 원시값에서 영점을 빼고 떨림을 완화한 결과입니다. */
+  var shown = { L: new Array(C.CHANNELS).fill(0), R: new Array(C.CHANNELS).fill(0) };
 
   var $ = function (id) { return document.getElementById(id); };
   var pct = function (x) { return Math.round(x * 100); };
@@ -1150,7 +1288,7 @@ INSOLE.report = (function () {
   }
 
   function renderLive() {
-    var v = S.read();
+    var v = shown;
     var total = M.sum(v.L) + M.sum(v.R);
     var lr = M.leftRightRatio(v);
     var ap = M.foreAftAverage(v);
@@ -1179,7 +1317,12 @@ INSOLE.report = (function () {
        *   BLE 알림이 INSOLE.sensor.values 를 직접 갱신합니다. */
       S.step(elapsed);
 
-      var v = S.read();
+      var raw = S.read();
+      INSOLE.health.push(raw);
+      /* 영점 보정 + 떨림 완화를 거친 값을 화면에 씁니다. */
+      shown = INSOLE.health.corrected(raw);
+
+      var v = shown;
       var tl = M.sum(v.L), tr = M.sum(v.R);
       history.push({ t: elapsed, l: tl, r: tr });
       if (history.length > 900) history.shift();
@@ -1197,6 +1340,7 @@ INSOLE.report = (function () {
       INSOLE.heatmap.draw($("footR"), "R", v);
       INSOLE.chart.draw(history);
       renderLive();
+      renderHealth();
     }
     rafId = requestAnimationFrame(frame);
   }
@@ -1204,6 +1348,9 @@ INSOLE.report = (function () {
   function start() {
     running = true; t0 = 0; lastFrame = 0; history = [];
     S.resetReps();
+    INSOLE.health.reset();
+    /* 측정 중 화면이 꺼지면 아무 소용이 없습니다. */
+    INSOLE.wakelock.acquire();
     session = { lr: [], ap: [], cop: [] };
     $("recBtn").classList.add("on");
     $("recTxt").textContent = "측정 정지";
@@ -1214,6 +1361,7 @@ INSOLE.report = (function () {
   function stop() {
     running = false;
     if (rafId) cancelAnimationFrame(rafId);
+    INSOLE.wakelock.release();
     $("recBtn").classList.remove("on");
     $("recTxt").textContent = "측정 시작";
     $("recBtn").querySelector("span").className = "ci";
@@ -1221,7 +1369,7 @@ INSOLE.report = (function () {
     /* 너무 짧은 세션은 통계가 무의미하므로 버립니다. */
     if (session && session.lr.length >= 10) {
       var now = new Date();
-      var v = S.read();
+      var v = shown;
       var rec = INSOLE.report.build(session, {
         id: nextId++,
         scenario: S.labelOf(S.getScenario()),
@@ -1231,6 +1379,8 @@ INSOLE.report = (function () {
         snapshot: v
       });
       records.unshift(rec);
+      if (records.length > C.MAX_RECORDS) records.length = C.MAX_RECORDS;
+      INSOLE.storage.save(records);
       renderHistory();
       openReport(rec);
     }
@@ -1277,6 +1427,7 @@ INSOLE.report = (function () {
   /* ── 기록 목록 ────────────────────────────────────────────*/
   function renderHistory() {
     var el = $("histList");
+    $("histBar").hidden = !records.length;
     if (!records.length) {
       el.innerHTML = '<div class="empty"><b>기록이 없습니다</b>' +
                      '측정 탭에서 세트를 진행하면<br>여기에 자동으로 저장됩니다.</div>';
@@ -1292,6 +1443,65 @@ INSOLE.report = (function () {
     }).join("");
   }
 
+  /* ── 진단 화면 ────────────────────────────────────────────*/
+  var STATE_LABEL = { ok: "정상", dead: "끊김", sat: "포화", unknown: "확인 중" };
+
+  function renderHealth() {
+    var sum = INSOLE.health.summary();
+
+    /* 문제가 있을 때만 측정 화면에 경고 줄을 띄웁니다.
+     * 항상 띄우면 아무도 보지 않게 됩니다. */
+    var bar = $("alertBar");
+    if (sum.problems.length) {
+      var dead = sum.problems.filter(function (p) { return p.state === "dead"; }).length;
+      var sat  = sum.problems.length - dead;
+      var parts = [];
+      if (dead) parts.push("끊김 " + dead + "개");
+      if (sat)  parts.push("포화 " + sat + "개");
+      bar.innerHTML = '<b>채널 이상</b> ' + parts.join(" · ") +
+                      '<span class="go">진단 보기 ›</span>';
+      bar.hidden = false;
+    } else {
+      bar.hidden = true;
+    }
+
+    /* 진단 탭이 보일 때만 표를 그립니다. 30Hz 로 항상 그리면 낭비입니다. */
+    if (!$("sc-diag").classList.contains("on")) return;
+
+    var hz = INSOLE.health.actualHz();
+    var live = INSOLE.health.isLive();
+    /* 측정 중인데 데이터가 안 오면 '끊김'. 이게 진단의 핵심입니다. */
+    var st = !running ? "대기" : (live ? "수신 중" : "끊김");
+    var dEl = $("dState");
+    dEl.textContent = st;
+    dEl.className = "v " + (st === "끊김" ? "bad" : st === "수신 중" ? "good" : "");
+    $("dHz").innerHTML = (hz ? hz.toFixed(1) : "–") + '<small>Hz</small>';
+    $("dOk").innerHTML = sum.ok + '<small>/' + (C.CHANNELS * 2) + '</small>';
+    var bad = $("dBad");
+    bad.textContent = sum.problems.length ? String(sum.problems.length) : "0";
+    bad.className = "v " + (sum.problems.length ? "bad" : "good");
+
+    var html = "";
+    ["L", "R"].forEach(function (side) {
+      for (var i = 0; i < C.CHANNELS; i++) {
+        var n = side === "L" ? i + 1 : i + 1 + C.CHANNELS;
+        var val = shown[side][i];
+        var st = INSOLE.health.channelState(side, i);
+        html += '<tr><td class="n">ch' + n + '</td><td>' +
+                (side === "L" ? "왼" : "오른") + '·' + C.SENSORS[i].name + '</td>' +
+                '<td class="n">' + val + '</td>' +
+                '<td style="width:26%"><span class="bar' + (side === "R" ? " r" : "") +
+                '" style="width:' + (val / C.MAX_RAW * 100) + '%"></span></td>' +
+                '<td><span class="st st-' + st + '">' + STATE_LABEL[st] + '</span></td></tr>';
+      }
+    });
+    $("diagTable").querySelector("tbody").innerHTML = html;
+  }
+
+  function renderZeroState() {
+    $("zeroState").textContent = INSOLE.health.hasZero() ? "적용 중" : "설정 안 됨";
+  }
+
   /* ── 시나리오 목록 (시연 전용) ────────────────────────────*/
   function renderScenarios() {
     $("scenList").innerHTML = S.SCENARIOS.map(function (s) {
@@ -1302,7 +1512,7 @@ INSOLE.report = (function () {
   }
 
   /* ── 배선 ─────────────────────────────────────────────────*/
-  var TITLES = { live: "측정", hist: "기록", set: "설정" };
+  var TITLES = { live: "측정", hist: "기록", diag: "진단", set: "설정" };
 
   function wire() {
     $("recBtn").addEventListener("click", function () { running ? stop() : start(); });
@@ -1315,7 +1525,7 @@ INSOLE.report = (function () {
       Array.prototype.forEach.call(this.querySelectorAll(".tab"), function (t) {
         t.setAttribute("aria-selected", String(t === btn));
       });
-      ["live", "hist", "set"].forEach(function (s) {
+      ["live", "hist", "diag", "set"].forEach(function (s) {
         $("sc-" + s).classList.toggle("on", s === key);
       });
       $("screenTitle").textContent = TITLES[key];
@@ -1324,6 +1534,7 @@ INSOLE.report = (function () {
       if (key === "live") requestAnimationFrame(function () {
         INSOLE.chart.resize(); INSOLE.chart.draw(history);
       });
+      if (key === "diag") renderHealth();
     });
 
     $("histList").addEventListener("click", function (e) {
@@ -1333,6 +1544,48 @@ INSOLE.report = (function () {
       for (var i = 0; i < records.length; i++) {
         if (records[i].id === id) { openReport(records[i]); return; }
       }
+    });
+
+    /* 경고 줄을 누르면 진단 탭으로 이동 */
+    $("alertBar").addEventListener("click", function () {
+      var t = document.querySelector('.tabbar button[data-t="diag"]');
+      if (t) t.click();
+    });
+
+    $("zeroBtn").addEventListener("click", function () {
+      INSOLE.health.captureZero(S.read());
+      renderZeroState();
+      renderHealth();
+    });
+    $("zeroClear").addEventListener("click", function () {
+      INSOLE.health.clearZero();
+      renderZeroState();
+      renderHealth();
+    });
+
+    $("exportBtn").addEventListener("click", function () {
+      var csv = INSOLE.storage.toCSV(records);
+      $("exportText").value = csv;
+      $("exportBox").hidden = false;
+      /* 되는 환경에서는 바로 파일로 내려받고, 막힌 곳에서는 위 상자를 씁니다. */
+      INSOLE.storage.download(csv, "insole-records.csv");
+      $("exportBox").scrollIntoView({ block: "nearest" });
+    });
+    $("copyBtn").addEventListener("click", function () {
+      var btn = this;
+      Promise.resolve(INSOLE.storage.copy($("exportText").value)).then(function () {
+        btn.textContent = "복사됨";
+        setTimeout(function () { btn.textContent = "복사"; }, 1500);
+      });
+    });
+    $("exportClose").addEventListener("click", function () { $("exportBox").hidden = true; });
+
+    $("clearBtn").addEventListener("click", function () {
+      if (!window.confirm("저장된 기록을 모두 지웁니다. 되돌릴 수 없습니다.")) return;
+      records = [];
+      INSOLE.storage.clear();
+      $("exportBox").hidden = true;
+      renderHistory();
     });
 
     $("scenList").addEventListener("click", function (e) {
@@ -1356,6 +1609,11 @@ INSOLE.report = (function () {
   }
 
   function boot() {
+    /* 지난번에 저장해 둔 기록을 되살립니다. */
+    records = INSOLE.storage.load();
+    records.forEach(function (r) { if (r.id >= nextId) nextId = r.id + 1; });
+    INSOLE.health.loadZero();
+
     paintRamp();
     INSOLE.chart.attach($("chart"));
     wire();
@@ -1364,20 +1622,21 @@ INSOLE.report = (function () {
     tickClock();
     setInterval(tickClock, 20000);
 
-    var v = S.read();
-    INSOLE.heatmap.draw($("footL"), "L", v);
-    INSOLE.heatmap.draw($("footR"), "R", v);
+    shown = S.read();
+    INSOLE.heatmap.draw($("footL"), "L", shown);
+    INSOLE.heatmap.draw($("footR"), "R", shown);
     INSOLE.chart.draw(history);
     renderLive();
+    renderZeroState();
+    renderHealth();
   }
 
   /* 테마가 바뀌면 램프를 다시 만들고 캔버스를 다시 그립니다.
    * 캔버스는 CSS 변수를 자동으로 따라가지 않기 때문입니다. */
   function onThemeChange() {
     paintRamp();
-    var v = S.read();
-    INSOLE.heatmap.draw($("footL"), "L", v);
-    INSOLE.heatmap.draw($("footR"), "R", v);
+    INSOLE.heatmap.draw($("footL"), "L", shown);
+    INSOLE.heatmap.draw($("footR"), "R", shown);
     INSOLE.chart.draw(history);
   }
   var mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -1397,6 +1656,365 @@ INSOLE.report = (function () {
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
+})();
+
+/* ============================================================
+ * 08-health.js — 채널 상태 진단
+ *
+ * 실물 센서를 붙이면 채널 하나가 죽거나 포화되는 일이 흔합니다.
+ * 히트맵만 봐서는 알아채기 어려우므로 여기서 판정해 알려줍니다.
+ *
+ * 부가로 영점 보정과 값 떨림 완화도 담당합니다.
+ * ============================================================ */
+var INSOLE = window.INSOLE || {};
+
+INSOLE.health = (function () {
+  "use strict";
+  var C = INSOLE.config;
+
+  /* 채널별 최근값 링버퍼. [side][ch] = [값, 값, ...] */
+  var win = { L: [], R: [] };
+  /* 영점: 발을 올리기 전 기준값. 빼고 나서 화면에 씁니다. */
+  var zero = { L: null, R: null };
+  /* 떨림 완화용 최근값 */
+  var smooth = { L: [], R: [] };
+
+  function init() {
+    ["L", "R"].forEach(function (s) {
+      win[s] = []; smooth[s] = [];
+      for (var i = 0; i < C.CHANNELS; i++) { win[s].push([]); smooth[s].push([]); }
+    });
+  }
+  init();
+
+  /**
+   * 수신한 원시값을 앱이 쓸 수 있게 정리합니다.
+   * DATA_CONTRACT 에서 0xFFFF 는 채널 미연결/오류로 약속했습니다.
+   * 그대로 두면 65535 가 히트맵과 합계를 전부 망가뜨립니다.
+   */
+  var ERR_VALUE = 0xFFFF;
+  function sanitize(values) {
+    ["L", "R"].forEach(function (side) {
+      for (var i = 0; i < C.CHANNELS; i++) {
+        var v = values[side][i];
+        if (v === ERR_VALUE || v > C.MAX_RAW || v < 0 || typeof v !== "number" || isNaN(v)) {
+          values[side][i] = 0;   /* 0 이면 창 판정에서 '끊김' 으로 잡힙니다 */
+        }
+      }
+    });
+    return values;
+  }
+
+  /** 매 프레임 호출. 원시값을 받아 창에 쌓습니다. */
+  function push(values) {
+    sanitize(values);
+    ["L", "R"].forEach(function (side) {
+      for (var i = 0; i < C.CHANNELS; i++) {
+        var w = win[side][i];
+        w.push(values[side][i]);
+        if (w.length > C.HEALTH_WINDOW) w.shift();
+      }
+    });
+  }
+
+  /**
+   * 채널 하나의 상태.
+   * @returns {"ok"|"dead"|"sat"|"unknown"}
+   */
+  function channelState(side, i) {
+    var w = win[side][i];
+    /* 창이 덜 찼으면 판단하지 않습니다. 성급한 경고는 혼란만 줍니다. */
+    if (w.length < Math.min(30, C.HEALTH_WINDOW)) return "unknown";
+    var mx = -1, mn = C.MAX_RAW + 1;
+    for (var k = 0; k < w.length; k++) {
+      if (w[k] > mx) mx = w[k];
+      if (w[k] < mn) mn = w[k];
+    }
+    if (mx <= C.DEAD_MAX) return "dead";
+    if (mn >= C.SAT_MIN)  return "sat";
+    return "ok";
+  }
+
+  /** 전체 요약. { ok, dead, sat, unknown, problems: [{side,ch,state}] } */
+  function summary() {
+    var out = { ok: 0, dead: 0, sat: 0, unknown: 0, problems: [] };
+    ["L", "R"].forEach(function (side) {
+      for (var i = 0; i < C.CHANNELS; i++) {
+        var st = channelState(side, i);
+        out[st]++;
+        if (st === "dead" || st === "sat") out.problems.push({ side: side, ch: i, state: st });
+      }
+    });
+    return out;
+  }
+
+  /* ── 수신 주기와 연결 상태 ────────────────────────────────
+   * 데이터가 끊겼는데 "30Hz 수신 중"이라고 표시하면 진단 화면이
+   * 무의미해집니다. 반드시 마지막 수신 시각을 함께 봐야 합니다.
+   */
+  var stamps = [], lastStamp = 0;
+  var STALE_MS = 1000;   /* 이만큼 소식이 없으면 끊긴 것으로 봅니다 */
+
+  function now() {
+    return (window.performance && performance.now) ? performance.now() : Date.now();
+  }
+  function markFrame() {
+    var t = now();
+    lastStamp = t;
+    stamps.push(t);
+    if (stamps.length > 40) stamps.shift();
+  }
+  /** 마지막 수신 이후 지난 시간(ms). 한 번도 못 받았으면 Infinity. */
+  function sinceLast() {
+    return lastStamp ? (now() - lastStamp) : Infinity;
+  }
+  /** 데이터가 살아 있는가. */
+  function isLive() { return sinceLast() < STALE_MS; }
+
+  function actualHz() {
+    /* 끊겼으면 과거 평균을 돌려주면 안 됩니다. */
+    if (!isLive()) return 0;
+    if (stamps.length < 5) return 0;
+    var span = stamps[stamps.length - 1] - stamps[0];
+    if (span <= 0) return 0;
+    return (stamps.length - 1) / (span / 1000);
+  }
+
+  /* ── 영점 보정 ────────────────────────────────────────────
+   * 발을 올리지 않은 상태에서 잡습니다. 센서마다 무부하 값이
+   * 조금씩 달라서, 이걸 빼줘야 좌우 비교가 정확해집니다.
+   */
+  /**
+   * 영점을 잡습니다.
+   * 한 프레임만 쓰면 하필 값이 튄 순간에 걸려 기준선이 틀어지므로,
+   * 최근 창의 평균을 씁니다. 창이 비어 있으면 현재값으로 대체합니다.
+   */
+  function captureZero(values) {
+    ["L", "R"].forEach(function (side) {
+      var base = [];
+      for (var i = 0; i < C.CHANNELS; i++) {
+        var w = win[side][i];
+        if (w.length >= 5) {
+          var sum = 0;
+          for (var k = 0; k < w.length; k++) sum += w[k];
+          base.push(Math.round(sum / w.length));
+        } else {
+          base.push(values[side][i]);
+        }
+      }
+      zero[side] = base;
+    });
+    /* 이전 값이 남아 있으면 보정 직후 값이 0 으로 안 내려옵니다. */
+    clearSmooth();
+    saveZero();
+  }
+  function clearZero() { zero.L = null; zero.R = null; clearSmooth(); saveZero(); }
+  function clearSmooth() {
+    ["L", "R"].forEach(function (side) {
+      for (var i = 0; i < C.CHANNELS; i++) smooth[side][i] = [];
+    });
+  }
+  function hasZero() { return zero.L !== null; }
+
+  /** 영점을 빼고 떨림을 완화한 값. 화면에는 이 값을 씁니다. */
+  function corrected(values) {
+    var out = { L: [], R: [] };
+    ["L", "R"].forEach(function (side) {
+      for (var i = 0; i < C.CHANNELS; i++) {
+        var v = values[side][i];
+        if (zero[side]) v = Math.max(0, v - zero[side][i]);
+
+        var sm = smooth[side][i];
+        sm.push(v);
+        if (sm.length > C.SMOOTH_N) sm.shift();
+        var sum = 0;
+        for (var k = 0; k < sm.length; k++) sum += sm[k];
+        out[side][i] = Math.round(sum / sm.length);
+      }
+    });
+    return out;
+  }
+
+  /* 영점을 저장해 두면 앱을 껐다 켜도 다시 잡을 필요가 없습니다. */
+  var ZKEY = "insole.zero.v1";
+  function saveZero() {
+    try {
+      if (zero.L) localStorage.setItem(ZKEY, JSON.stringify(zero));
+      else localStorage.removeItem(ZKEY);
+    } catch (e) {}
+  }
+  function loadZero() {
+    try {
+      var raw = localStorage.getItem(ZKEY);
+      if (!raw) return;
+      var z = JSON.parse(raw);
+      if (z && Array.isArray(z.L) && z.L.length === C.CHANNELS) { zero.L = z.L; zero.R = z.R; }
+    } catch (e) {}
+  }
+
+  function reset() { init(); stamps = []; lastStamp = 0; }
+
+  return {
+    push: push, sanitize: sanitize,
+    channelState: channelState, summary: summary,
+    markFrame: markFrame, actualHz: actualHz, isLive: isLive, sinceLast: sinceLast,
+    captureZero: captureZero, clearZero: clearZero, hasZero: hasZero, loadZero: loadZero,
+    corrected: corrected, reset: reset
+  };
+})();
+
+/* ============================================================
+ * 09-storage.js — 기록 저장과 내보내기
+ *
+ * 저장은 브라우저(localStorage)에 합니다. 서버가 없으므로
+ * 이 휴대폰 안에만 남고 다른 기기로는 넘어가지 않습니다.
+ * 실제 제품은 사업 정의서 6단계의 DB 가 이 자리를 대신합니다.
+ * ============================================================ */
+var INSOLE = window.INSOLE || {};
+
+INSOLE.storage = (function () {
+  "use strict";
+  var C = INSOLE.config;
+
+  /* 저장이 막힌 환경(사생활 보호 모드 등)에서도 앱이 죽지 않도록
+   * 모든 접근을 try/catch 로 감쌉니다. */
+  function load() {
+    try {
+      var raw = localStorage.getItem(C.STORAGE_KEY);
+      if (!raw) return [];
+      var arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
+  }
+
+  function save(records) {
+    try {
+      /* 오래된 것부터 버립니다. 용량 한도를 넘으면 저장 자체가 실패합니다. */
+      var trimmed = records.slice(0, C.MAX_RECORDS);
+      localStorage.setItem(C.STORAGE_KEY, JSON.stringify(trimmed));
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function clear() {
+    try { localStorage.removeItem(C.STORAGE_KEY); return true; }
+    catch (e) { return false; }
+  }
+
+  function available() {
+    try {
+      var k = "__t";
+      localStorage.setItem(k, "1"); localStorage.removeItem(k);
+      return true;
+    } catch (e) { return false; }
+  }
+
+  /* ── 내보내기 ─────────────────────────────────────────────
+   * 엑셀에서 바로 열리도록 CSV 로 만듭니다.
+   * 한글이 깨지지 않게 BOM 을 붙입니다.
+   */
+  function toCSV(records) {
+    var head = ["측정시각","시나리오","측정시간(초)","반복(회)",
+                "좌우비율","최대편차(%p)","전후비율","COP이동폭(mm)","판정"];
+    for (var i = 1; i <= C.CHANNELS * 2; i++) head.push("ch" + i);
+
+    var rows = [head];
+    records.forEach(function (r) {
+      var row = [r.time, r.scenario, r.duration, r.reps,
+                 r.lrText, r.maxDev, r.apText, r.copRange, r.judge.title];
+      ["L", "R"].forEach(function (s) {
+        for (var i = 0; i < C.CHANNELS; i++) row.push(r.snapshot[s][i]);
+      });
+      rows.push(row);
+    });
+
+    return rows.map(function (r) {
+      return r.map(function (cell) {
+        var v = String(cell == null ? "" : cell);
+        /* 쉼표나 따옴표가 들어 있으면 감싸줍니다. */
+        return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+      }).join(",");
+    }).join("\n");
+  }
+
+  /** 파일로 내려받기. 일부 환경(아티팩트 뷰어)에서는 막혀 있습니다. */
+  function download(text, filename) {
+    try {
+      var blob = new Blob(["﻿" + text], { type: "text/csv;charset=utf-8" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click();
+      setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+      return true;
+    } catch (e) { return false; }
+  }
+
+  /** 클립보드 복사. 내려받기가 막힌 곳에서 쓰는 대안입니다. */
+  function copy(text) {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text);
+      }
+    } catch (e) {}
+    /* 구형 대체 경로 */
+    try {
+      var ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      return Promise.resolve();
+    } catch (e) { return Promise.reject(e); }
+  }
+
+  return { load: load, save: save, clear: clear, available: available,
+           toCSV: toCSV, download: download, copy: copy };
+})();
+
+/* ============================================================
+ * 10-wakelock.js — 측정 중 화면 꺼짐 방지
+ *
+ * 운동 중에는 화면을 계속 켜둬야 합니다. 기본 상태로는
+ * 30초쯤 지나면 화면이 꺼져서 측정을 볼 수 없습니다.
+ *
+ * iOS 는 16.4 부터, 안드로이드 크롬은 오래전부터 지원합니다.
+ * 지원하지 않는 기기에서는 조용히 아무 일도 하지 않습니다.
+ * ============================================================ */
+var INSOLE = window.INSOLE || {};
+
+INSOLE.wakelock = (function () {
+  "use strict";
+  var lock = null, wanted = false;
+
+  function supported() {
+    return !!(navigator.wakeLock && navigator.wakeLock.request);
+  }
+
+  function acquire() {
+    wanted = true;
+    if (!supported()) return Promise.resolve(false);
+    return navigator.wakeLock.request("screen").then(function (l) {
+      lock = l;
+      /* 사용자가 다른 앱에 갔다 오면 잠금이 풀립니다. */
+      lock.addEventListener("release", function () { lock = null; });
+      return true;
+    }).catch(function () { return false; });
+  }
+
+  function release() {
+    wanted = false;
+    if (lock) { try { lock.release(); } catch (e) {} lock = null; }
+  }
+
+  /* 앱으로 돌아왔을 때 다시 잠급니다. 이걸 안 하면
+   * 알림 하나 확인하고 온 사이에 화면이 꺼져버립니다. */
+  document.addEventListener("visibilitychange", function () {
+    if (wanted && document.visibilityState === "visible" && !lock) acquire();
+  });
+
+  return { supported: supported, acquire: acquire, release: release,
+           isHeld: function () { return !!lock; } };
 })();
 
 </script>

@@ -84,6 +84,29 @@ INSOLE.config = (function () {
   /* ── 시계열 창 ────────────────────────────────────────────*/
   var CHART_WINDOW_SEC = 10;
 
+  /* ── 채널 상태 판정 ───────────────────────────────────────
+   * 최근 HEALTH_WINDOW 프레임을 보고 채널이 정상인지 판정합니다.
+   * 30Hz 기준 90프레임 = 3초.
+   *
+   * DEAD_MAX  : 이 값 이하에서만 머물면 '끊김'.
+   *             배선이 빠졌거나 센서가 죽은 경우입니다.
+   * SAT_MIN   : 이 값 이상에서만 머물면 '포화'.
+   *             힘이 측정 범위를 넘어 더 이상 구분이 안 되는 상태입니다.
+   */
+  var HEALTH_WINDOW = 90;
+  var DEAD_MAX = 4;
+  var SAT_MIN  = MAX_RAW - 2;
+
+  /* ── 값 떨림 완화 ─────────────────────────────────────────
+   * 최근 N개의 이동평균을 씁니다. 1이면 필터 없음.
+   * FSR 은 값이 미세하게 계속 떨리므로 3~5 정도가 적당합니다.
+   */
+  var SMOOTH_N = 3;
+
+  /* ── 저장 ─────────────────────────────────────────────────*/
+  var STORAGE_KEY = "insole.records.v1";
+  var MAX_RECORDS = 50;
+
   return {
     FOOT_W: FOOT_W, FOOT_H: FOOT_H,
     SENSORS: SENSORS,
@@ -93,6 +116,9 @@ INSOLE.config = (function () {
     RAMP_LIGHT: RAMP_LIGHT, RAMP_DARK: RAMP_DARK,
     GRID_W: GRID_W, GRID_H: GRID_H,
     CHART_WINDOW_SEC: CHART_WINDOW_SEC,
+    HEALTH_WINDOW: HEALTH_WINDOW, DEAD_MAX: DEAD_MAX, SAT_MIN: SAT_MIN,
+    SMOOTH_N: SMOOTH_N,
+    STORAGE_KEY: STORAGE_KEY, MAX_RECORDS: MAX_RECORDS,
     /* 발당 채널이 전부 최대일 때의 합. 게이지 상한으로 씁니다. */
     footMax: function () { return CHANNELS * MAX_RAW; }
   };

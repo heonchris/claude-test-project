@@ -79,6 +79,11 @@ INSOLE.sensor = (function () {
     /* 한 주기가 끝나면 1회로 셉니다. */
     if (scenario !== "stand" && lastPhase > 0.75 && phase < 0.25) reps++;
     lastPhase = phase;
+
+    /* 새 데이터가 들어온 시점을 기록합니다.
+     * 실제 BLE 를 붙일 때도 패킷 수신 핸들러에서 이 줄을 호출하세요.
+     * 화면 갱신 루프에서 부르면 데이터가 끊겨도 정상으로 보입니다. */
+    if (INSOLE.health) INSOLE.health.markFrame();
   }
 
   return {
@@ -121,6 +126,7 @@ INSOLE.sensor = (function () {
      *         values.L[i] = dv.getUint16(2 + i * 2, true);       // little endian
      *         values.R[i] = dv.getUint16(2 + (i + 8) * 2, true);
      *       }
+     *       INSOLE.health.markFrame();   // ← 수신 주기 측정. 빠뜨리지 마세요
      *     });
      *   }
      * ──────────────────────────────────────────────────────── */

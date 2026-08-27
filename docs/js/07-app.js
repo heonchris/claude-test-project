@@ -10,6 +10,8 @@
 
   var running = false, rafId = null, t0 = 0, lastFrame = 0, elapsed = 0;
   var history = [], session = null, records = [], nextId = 1;
+  /* 화면에 쓰는 값. 원시값에서 영점을 빼고 떨림을 완화한 결과입니다. */
+  var shown = { L: new Array(C.CHANNELS).fill(0), R: new Array(C.CHANNELS).fill(0) };
 
   var $ = function (id) { return document.getElementById(id); };
   var pct = function (x) { return Math.round(x * 100); };
@@ -28,7 +30,7 @@
   }
 
   function renderLive() {
-    var v = S.read();
+    var v = shown;
     var total = M.sum(v.L) + M.sum(v.R);
     var lr = M.leftRightRatio(v);
     var ap = M.foreAftAverage(v);
@@ -57,7 +59,12 @@
        *   BLE 알림이 INSOLE.sensor.values 를 직접 갱신합니다. */
       S.step(elapsed);
 
-      var v = S.read();
+      var raw = S.read();
+      INSOLE.health.push(raw);
+      /* 영점 보정 + 떨림 완화를 거친 값을 화면에 씁니다. */
+      shown = INSOLE.health.corrected(raw);
+
+      var v = shown;
       var tl = M.sum(v.L), tr = M.sum(v.R);
       history.push({ t: elapsed, l: tl, r: tr });
       if (history.length > 900) history.shift();
@@ -75,6 +82,7 @@
       INSOLE.heatmap.draw($("footR"), "R", v);
       INSOLE.chart.draw(history);
       renderLive();
+      renderHealth();
     }
     rafId = requestAnimationFrame(frame);
   }
@@ -82,6 +90,9 @@
   function start() {
     running = true; t0 = 0; lastFrame = 0; history = [];
     S.resetReps();
+    INSOLE.health.reset();
+    /* 측정 중 화면이 꺼지면 아무 소용이 없습니다. */
+    INSOLE.wakelock.acquire();
     session = { lr: [], ap: [], cop: [] };
     $("recBtn").classList.add("on");
     $("recTxt").textContent = "측정 정지";
@@ -92,6 +103,7 @@
   function stop() {
     running = false;
     if (rafId) cancelAnimationFrame(rafId);
+    INSOLE.wakelock.release();
     $("recBtn").classList.remove("on");
     $("recTxt").textContent = "측정 시작";
     $("recBtn").querySelector("span").className = "ci";
@@ -99,7 +111,7 @@
     /* 너무 짧은 세션은 통계가 무의미하므로 버립니다. */
     if (session && session.lr.length >= 10) {
       var now = new Date();
-      var v = S.read();
+      var v = shown;
       var rec = INSOLE.report.build(session, {
         id: nextId++,
         scenario: S.labelOf(S.getScenario()),
@@ -109,6 +121,8 @@
         snapshot: v
       });
       records.unshift(rec);
+      if (records.length > C.MAX_RECORDS) records.length = C.MAX_RECORDS;
+      INSOLE.storage.save(records);
       renderHistory();
       openReport(rec);
     }
@@ -155,6 +169,7 @@
   /* ── 기록 목록 ────────────────────────────────────────────*/
   function renderHistory() {
     var el = $("histList");
+    $("histBar").hidden = !records.length;
     if (!records.length) {
       el.innerHTML = '<div class="empty"><b>기록이 없습니다</b>' +
                      '측정 탭에서 세트를 진행하면<br>여기에 자동으로 저장됩니다.</div>';
@@ -170,6 +185,65 @@
     }).join("");
   }
 
+  /* ── 진단 화면 ────────────────────────────────────────────*/
+  var STATE_LABEL = { ok: "정상", dead: "끊김", sat: "포화", unknown: "확인 중" };
+
+  function renderHealth() {
+    var sum = INSOLE.health.summary();
+
+    /* 문제가 있을 때만 측정 화면에 경고 줄을 띄웁니다.
+     * 항상 띄우면 아무도 보지 않게 됩니다. */
+    var bar = $("alertBar");
+    if (sum.problems.length) {
+      var dead = sum.problems.filter(function (p) { return p.state === "dead"; }).length;
+      var sat  = sum.problems.length - dead;
+      var parts = [];
+      if (dead) parts.push("끊김 " + dead + "개");
+      if (sat)  parts.push("포화 " + sat + "개");
+      bar.innerHTML = '<b>채널 이상</b> ' + parts.join(" · ") +
+                      '<span class="go">진단 보기 ›</span>';
+      bar.hidden = false;
+    } else {
+      bar.hidden = true;
+    }
+
+    /* 진단 탭이 보일 때만 표를 그립니다. 30Hz 로 항상 그리면 낭비입니다. */
+    if (!$("sc-diag").classList.contains("on")) return;
+
+    var hz = INSOLE.health.actualHz();
+    var live = INSOLE.health.isLive();
+    /* 측정 중인데 데이터가 안 오면 '끊김'. 이게 진단의 핵심입니다. */
+    var st = !running ? "대기" : (live ? "수신 중" : "끊김");
+    var dEl = $("dState");
+    dEl.textContent = st;
+    dEl.className = "v " + (st === "끊김" ? "bad" : st === "수신 중" ? "good" : "");
+    $("dHz").innerHTML = (hz ? hz.toFixed(1) : "–") + '<small>Hz</small>';
+    $("dOk").innerHTML = sum.ok + '<small>/' + (C.CHANNELS * 2) + '</small>';
+    var bad = $("dBad");
+    bad.textContent = sum.problems.length ? String(sum.problems.length) : "0";
+    bad.className = "v " + (sum.problems.length ? "bad" : "good");
+
+    var html = "";
+    ["L", "R"].forEach(function (side) {
+      for (var i = 0; i < C.CHANNELS; i++) {
+        var n = side === "L" ? i + 1 : i + 1 + C.CHANNELS;
+        var val = shown[side][i];
+        var st = INSOLE.health.channelState(side, i);
+        html += '<tr><td class="n">ch' + n + '</td><td>' +
+                (side === "L" ? "왼" : "오른") + '·' + C.SENSORS[i].name + '</td>' +
+                '<td class="n">' + val + '</td>' +
+                '<td style="width:26%"><span class="bar' + (side === "R" ? " r" : "") +
+                '" style="width:' + (val / C.MAX_RAW * 100) + '%"></span></td>' +
+                '<td><span class="st st-' + st + '">' + STATE_LABEL[st] + '</span></td></tr>';
+      }
+    });
+    $("diagTable").querySelector("tbody").innerHTML = html;
+  }
+
+  function renderZeroState() {
+    $("zeroState").textContent = INSOLE.health.hasZero() ? "적용 중" : "설정 안 됨";
+  }
+
   /* ── 시나리오 목록 (시연 전용) ────────────────────────────*/
   function renderScenarios() {
     $("scenList").innerHTML = S.SCENARIOS.map(function (s) {
@@ -180,7 +254,7 @@
   }
 
   /* ── 배선 ─────────────────────────────────────────────────*/
-  var TITLES = { live: "측정", hist: "기록", set: "설정" };
+  var TITLES = { live: "측정", hist: "기록", diag: "진단", set: "설정" };
 
   function wire() {
     $("recBtn").addEventListener("click", function () { running ? stop() : start(); });
@@ -193,7 +267,7 @@
       Array.prototype.forEach.call(this.querySelectorAll(".tab"), function (t) {
         t.setAttribute("aria-selected", String(t === btn));
       });
-      ["live", "hist", "set"].forEach(function (s) {
+      ["live", "hist", "diag", "set"].forEach(function (s) {
         $("sc-" + s).classList.toggle("on", s === key);
       });
       $("screenTitle").textContent = TITLES[key];
@@ -202,6 +276,7 @@
       if (key === "live") requestAnimationFrame(function () {
         INSOLE.chart.resize(); INSOLE.chart.draw(history);
       });
+      if (key === "diag") renderHealth();
     });
 
     $("histList").addEventListener("click", function (e) {
@@ -211,6 +286,48 @@
       for (var i = 0; i < records.length; i++) {
         if (records[i].id === id) { openReport(records[i]); return; }
       }
+    });
+
+    /* 경고 줄을 누르면 진단 탭으로 이동 */
+    $("alertBar").addEventListener("click", function () {
+      var t = document.querySelector('.tabbar button[data-t="diag"]');
+      if (t) t.click();
+    });
+
+    $("zeroBtn").addEventListener("click", function () {
+      INSOLE.health.captureZero(S.read());
+      renderZeroState();
+      renderHealth();
+    });
+    $("zeroClear").addEventListener("click", function () {
+      INSOLE.health.clearZero();
+      renderZeroState();
+      renderHealth();
+    });
+
+    $("exportBtn").addEventListener("click", function () {
+      var csv = INSOLE.storage.toCSV(records);
+      $("exportText").value = csv;
+      $("exportBox").hidden = false;
+      /* 되는 환경에서는 바로 파일로 내려받고, 막힌 곳에서는 위 상자를 씁니다. */
+      INSOLE.storage.download(csv, "insole-records.csv");
+      $("exportBox").scrollIntoView({ block: "nearest" });
+    });
+    $("copyBtn").addEventListener("click", function () {
+      var btn = this;
+      Promise.resolve(INSOLE.storage.copy($("exportText").value)).then(function () {
+        btn.textContent = "복사됨";
+        setTimeout(function () { btn.textContent = "복사"; }, 1500);
+      });
+    });
+    $("exportClose").addEventListener("click", function () { $("exportBox").hidden = true; });
+
+    $("clearBtn").addEventListener("click", function () {
+      if (!window.confirm("저장된 기록을 모두 지웁니다. 되돌릴 수 없습니다.")) return;
+      records = [];
+      INSOLE.storage.clear();
+      $("exportBox").hidden = true;
+      renderHistory();
     });
 
     $("scenList").addEventListener("click", function (e) {
@@ -234,6 +351,11 @@
   }
 
   function boot() {
+    /* 지난번에 저장해 둔 기록을 되살립니다. */
+    records = INSOLE.storage.load();
+    records.forEach(function (r) { if (r.id >= nextId) nextId = r.id + 1; });
+    INSOLE.health.loadZero();
+
     paintRamp();
     INSOLE.chart.attach($("chart"));
     wire();
@@ -242,20 +364,21 @@
     tickClock();
     setInterval(tickClock, 20000);
 
-    var v = S.read();
-    INSOLE.heatmap.draw($("footL"), "L", v);
-    INSOLE.heatmap.draw($("footR"), "R", v);
+    shown = S.read();
+    INSOLE.heatmap.draw($("footL"), "L", shown);
+    INSOLE.heatmap.draw($("footR"), "R", shown);
     INSOLE.chart.draw(history);
     renderLive();
+    renderZeroState();
+    renderHealth();
   }
 
   /* 테마가 바뀌면 램프를 다시 만들고 캔버스를 다시 그립니다.
    * 캔버스는 CSS 변수를 자동으로 따라가지 않기 때문입니다. */
   function onThemeChange() {
     paintRamp();
-    var v = S.read();
-    INSOLE.heatmap.draw($("footL"), "L", v);
-    INSOLE.heatmap.draw($("footR"), "R", v);
+    INSOLE.heatmap.draw($("footL"), "L", shown);
+    INSOLE.heatmap.draw($("footR"), "R", shown);
     INSOLE.chart.draw(history);
   }
   var mq = window.matchMedia("(prefers-color-scheme: dark)");

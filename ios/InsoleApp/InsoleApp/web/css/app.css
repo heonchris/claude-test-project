@@ -19,6 +19,7 @@
     --s1:#2a78d6; --s2:#eb6834;
     --div-b:#d03b3b;
     --good:#0ca30c; --warning:#fab219; --serious:#ec835a; --critical:#d03b3b;
+    --warn-ink:#8a6206; --warn-soft:#FCF3DF;
     --grid:rgba(11,11,11,.07); --axis:rgba(11,11,11,.3);
     --bezel-a:#1B1B1D; --bezel-b:#37373B;
     --shadow:0 1px 2px rgba(11,11,11,.05),0 8px 22px -16px rgba(11,11,11,.3);
@@ -31,6 +32,7 @@
       --rule:#2C2C2A; --rule-2:#3E3E3C;
       --s1:#3987e5; --s2:#d95926;
       --div-b:#d03b3b;
+      --warn-ink:#fab219; --warn-soft:#2A2113;
       --grid:rgba(255,255,255,.08); --axis:rgba(255,255,255,.32);
       --bezel-a:#000000; --bezel-b:#2A2A2E;
       --shadow:0 1px 2px rgba(0,0,0,.5),0 8px 22px -16px rgba(0,0,0,.9);
@@ -43,6 +45,7 @@
     --rule:#2C2C2A; --rule-2:#3E3E3C;
     --s1:#3987e5; --s2:#d95926;
     --div-b:#d03b3b;
+    --warn-ink:#fab219; --warn-soft:#2A2113;
     --grid:rgba(255,255,255,.08); --axis:rgba(255,255,255,.32);
     --bezel-a:#000000; --bezel-b:#2A2A2E;
     --shadow:0 1px 2px rgba(0,0,0,.5),0 8px 22px -16px rgba(0,0,0,.9);
@@ -300,6 +303,58 @@
   table.ch .bar{display:inline-block;height:4px;border-radius:2px;background:var(--s1);vertical-align:middle}
   table.ch .bar.r{background:var(--s2)}
 
+  /* ═══ 진단 · 경고 · 내보내기 ═══ */
+
+  /* 채널에 문제가 생겼을 때만 나타나는 줄. 누르면 진단 탭으로 갑니다. */
+  .alertbar{
+    width:100%;display:flex;align-items:center;gap:.5rem;
+    background:var(--warn-soft);border:1px solid var(--warning);border-radius:12px;
+    padding:.55rem .75rem;font-size:.8rem;color:var(--warn-ink);
+    font-family:inherit;text-align:left;margin-bottom:.55rem;flex:0 0 auto;
+  }
+  .alertbar[hidden]{display:none}
+  .alertbar b{font-weight:700}
+  .alertbar .go{margin-left:auto;color:var(--faint);font-size:.9rem}
+
+  .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:.45rem}
+  .d{background:var(--card-2);border-radius:11px;padding:.5rem .6rem}
+  .d .l{font-family:"IBM Plex Mono",monospace;font-size:.58rem;letter-spacing:.07em;
+        text-transform:uppercase;color:var(--faint);display:block}
+  .d .v{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+        font-size:1.05rem;font-weight:600;color:var(--ink)}
+  .d .v small{font-size:.62rem;font-weight:400;color:var(--muted);margin-left:.1rem}
+  .d .v.bad{color:var(--critical)}
+  .d .v.good{color:var(--good)}
+
+  .hintline{font-size:.78rem;color:var(--muted);margin:0 0 .6rem;line-height:1.65}
+  .hintline b{color:var(--ink);font-weight:600}
+
+  .mini{
+    font-family:inherit;font-size:.76rem;font-weight:600;
+    background:var(--s1);color:#fff;border:none;border-radius:9px;
+    padding:.42rem .8rem;white-space:nowrap;
+  }
+  .mini.ghost{background:transparent;color:var(--muted);border:1px solid var(--rule-2)}
+  .mini.danger{background:transparent;color:var(--critical);border:1px solid var(--critical)}
+  .mini:active{transform:scale(.97)}
+  .mini:focus-visible{outline:2px solid var(--s1);outline-offset:2px}
+
+  .histbar{display:flex;gap:.45rem;margin-bottom:.6rem}
+  .histbar[hidden]{display:none}
+  .exp-btns{display:flex;gap:.45rem;margin-top:.5rem}
+  textarea.exp{
+    width:100%;font-family:"IBM Plex Mono",monospace;font-size:.66rem;line-height:1.6;
+    background:var(--sunk);color:var(--ink);border:1px solid var(--rule);border-radius:9px;
+    padding:.5rem .6rem;resize:vertical;
+  }
+
+  /* 채널 상태 칩 */
+  .st{font-size:.62rem;font-weight:700;padding:.1rem .38rem;border-radius:99px;white-space:nowrap}
+  .st-ok{background:rgba(12,163,12,.13);color:var(--good)}
+  .st-dead{background:rgba(208,59,59,.14);color:var(--critical)}
+  .st-sat{background:rgba(250,178,25,.18);color:var(--warn-ink)}
+  .st-unknown{background:var(--card-2);color:var(--faint)}
+
   /* ═══ 탭바 ═══ */
   .tabbar{
     flex:0 0 auto;display:flex;background:var(--card);
@@ -307,7 +362,7 @@
   }
   .tab{
     flex:1 1 0;display:flex;flex-direction:column;align-items:center;gap:.12rem;
-    padding:.3rem 0;color:var(--faint);font-size:.62rem;font-weight:500;min-height:44px;
+    padding:.3rem 0;color:var(--faint);font-size:.58rem;font-weight:500;min-height:44px;
   }
   .tab svg{display:block}
   .tab[aria-selected="true"]{color:var(--s1)}
