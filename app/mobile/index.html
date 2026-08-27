@@ -343,6 +343,13 @@
   .mini:active{transform:scale(.97)}
   .mini:focus-visible{outline:2px solid var(--s1);outline-offset:2px}
 
+  .capnote{
+    background:var(--warn-soft);border:1px solid var(--warning);border-radius:11px;
+    padding:.55rem .7rem;font-size:.74rem;color:var(--warn-ink);
+    line-height:1.6;margin-bottom:.6rem;
+  }
+  .capnote[hidden]{display:none}
+  .capnote b{font-weight:700}
   .histbar{display:flex;gap:.45rem;margin-bottom:.6rem}
   .histbar[hidden]{display:none}
   .exp-btns{display:flex;gap:.45rem;margin-top:.5rem}
@@ -457,6 +464,7 @@
         <button class="mini" id="exportBtn" type="button">CSV 내보내기</button>
         <button class="mini danger" id="clearBtn" type="button">전체 삭제</button>
       </div>
+      <div class="capnote" id="capNote" hidden></div>
       <div id="histList"></div>
       <div class="card" id="exportBox" hidden>
         <div class="card-t"><h2>내보내기</h2><span class="n">엑셀에서 열 수 있습니다</span></div>
@@ -1428,6 +1436,16 @@ INSOLE.report = (function () {
   function renderHistory() {
     var el = $("histList");
     $("histBar").hidden = !records.length;
+
+    /* 한도에 다다르면 알려줍니다. 말없이 사라지면 안 됩니다. */
+    var note = $("capNote");
+    if (records.length >= C.MAX_RECORDS) {
+      note.innerHTML = "기록이 가득 찼습니다 (" + C.MAX_RECORDS + "건). " +
+        "새로 측정하면 <b>가장 오래된 기록이 사라집니다.</b> 필요하면 먼저 내보내기 하세요.";
+      note.hidden = false;
+    } else {
+      note.hidden = true;
+    }
     if (!records.length) {
       el.innerHTML = '<div class="empty"><b>기록이 없습니다</b>' +
                      '측정 탭에서 세트를 진행하면<br>여기에 자동으로 저장됩니다.</div>';
@@ -1535,6 +1553,9 @@ INSOLE.report = (function () {
         INSOLE.chart.resize(); INSOLE.chart.draw(history);
       });
       if (key === "diag") renderHealth();
+      /* 탭에 들어올 때마다 다시 그립니다. 안 그러면 한도 안내 같은 것이
+       * 낡은 상태로 남습니다. */
+      if (key === "hist") renderHistory();
     });
 
     $("histList").addEventListener("click", function (e) {
@@ -1580,8 +1601,21 @@ INSOLE.report = (function () {
     });
     $("exportClose").addEventListener("click", function () { $("exportBox").hidden = true; });
 
+    /* 확인 창(confirm)은 일부 환경에서 차단됩니다. 차단되면 삭제가
+     * 조용히 무시되어 사용자가 영문을 모릅니다. 두 번 누르기로 대신합니다. */
+    var clearArmed = false, clearTimer = null;
     $("clearBtn").addEventListener("click", function () {
-      if (!window.confirm("저장된 기록을 모두 지웁니다. 되돌릴 수 없습니다.")) return;
+      var btn = this;
+      if (!clearArmed) {
+        clearArmed = true;
+        btn.textContent = "한 번 더 누르면 삭제";
+        clearTimer = setTimeout(function () {
+          clearArmed = false; btn.textContent = "전체 삭제";
+        }, 4000);
+        return;
+      }
+      clearTimeout(clearTimer);
+      clearArmed = false; btn.textContent = "전체 삭제";
       records = [];
       INSOLE.storage.clear();
       $("exportBox").hidden = true;
@@ -1722,6 +1756,11 @@ INSOLE.health = (function () {
    * @returns {"ok"|"dead"|"sat"|"unknown"}
    */
   function channelState(side, i) {
+    /* 데이터가 안 들어오는 중이면 상태를 단정하면 안 됩니다.
+     * 이 처리가 없으면 측정을 멈춘 뒤에도 마지막 상태가 그대로 굳어서
+     * "포화" 경고가 영영 남아 있게 됩니다. */
+    if (!isLive()) return "unknown";
+
     var w = win[side][i];
     /* 창이 덜 찼으면 판단하지 않습니다. 성급한 경고는 혼란만 줍니다. */
     if (w.length < Math.min(30, C.HEALTH_WINDOW)) return "unknown";
@@ -1878,12 +1917,27 @@ INSOLE.storage = (function () {
 
   /* 저장이 막힌 환경(사생활 보호 모드 등)에서도 앱이 죽지 않도록
    * 모든 접근을 try/catch 로 감쌉니다. */
+  /* 저장 형식이 나중에 바뀌면 옛 기록이 화면을 깨뜨릴 수 있습니다.
+   * 필요한 항목이 없는 기록은 조용히 버립니다. 한 건 때문에
+   * 기록 탭 전체가 안 열리는 것보다 낫습니다. */
+  function isValid(r) {
+    return r && typeof r === "object"
+      && r.judge && typeof r.judge.title === "string" && typeof r.judge.short === "string"
+      && r.snapshot && Array.isArray(r.snapshot.L) && Array.isArray(r.snapshot.R)
+      && r.snapshot.L.length === C.CHANNELS && r.snapshot.R.length === C.CHANNELS
+      && typeof r.lrText === "string";
+  }
+
   function load() {
     try {
       var raw = localStorage.getItem(C.STORAGE_KEY);
       if (!raw) return [];
       var arr = JSON.parse(raw);
-      return Array.isArray(arr) ? arr : [];
+      if (!Array.isArray(arr)) return [];
+      var good = arr.filter(isValid);
+      /* 버린 게 있으면 저장소도 정리해 둡니다. */
+      if (good.length !== arr.length) save(good);
+      return good;
     } catch (e) { return []; }
   }
 
@@ -1968,7 +2022,7 @@ INSOLE.storage = (function () {
     } catch (e) { return Promise.reject(e); }
   }
 
-  return { load: load, save: save, clear: clear, available: available,
+  return { load: load, save: save, isValid: isValid, clear: clear, available: available,
            toCSV: toCSV, download: download, copy: copy };
 })();
 

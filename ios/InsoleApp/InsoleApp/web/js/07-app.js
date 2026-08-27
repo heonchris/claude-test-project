@@ -170,6 +170,16 @@
   function renderHistory() {
     var el = $("histList");
     $("histBar").hidden = !records.length;
+
+    /* 한도에 다다르면 알려줍니다. 말없이 사라지면 안 됩니다. */
+    var note = $("capNote");
+    if (records.length >= C.MAX_RECORDS) {
+      note.innerHTML = "기록이 가득 찼습니다 (" + C.MAX_RECORDS + "건). " +
+        "새로 측정하면 <b>가장 오래된 기록이 사라집니다.</b> 필요하면 먼저 내보내기 하세요.";
+      note.hidden = false;
+    } else {
+      note.hidden = true;
+    }
     if (!records.length) {
       el.innerHTML = '<div class="empty"><b>기록이 없습니다</b>' +
                      '측정 탭에서 세트를 진행하면<br>여기에 자동으로 저장됩니다.</div>';
@@ -277,6 +287,9 @@
         INSOLE.chart.resize(); INSOLE.chart.draw(history);
       });
       if (key === "diag") renderHealth();
+      /* 탭에 들어올 때마다 다시 그립니다. 안 그러면 한도 안내 같은 것이
+       * 낡은 상태로 남습니다. */
+      if (key === "hist") renderHistory();
     });
 
     $("histList").addEventListener("click", function (e) {
@@ -322,8 +335,21 @@
     });
     $("exportClose").addEventListener("click", function () { $("exportBox").hidden = true; });
 
+    /* 확인 창(confirm)은 일부 환경에서 차단됩니다. 차단되면 삭제가
+     * 조용히 무시되어 사용자가 영문을 모릅니다. 두 번 누르기로 대신합니다. */
+    var clearArmed = false, clearTimer = null;
     $("clearBtn").addEventListener("click", function () {
-      if (!window.confirm("저장된 기록을 모두 지웁니다. 되돌릴 수 없습니다.")) return;
+      var btn = this;
+      if (!clearArmed) {
+        clearArmed = true;
+        btn.textContent = "한 번 더 누르면 삭제";
+        clearTimer = setTimeout(function () {
+          clearArmed = false; btn.textContent = "전체 삭제";
+        }, 4000);
+        return;
+      }
+      clearTimeout(clearTimer);
+      clearArmed = false; btn.textContent = "전체 삭제";
       records = [];
       INSOLE.storage.clear();
       $("exportBox").hidden = true;

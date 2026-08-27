@@ -62,6 +62,11 @@ INSOLE.health = (function () {
    * @returns {"ok"|"dead"|"sat"|"unknown"}
    */
   function channelState(side, i) {
+    /* 데이터가 안 들어오는 중이면 상태를 단정하면 안 됩니다.
+     * 이 처리가 없으면 측정을 멈춘 뒤에도 마지막 상태가 그대로 굳어서
+     * "포화" 경고가 영영 남아 있게 됩니다. */
+    if (!isLive()) return "unknown";
+
     var w = win[side][i];
     /* 창이 덜 찼으면 판단하지 않습니다. 성급한 경고는 혼란만 줍니다. */
     if (w.length < Math.min(30, C.HEALTH_WINDOW)) return "unknown";

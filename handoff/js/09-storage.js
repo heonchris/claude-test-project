@@ -13,12 +13,27 @@ INSOLE.storage = (function () {
 
   /* 저장이 막힌 환경(사생활 보호 모드 등)에서도 앱이 죽지 않도록
    * 모든 접근을 try/catch 로 감쌉니다. */
+  /* 저장 형식이 나중에 바뀌면 옛 기록이 화면을 깨뜨릴 수 있습니다.
+   * 필요한 항목이 없는 기록은 조용히 버립니다. 한 건 때문에
+   * 기록 탭 전체가 안 열리는 것보다 낫습니다. */
+  function isValid(r) {
+    return r && typeof r === "object"
+      && r.judge && typeof r.judge.title === "string" && typeof r.judge.short === "string"
+      && r.snapshot && Array.isArray(r.snapshot.L) && Array.isArray(r.snapshot.R)
+      && r.snapshot.L.length === C.CHANNELS && r.snapshot.R.length === C.CHANNELS
+      && typeof r.lrText === "string";
+  }
+
   function load() {
     try {
       var raw = localStorage.getItem(C.STORAGE_KEY);
       if (!raw) return [];
       var arr = JSON.parse(raw);
-      return Array.isArray(arr) ? arr : [];
+      if (!Array.isArray(arr)) return [];
+      var good = arr.filter(isValid);
+      /* 버린 게 있으면 저장소도 정리해 둡니다. */
+      if (good.length !== arr.length) save(good);
+      return good;
     } catch (e) { return []; }
   }
 
@@ -103,6 +118,6 @@ INSOLE.storage = (function () {
     } catch (e) { return Promise.reject(e); }
   }
 
-  return { load: load, save: save, clear: clear, available: available,
+  return { load: load, save: save, isValid: isValid, clear: clear, available: available,
            toCSV: toCSV, download: download, copy: copy };
 })();

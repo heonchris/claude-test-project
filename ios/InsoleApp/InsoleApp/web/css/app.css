@@ -339,6 +339,13 @@
   .mini:active{transform:scale(.97)}
   .mini:focus-visible{outline:2px solid var(--s1);outline-offset:2px}
 
+  .capnote{
+    background:var(--warn-soft);border:1px solid var(--warning);border-radius:11px;
+    padding:.55rem .7rem;font-size:.74rem;color:var(--warn-ink);
+    line-height:1.6;margin-bottom:.6rem;
+  }
+  .capnote[hidden]{display:none}
+  .capnote b{font-weight:700}
   .histbar{display:flex;gap:.45rem;margin-bottom:.6rem}
   .histbar[hidden]{display:none}
   .exp-btns{display:flex;gap:.45rem;margin-top:.5rem}
