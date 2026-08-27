@@ -1,0 +1,15 @@
+{
+  "name": "족저압 인솔",
+  "short_name": "족저압",
+  "description": "족저압 16채널 실시간 시각화 및 세트 리포트",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F3F4F2",
+  "theme_color": "#0b2c58",
+  "icons": [
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -100,10 +100,13 @@
   .native .sheet{top:0}
   .native .sheet-h{padding-top:calc(.8rem + env(safe-area-inset-top,0px))}
 
-  @media (max-width:520px){
-    body{padding:0;align-items:stretch;justify-content:stretch}
-    .stage{width:100%;flex:1 1 auto;min-height:100vh;min-height:100dvh}
-    .device{width:100%;height:auto;flex:1 1 auto;border-radius:0;box-shadow:none}
+  @media (max-width:520px), (display-mode: standalone){
+    html{height:100%}
+    body{padding:0;align-items:stretch;justify-content:stretch;height:100%;min-height:100%}
+    .stage{display:block;width:100%;height:100%}
+    /* 네이티브와 같은 방식으로 뷰포트에 직접 고정합니다. */
+    .device{position:fixed;inset:0;width:auto;height:auto;flex:0 0 auto;
+            border-radius:0;box-shadow:none}
     .island{display:none}
     .statusbar{display:none}
     .appbar{padding-top:calc(.6rem + env(safe-area-inset-top,0px))}
@@ -315,5 +318,5 @@
     line-height:1.7;text-align:center;
   }
   .hint b{color:var(--muted)}
-  @media (max-width:520px){.hint{display:none}}
+  @media (max-width:520px), (display-mode: standalone){.hint{display:none}}
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
