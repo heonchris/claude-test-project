@@ -26,7 +26,15 @@ export type Fasting = {
   progress: number;
   reached: boolean;
   remainingMinutes: number;
+  /**
+   * 마지막 기록이 너무 오래됐다.
+   * 굶은 게 아니라 기록을 안 한 것이므로 숫자를 들이밀지 않는다.
+   */
+  stale: boolean;
 };
+
+/** 이 시간을 넘으면 '진짜 공복'이 아니라 '기록이 없는 것'으로 본다 */
+const STALE_MINUTES = 36 * 60;
 
 export function computeFasting(lastMeal: Meal | null, goalHours: number, now: Date): Fasting {
   const goalMinutes = Math.max(60, Math.round(goalHours * 60));
@@ -38,6 +46,7 @@ export function computeFasting(lastMeal: Meal | null, goalHours: number, now: Da
       progress: 0,
       reached: false,
       remainingMinutes: goalMinutes,
+      stale: false,
     };
   }
   const since = mealTime(lastMeal);
@@ -49,6 +58,7 @@ export function computeFasting(lastMeal: Meal | null, goalHours: number, now: Da
     progress: Math.min(1, minutes / goalMinutes),
     reached: minutes >= goalMinutes,
     remainingMinutes: Math.max(0, goalMinutes - minutes),
+    stale: minutes > STALE_MINUTES,
   };
 }
 

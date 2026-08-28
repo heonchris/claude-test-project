@@ -11,7 +11,18 @@ import { colors, radius, space } from '../theme/colors';
  * 목표를 못 채워도 나무라지 않는다 (SPEC 1-2).
  */
 export function FastingCard({ fasting }: { fasting: Fasting }) {
-  const { since, minutes, goalMinutes, progress, reached, remainingMinutes } = fasting;
+  const { since, minutes, goalMinutes, progress, reached, remainingMinutes, stale } = fasting;
+
+  if (since && stale) {
+    return (
+      <Card accent={colors.meal}>
+        <SectionTitle>공복</SectionTitle>
+        <Txt variant="sub" color={colors.textSub}>
+          마지막 식사 기록이 하루가 넘었어요. 한 끼 남기면 거기서부터 다시 세어드릴게요.
+        </Txt>
+      </Card>
+    );
+  }
 
   if (!since) {
     return (

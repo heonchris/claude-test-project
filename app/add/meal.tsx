@@ -73,6 +73,9 @@ export default function MealScreen() {
       const at = meal.taken_at ? new Date(meal.taken_at) : null;
       setTakenAt(at);
       setTimeText(at ? toTimeString(at) : '');
+      // 이미 저장된 기록은 그때 고른 날짜를 존중한다.
+      // (사진 날짜와 다르게 넣어둔 것을 저장만 눌렀다고 옮겨버리면 안 된다)
+      setUseTakenDate(false);
       if (meal.calories != null) {
         setCalories(String(meal.calories));
         setShowCalories(true);
@@ -136,8 +139,10 @@ export default function MealScreen() {
       const kcal = calories.trim() ? Number(calories.trim()) : null;
       const cleanCalories = kcal != null && Number.isFinite(kcal) ? Math.round(kcal) : null;
 
-      const when = takenAt ?? new Date();
-      const targetDate = shiftDate ? toKey(when) : date;
+      // 입력 중이던 시각도 반영한다 (저장을 바로 눌러 blur가 안 걸린 경우)
+      const typed = timeText ? applyTimeString(takenAt ?? fromKey(date), timeText) : null;
+      const when = typed ?? takenAt ?? new Date();
+      const targetDate = isOtherDay && useTakenDate && toKey(when) !== date ? toKey(when) : date;
 
       if (editingId == null) {
         await insertMeal({
@@ -171,7 +176,6 @@ export default function MealScreen() {
   /** 사진이 오늘 것이 아니면 어느 날짜로 남길지 물어본다 */
   const takenDateKey = takenAt ? toKey(takenAt) : null;
   const isOtherDay = !!takenDateKey && takenDateKey !== date;
-  const shiftDate = isOtherDay && useTakenDate;
 
   const remove = () => {
     if (editingId == null) return;

@@ -431,13 +431,15 @@ function MealTimeline({ points, meals }: { points: WeekPoint[]; meals: Meal[] })
 
   return (
     <View style={{ gap: space(1) }}>
-      <View style={styles.timelineHeader}>
+      <View style={styles.timelineRow}>
         <View style={styles.timelineLabel} />
-        {[0, 6, 12, 18].map((h) => (
-          <Txt key={h} variant="caption" color={colors.textSub} style={{ flex: 1 }}>
-            {h}시
-          </Txt>
-        ))}
+        <View style={styles.timelineHeader}>
+          {[0, 6, 12, 18].map((h) => (
+            <Txt key={h} variant="caption" color={colors.textSub} style={{ flex: 1 }}>
+              {h}시
+            </Txt>
+          ))}
+        </View>
       </View>
 
       {points.map((p) => {
@@ -584,7 +586,7 @@ const styles = StyleSheet.create({
   },
   barColumn: { alignItems: 'center', gap: space(1), flex: 1 },
   bar: { width: 18, borderRadius: 9 },
-  timelineHeader: { flexDirection: 'row', alignItems: 'center' },
+  timelineHeader: { flex: 1, flexDirection: 'row', alignItems: 'center' },
   timelineRow: { flexDirection: 'row', alignItems: 'center', gap: space(2) },
   timelineLabel: { width: 20 },
   track: {
