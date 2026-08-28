@@ -197,7 +197,8 @@ export function itemsForDate(
     const type = m.type ?? `식사 ${i + 1}`;
     const name = m.name ?? '';
     items.push({
-      key: `meal-${m.type ?? i}`,
+      // 하루에 '간식'이 두 번 있어도 각각 체크할 수 있도록 순번을 넣는다
+      key: `meal-${i}-${m.type ?? ''}`,
       label: name ? `${type} · ${name}` : type,
       detail: m.items?.length ? m.items.join(', ') : undefined,
     });

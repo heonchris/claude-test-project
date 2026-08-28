@@ -16,6 +16,16 @@ async function migrate(db: SQLite.SQLiteDatabase): Promise<void> {
     // 예전 기록은 저장한 시각을 찍은 시각으로 본다
     await db.execAsync('UPDATE meals SET taken_at = created_at WHERE taken_at IS NULL');
   }
+
+  // 사진은 파일 이름만 저장한다. 예전에 넣어둔 절대경로를 이름으로 줄인다.
+  // (iOS는 앱을 다시 설치하면 앱 폴더 주소가 바뀌어서 절대경로가 깨진다)
+  const legacy = await db.getAllAsync<{ id: number; photo_uri: string }>(
+    "SELECT id, photo_uri FROM meals WHERE photo_uri LIKE '%/%'"
+  );
+  for (const row of legacy) {
+    const name = row.photo_uri.split('/').pop();
+    if (name) await db.runAsync('UPDATE meals SET photo_uri = ? WHERE id = ?', name, row.id);
+  }
 }
 
 async function open(): Promise<SQLite.SQLiteDatabase> {

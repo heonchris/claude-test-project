@@ -36,7 +36,7 @@ import {
   toTimeString,
 } from '../../lib/dates';
 import { takenAtFromExif } from '../../lib/exif';
-import { deletePhoto, savePhoto } from '../../lib/photos';
+import { deletePhoto, resolvePhotoUri, savePhoto } from '../../lib/photos';
 import { markSaved } from '../../lib/savedSignal';
 import { colors, radius, screenPadding, space } from '../../theme/colors';
 
@@ -46,8 +46,12 @@ export default function MealScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
   const editingId = params.id ? Number(params.id) : null;
 
+  /** 화면에 띄울 주소. 새로 고른 사진이거나, 저장된 사진을 풀어낸 것 */
   const [photoUri, setPhotoUri] = useState<string | null>(null);
-  const [originalPhoto, setOriginalPhoto] = useState<string | null>(null);
+  /** DB에 저장돼 있는 파일 이름 */
+  const [originalName, setOriginalName] = useState<string | null>(null);
+  /** 사진을 새로 고르거나 지웠는가 */
+  const [photoDirty, setPhotoDirty] = useState(false);
   const [mealType, setMealType] = useState<MealType>(suggestMealType());
   const [memo, setMemo] = useState('');
   const [calories, setCalories] = useState('');
@@ -65,8 +69,9 @@ export default function MealScreen() {
     if (editingId == null) return;
     getMeal(editingId).then((meal) => {
       if (!meal) return;
-      setPhotoUri(meal.photo_uri);
-      setOriginalPhoto(meal.photo_uri);
+      setPhotoUri(resolvePhotoUri(meal.photo_uri));
+      setOriginalName(meal.photo_uri);
+      setPhotoDirty(false);
       setMealType(meal.meal_type);
       setMemo(meal.memo ?? '');
       setDate(meal.date);
@@ -113,6 +118,7 @@ export default function MealScreen() {
     if (!result.canceled && result.assets?.length) {
       const asset = result.assets[0];
       setPhotoUri(asset.uri);
+      setPhotoDirty(true);
 
       // 사진에 찍힌 시각이 있으면 그 시각을 쓰고, 끼니도 그 시각 기준으로 추천한다
       const shot = takenAtFromExif(asset.exif) ?? (from === 'camera' ? new Date() : null);
@@ -129,11 +135,9 @@ export default function MealScreen() {
     if (saving) return;
     setSaving(true);
     try {
-      const photoChanged = photoUri !== originalPhoto;
-      let storedUri = originalPhoto;
-
-      if (photoChanged) {
-        storedUri = photoUri ? await savePhoto(photoUri) : null;
+      let storedName = originalName;
+      if (photoDirty) {
+        storedName = photoUri ? await savePhoto(photoUri) : null;
       }
 
       const kcal = calories.trim() ? Number(calories.trim()) : null;
@@ -148,7 +152,7 @@ export default function MealScreen() {
         await insertMeal({
           date: targetDate,
           meal_type: mealType,
-          photo_uri: storedUri,
+          photo_uri: storedName,
           memo: memo.trim() || null,
           calories: cleanCalories,
           taken_at: when.toISOString(),
@@ -160,9 +164,9 @@ export default function MealScreen() {
           calories: cleanCalories,
           date: targetDate,
           taken_at: when.toISOString(),
-          ...(photoChanged ? { photo_uri: storedUri } : {}),
+          ...(photoDirty ? { photo_uri: storedName } : {}),
         });
-        if (photoChanged && originalPhoto) deletePhoto(originalPhoto);
+        if (photoDirty && originalName) deletePhoto(originalName);
       }
 
       markSaved();
@@ -211,7 +215,14 @@ export default function MealScreen() {
         {photoUri ? (
           <Pressable onPress={() => pick('library')} style={styles.previewWrap}>
             <Image source={{ uri: photoUri }} style={styles.preview} />
-            <Pressable onPress={() => setPhotoUri(null)} style={styles.previewClear} hitSlop={8}>
+            <Pressable
+              onPress={() => {
+                setPhotoUri(null);
+                setPhotoDirty(true);
+              }}
+              style={styles.previewClear}
+              hitSlop={8}
+            >
               <TrashIcon size={18} color={colors.card} />
             </Pressable>
           </Pressable>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import {
   addDays,
   addMonths,
@@ -13,6 +13,7 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronIcon, TrashIcon } from '../../components/Icons';
+import { Photo } from '../../components/Photo';
 import { Txt } from '../../components/Txt';
 import { Card, EmptyHint, SectionTitle } from '../../components/ui';
 import {
@@ -305,15 +306,11 @@ export default function HistoryScreen() {
                           onLongPress={() => removeMeal(m)}
                           style={styles.gridItem}
                         >
-                          {m.photo_uri ? (
-                            <Image source={{ uri: m.photo_uri }} style={styles.gridImage} />
-                          ) : (
-                            <View style={[styles.gridImage, styles.gridEmpty]}>
-                              <Txt variant="caption" color={colors.textSub} center>
-                                {m.memo?.slice(0, 20) || '메모 없음'}
-                              </Txt>
-                            </View>
-                          )}
+                          <Photo
+                            stored={m.photo_uri}
+                            style={[styles.gridImage, styles.gridEmpty]}
+                            fallbackText={m.memo?.slice(0, 20) || undefined}
+                          />
                           <Txt variant="caption">{m.meal_type}</Txt>
                           <Txt variant="caption" color={colors.textSub}>
                             {formatTimeOfDay(m.taken_at ?? m.created_at)}
@@ -404,7 +401,7 @@ export default function HistoryScreen() {
                     }
                     style={styles.gridItem}
                   >
-                    <Image source={{ uri: m.photo_uri! }} style={styles.gridImage} />
+                    <Photo stored={m.photo_uri} style={styles.gridImage} />
                   </Pressable>
                 ))}
               </View>

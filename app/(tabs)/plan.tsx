@@ -210,9 +210,11 @@ export default function PlanScreen() {
               <Txt variant="sub" color={colors.textSub} style={{ marginTop: space(1) }}>
                 {dayNumber < 1
                   ? `${plan.start_date}부터 시작해요`
-                  : parsed && planTotalDays(plan, parsed) > 0
-                    ? `${dayNumber}일차 / ${planTotalDays(plan, parsed)}일`
-                    : `${dayNumber}일차`}
+                  : plan.end_date && today > plan.end_date
+                    ? '이 플랜은 끝났어요. 수고했어요'
+                    : parsed && planTotalDays(plan, parsed) > 0
+                      ? `${dayNumber}일차 / ${planTotalDays(plan, parsed)}일`
+                      : `${dayNumber}일차`}
               </Txt>
 
               <Divider />

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -15,6 +14,7 @@ import { AddSheet, type AddKind } from '../../components/AddSheet';
 import { CatWall } from '../../components/CatWall';
 import { FastingCard } from '../../components/FastingCard';
 import { CheckIcon, PlusIcon, TrashIcon } from '../../components/Icons';
+import { Photo } from '../../components/Photo';
 import { ProgressRing } from '../../components/ProgressRing';
 import { Txt } from '../../components/Txt';
 import { WaterCups } from '../../components/WaterCups';
@@ -183,7 +183,7 @@ export default function TodayScreen() {
           <SectionTitle>오늘 먹은 것</SectionTitle>
           {snapshot.meals.length === 0 ? (
             <EmptyHint
-              text="아직 비어 있어요. 첫 끼를 남겨볼까요?"
+              text={day.loading ? ' ' : '아직 비어 있어요. 첫 끼를 남겨볼까요?'}
               action={
                 <Button
                   title="식단 추가"
@@ -201,15 +201,11 @@ export default function TodayScreen() {
                     onPress={() => setViewing(meal)}
                     style={({ pressed }) => [styles.thumb, pressed && styles.pressed]}
                   >
-                    {meal.photo_uri ? (
-                      <Image source={{ uri: meal.photo_uri }} style={styles.thumbImage} />
-                    ) : (
-                      <View style={[styles.thumbImage, styles.thumbEmpty]}>
-                        <Txt variant="caption" color={colors.textSub} center>
-                          {meal.memo?.slice(0, 18) || '메모 없음'}
-                        </Txt>
-                      </View>
-                    )}
+                    <Photo
+                      stored={meal.photo_uri}
+                      style={[styles.thumbImage, styles.thumbEmpty]}
+                      fallbackText={meal.memo?.slice(0, 18) || undefined}
+                    />
                     <Txt variant="caption">{meal.meal_type}</Txt>
                     <Txt variant="caption" color={colors.textSub}>
                       {formatTimeOfDay(meal.taken_at ?? meal.created_at)}
@@ -232,7 +228,7 @@ export default function TodayScreen() {
           <SectionTitle>오늘 운동</SectionTitle>
           {snapshot.workouts.length === 0 ? (
             <EmptyHint
-              text="오늘은 아직 조용하네요."
+              text={day.loading ? ' ' : '오늘은 아직 조용하네요.'}
               action={
                 <Button
                   title="운동 추가"
@@ -326,7 +322,11 @@ export default function TodayScreen() {
         <Pressable style={styles.viewerBackdrop} onPress={() => setViewing(null)}>
           <View style={styles.viewerCard}>
             {viewing?.photo_uri ? (
-              <Image source={{ uri: viewing.photo_uri }} style={styles.viewerImage} resizeMode="contain" />
+              <Photo
+                stored={viewing.photo_uri}
+                style={styles.viewerImage}
+                resizeMode="contain"
+              />
             ) : null}
             <View style={styles.viewerInfo}>
               <Txt variant="bodyBold">
