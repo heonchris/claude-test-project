@@ -445,10 +445,36 @@ npm run iphone
 
 ### 10-2. 새 버전 받기
 
-ZIP을 다시 받아 압축을 풀고, 폴더 이름을 공백 없이 바꾼 뒤 `npm install` → `npm run iphone`.
+**기존 폴더에 소스만 덮어쓰는 것이 가장 빠르다.**
+`ios/` 폴더(서명 설정이 들어 있다)와 `node_modules`를 그대로 재사용할 수 있기 때문이다.
 
-계속 고쳐 나갈 거라면 **GitHub Desktop**을 쓰는 편이 낫다.
-`Fetch origin` → `Pull origin` 버튼 한 번이면 최신 코드가 들어온다. 그다음 `npm run iphone`.
+1. ZIP을 받아 압축을 풀고, 새 폴더 이름을 `new-code`처럼 **공백 없이** 바꾼다
+2. 터미널에서:
+
+```bash
+rsync -a --exclude node_modules --exclude ios --exclude .expo \
+  ~/Downloads/new-code/ ~/Downloads/cat-health/
+cd ~/Downloads/cat-health
+npm install
+npm run iphone
+```
+
+`--exclude ios`가 핵심이다. 이걸 빼면 서명 설정이 날아가 Xcode에서 Team을 다시 골라야 한다.
+
+계속 고쳐 나갈 거라면 **GitHub Desktop**이 편하다.
+`Fetch origin` → `Pull origin` 버튼 한 번이면 위 과정이 필요 없다.
+
+### 10-2-1. Xcode 화면에서 업데이트하기
+
+터미널 대신 Xcode 버튼으로 설치할 수도 있다. **단, 기본값이 Debug라 그대로 누르면 안 된다.**
+
+1. `open ios/*.xcworkspace`
+2. 상단 가운데 기기 선택 칸에서 **본인 아이폰** 선택
+3. 메뉴 **Product → Scheme → Edit Scheme…** → 왼쪽 `Run` → **`Build Configuration`을 `Release`로 변경** → `Close`
+4. **▶️** 버튼 (또는 `⌘R`)
+
+3번을 건너뛰면 Debug로 설치되어 **맥이 켜져 있어야만 앱이 열린다.**
+이 설정은 한 번 바꿔두면 유지되므로, 다음부터는 2번 → 4번만 하면 된다.
 
 ### 10-3. 백업 — 이게 제일 중요하다
 

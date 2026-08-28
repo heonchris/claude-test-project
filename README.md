@@ -19,7 +19,7 @@
 
 | 하고 싶은 것 | 명령어 |
 |---|---|
-| 아이폰에 설치 / 7일마다 갱신 | `npm run iphone` |
+| 아이폰에 설치 / 7일마다 갱신 / 새 버전 반영 | `npm run iphone` |
 | 맥 안의 시뮬레이터로 보기 | `npm run xcode` |
 | Expo Go로 열기 (QR) | `npm start` |
 | 폰과 맥이 다른 와이파이일 때 | `npm run tunnel` |
