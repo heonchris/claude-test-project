@@ -233,6 +233,15 @@
     bad.textContent = sum.problems.length ? String(sum.problems.length) : "0";
     bad.className = "v " + (sum.problems.length ? "bad" : "good");
 
+    /* 무선이 불안정한지 판단하는 근거입니다. 시뮬레이션 중에는 뜻이 없어
+     * 가로줄로 둡니다. */
+    var st = INSOLE.ble.stats();
+    var onBle = INSOLE.sensor.getSource() === "ble";
+    $("dPkt").textContent  = onBle ? String(st.packets) : "–";
+    var dp = $("dDrop");
+    dp.textContent = onBle ? String(st.dropped) : "–";
+    dp.className = "v " + (onBle && st.dropped > 0 ? "bad" : "");
+
     var html = "";
     ["L", "R"].forEach(function (side) {
       for (var i = 0; i < C.CHANNELS; i++) {
@@ -248,6 +257,30 @@
       }
     });
     $("diagTable").querySelector("tbody").innerHTML = html;
+  }
+
+  /* 앱바의 연결 표시와 진단 탭의 연결 카드를 한 곳에서 갱신합니다. */
+  function renderConnection() {
+    var onBle = INSOLE.sensor.getSource() === "ble";
+    var pill = $("conn"), txt = $("connTxt");
+    pill.classList.toggle("live", onBle);
+    txt.textContent = onBle ? (INSOLE.ble.deviceName() || "인솔 연결됨") : "시뮬레이션";
+
+    $("bleMode").textContent = onBle ? "실제 인솔" : "시뮬레이션";
+    $("bleConnect").hidden = onBle;
+    $("bleDisconnect").hidden = !onBle;
+
+    var hint = $("bleHint");
+    if (onBle) {
+      hint.innerHTML = "<b>" + (INSOLE.ble.deviceName() || "인솔") + "</b> 에서 실제 값을 받고 있습니다. " +
+                       "설정 탭의 시연 시나리오는 이때 동작하지 않습니다.";
+    } else if (INSOLE.ble.supported()) {
+      hint.textContent = "실제 인솔을 연결하면 시뮬레이션 대신 진짜 값이 들어옵니다.";
+      $("bleConnect").disabled = false;
+    } else {
+      hint.textContent = INSOLE.ble.unsupportedReason();
+      $("bleConnect").disabled = true;
+    }
   }
 
   function renderZeroState() {
@@ -307,6 +340,37 @@
       if (t) t.click();
     });
 
+    /* 기기 선택 창은 사용자가 버튼을 눌러야만 열 수 있습니다. */
+    $("bleConnect").addEventListener("click", function () {
+      var btn = this;
+      btn.disabled = true; btn.textContent = "연결 중…";
+      INSOLE.ble.connect().catch(function () {}).then(function () {
+        btn.disabled = false; btn.textContent = "인솔 연결";
+        renderConnection();
+      });
+    });
+    $("bleDisconnect").addEventListener("click", function () {
+      INSOLE.ble.disconnect();
+      renderConnection();
+    });
+    /* 앱바의 연결 표시를 누르면 진단 탭으로 갑니다. */
+    $("conn").addEventListener("click", function () {
+      var t = document.querySelector('.tabbar button[data-t="diag"]');
+      if (t) t.click();
+    });
+
+    /* 연결이 끊기면 사용자에게 바로 알려야 합니다. 조용히 시뮬레이션으로
+     * 돌아가면 가짜 데이터를 실제 값으로 착각하게 됩니다. */
+    INSOLE.ble.onChange(function (type, detail) {
+      renderConnection();
+      if (type === "disconnected" && running) {
+        $("bleHint").innerHTML = "<b>연결이 끊겼습니다.</b> 인솔 전원과 거리를 확인한 뒤 다시 연결하세요.";
+      }
+      if (type === "error") {
+        $("bleHint").textContent = "연결하지 못했습니다 — " + (detail.message || "알 수 없는 오류");
+      }
+    });
+
     $("zeroBtn").addEventListener("click", function () {
       INSOLE.health.captureZero(S.read());
       renderZeroState();
@@ -359,6 +423,7 @@
     $("scenList").addEventListener("click", function (e) {
       var btn = e.target.closest("button[data-s]");
       if (!btn) return;
+      if (S.getSource() === "ble") return;   /* 실제 연결 중에는 무시 */
       S.setScenario(btn.getAttribute("data-s"));
       renderScenarios();
       if (running) { t0 = 0; history = []; S.resetReps(); session = { lr: [], ap: [], cop: [] }; }
@@ -396,6 +461,7 @@
     INSOLE.chart.draw(history);
     renderLive();
     renderZeroState();
+    renderConnection();
     renderHealth();
   }
 

@@ -135,9 +135,14 @@
     display:flex;align-items:center;gap:.35rem;font-size:.68rem;font-weight:500;
     background:var(--card);border:1px solid var(--rule);border-radius:99px;
     padding:.25rem .55rem;color:var(--muted);white-space:nowrap;
+    font-family:inherit;cursor:pointer;
   }
-  .conn i{width:6px;height:6px;border-radius:50%;background:var(--good);flex:0 0 auto}
-  .conn.off i{background:var(--faint)}
+  .conn i{width:6px;height:6px;border-radius:50%;background:var(--faint);flex:0 0 auto}
+  /* 실제 인솔이 붙어 있을 때만 초록불. 시뮬레이션은 회색입니다.
+     가짜 데이터를 연결됨처럼 보이게 하면 안 됩니다. */
+  .conn.live i{background:var(--good)}
+  .conn.live{color:var(--ink)}
+  .conn:focus-visible{outline:2px solid var(--s1);outline-offset:2px}
 
   /* ═══ 화면 ═══ */
   .screens{flex:1 1 auto;position:relative;overflow:hidden}
@@ -320,12 +325,12 @@
   .alertbar b{font-weight:700}
   .alertbar .go{margin-left:auto;color:var(--faint);font-size:.9rem}
 
-  .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:.45rem}
+  .dgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.4rem}
   .d{background:var(--card-2);border-radius:11px;padding:.5rem .6rem}
   .d .l{font-family:"IBM Plex Mono",monospace;font-size:.58rem;letter-spacing:.07em;
         text-transform:uppercase;color:var(--faint);display:block}
   .d .v{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
-        font-size:1.05rem;font-weight:600;color:var(--ink)}
+        font-size:.95rem;font-weight:600;color:var(--ink)}
   .d .v small{font-size:.62rem;font-weight:400;color:var(--muted);margin-left:.1rem}
   .d .v.bad{color:var(--critical)}
   .d .v.good{color:var(--good)}
@@ -339,6 +344,8 @@
     padding:.42rem .8rem;white-space:nowrap;
   }
   .mini.ghost{background:transparent;color:var(--muted);border:1px solid var(--rule-2)}
+  .mini[hidden]{display:none}
+  .mini:disabled{opacity:.45}
   .mini.danger{background:transparent;color:var(--critical);border:1px solid var(--critical)}
   .mini:active{transform:scale(.97)}
   .mini:focus-visible{outline:2px solid var(--s1);outline-offset:2px}
@@ -479,6 +486,16 @@
 
     <!-- 진단 -->
     <section class="screen" id="sc-diag" role="tabpanel" aria-label="진단">
+
+      <div class="card">
+        <div class="card-t"><h2>인솔 연결</h2><span class="n" id="bleMode">시뮬레이션</span></div>
+        <p class="hintline" id="bleHint">실제 인솔을 연결하면 시뮬레이션 대신 진짜 값이 들어옵니다.</p>
+        <div class="exp-btns">
+          <button class="mini" id="bleConnect" type="button">인솔 연결</button>
+          <button class="mini ghost" id="bleDisconnect" type="button" hidden>연결 끊기</button>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-t"><h2>수신 상태</h2><span class="n">실물 연결 시 여기부터 확인</span></div>
         <div class="dgrid">
@@ -486,6 +503,8 @@
           <div class="d"><span class="l">실제 주기</span><span class="v" id="dHz">–<small>Hz</small></span></div>
           <div class="d"><span class="l">정상 채널</span><span class="v" id="dOk">–<small>/16</small></span></div>
           <div class="d"><span class="l">문제 채널</span><span class="v" id="dBad">–</span></div>
+          <div class="d"><span class="l">받은 패킷</span><span class="v" id="dPkt">–</span></div>
+          <div class="d"><span class="l">유실 패킷</span><span class="v" id="dDrop">–</span></div>
         </div>
       </div>
 
@@ -726,6 +745,11 @@ INSOLE.sensor = (function () {
   var scenario = "normal";
   var reps = 0, lastPhase = 0;
 
+  /* "sim" 이면 시뮬레이터가 값을 만들고,
+   * "ble" 이면 실제 인솔이 보낸 값이 들어옵니다.
+   * 실제 연결 중에는 시뮬레이터가 값을 덮어쓰면 안 됩니다. */
+  var source = "sim";
+
   function labelOf(key) {
     for (var i = 0; i < SCENARIOS.length; i++) if (SCENARIOS[i].key === key) return SCENARIOS[i].label;
     return key;
@@ -738,6 +762,9 @@ INSOLE.sensor = (function () {
    * fwdBias   : + 면 앞쪽으로, - 면 뒤꿈치로 무게가 이동
    */
   function step(tSec) {
+    /* 실제 인솔이 붙어 있으면 시뮬레이터는 아무것도 하지 않습니다. */
+    if (source === "ble") return;
+
     var phase = 0, load;
     if (scenario === "stand") {
       load = 0.42 + Math.sin(tSec * 0.7) * 0.015 + noise(0.01);
@@ -795,6 +822,13 @@ INSOLE.sensor = (function () {
 
     getScenario: function () { return scenario; },
     setScenario: function (k) { scenario = k; },
+
+    /** "sim" 또는 "ble". 11-ble.js 가 연결·해제 시 바꿉니다. */
+    getSource: function () { return source; },
+    setSource: function (s) {
+      source = s;
+      if (s === "ble") { reps = 0; lastPhase = 0; }
+    },
 
     getReps: function () { return reps; },
     resetReps: function () { reps = 0; lastPhase = 0; },
@@ -1499,6 +1533,15 @@ INSOLE.report = (function () {
     bad.textContent = sum.problems.length ? String(sum.problems.length) : "0";
     bad.className = "v " + (sum.problems.length ? "bad" : "good");
 
+    /* 무선이 불안정한지 판단하는 근거입니다. 시뮬레이션 중에는 뜻이 없어
+     * 가로줄로 둡니다. */
+    var st = INSOLE.ble.stats();
+    var onBle = INSOLE.sensor.getSource() === "ble";
+    $("dPkt").textContent  = onBle ? String(st.packets) : "–";
+    var dp = $("dDrop");
+    dp.textContent = onBle ? String(st.dropped) : "–";
+    dp.className = "v " + (onBle && st.dropped > 0 ? "bad" : "");
+
     var html = "";
     ["L", "R"].forEach(function (side) {
       for (var i = 0; i < C.CHANNELS; i++) {
@@ -1514,6 +1557,30 @@ INSOLE.report = (function () {
       }
     });
     $("diagTable").querySelector("tbody").innerHTML = html;
+  }
+
+  /* 앱바의 연결 표시와 진단 탭의 연결 카드를 한 곳에서 갱신합니다. */
+  function renderConnection() {
+    var onBle = INSOLE.sensor.getSource() === "ble";
+    var pill = $("conn"), txt = $("connTxt");
+    pill.classList.toggle("live", onBle);
+    txt.textContent = onBle ? (INSOLE.ble.deviceName() || "인솔 연결됨") : "시뮬레이션";
+
+    $("bleMode").textContent = onBle ? "실제 인솔" : "시뮬레이션";
+    $("bleConnect").hidden = onBle;
+    $("bleDisconnect").hidden = !onBle;
+
+    var hint = $("bleHint");
+    if (onBle) {
+      hint.innerHTML = "<b>" + (INSOLE.ble.deviceName() || "인솔") + "</b> 에서 실제 값을 받고 있습니다. " +
+                       "설정 탭의 시연 시나리오는 이때 동작하지 않습니다.";
+    } else if (INSOLE.ble.supported()) {
+      hint.textContent = "실제 인솔을 연결하면 시뮬레이션 대신 진짜 값이 들어옵니다.";
+      $("bleConnect").disabled = false;
+    } else {
+      hint.textContent = INSOLE.ble.unsupportedReason();
+      $("bleConnect").disabled = true;
+    }
   }
 
   function renderZeroState() {
@@ -1573,6 +1640,37 @@ INSOLE.report = (function () {
       if (t) t.click();
     });
 
+    /* 기기 선택 창은 사용자가 버튼을 눌러야만 열 수 있습니다. */
+    $("bleConnect").addEventListener("click", function () {
+      var btn = this;
+      btn.disabled = true; btn.textContent = "연결 중…";
+      INSOLE.ble.connect().catch(function () {}).then(function () {
+        btn.disabled = false; btn.textContent = "인솔 연결";
+        renderConnection();
+      });
+    });
+    $("bleDisconnect").addEventListener("click", function () {
+      INSOLE.ble.disconnect();
+      renderConnection();
+    });
+    /* 앱바의 연결 표시를 누르면 진단 탭으로 갑니다. */
+    $("conn").addEventListener("click", function () {
+      var t = document.querySelector('.tabbar button[data-t="diag"]');
+      if (t) t.click();
+    });
+
+    /* 연결이 끊기면 사용자에게 바로 알려야 합니다. 조용히 시뮬레이션으로
+     * 돌아가면 가짜 데이터를 실제 값으로 착각하게 됩니다. */
+    INSOLE.ble.onChange(function (type, detail) {
+      renderConnection();
+      if (type === "disconnected" && running) {
+        $("bleHint").innerHTML = "<b>연결이 끊겼습니다.</b> 인솔 전원과 거리를 확인한 뒤 다시 연결하세요.";
+      }
+      if (type === "error") {
+        $("bleHint").textContent = "연결하지 못했습니다 — " + (detail.message || "알 수 없는 오류");
+      }
+    });
+
     $("zeroBtn").addEventListener("click", function () {
       INSOLE.health.captureZero(S.read());
       renderZeroState();
@@ -1625,6 +1723,7 @@ INSOLE.report = (function () {
     $("scenList").addEventListener("click", function (e) {
       var btn = e.target.closest("button[data-s]");
       if (!btn) return;
+      if (S.getSource() === "ble") return;   /* 실제 연결 중에는 무시 */
       S.setScenario(btn.getAttribute("data-s"));
       renderScenarios();
       if (running) { t0 = 0; history = []; S.resetReps(); session = { lr: [], ap: [], cop: [] }; }
@@ -1662,6 +1761,7 @@ INSOLE.report = (function () {
     INSOLE.chart.draw(history);
     renderLive();
     renderZeroState();
+    renderConnection();
     renderHealth();
   }
 
@@ -2069,6 +2169,157 @@ INSOLE.wakelock = (function () {
 
   return { supported: supported, acquire: acquire, release: release,
            isHeld: function () { return !!lock; } };
+})();
+
+/* ============================================================
+ * 11-ble.js — 실제 인솔과 블루투스 연결 (안드로이드 우선)
+ *
+ * 웹에서 직접 블루투스를 씁니다. 안드로이드 크롬·엣지·삼성인터넷에서
+ * 동작하며, 앱을 따로 설치할 필요가 없습니다.
+ *
+ * 아이폰은 사파리를 포함한 모든 브라우저가 이 기능을 지원하지 않습니다.
+ * (아이폰의 모든 브라우저는 내부적으로 같은 엔진을 씁니다)
+ * 아이폰에서는 Xcode 로 만든 앱에서 Swift 가 대신 연결해 줘야 합니다.
+ *
+ * 패킷 형식은 DATA_CONTRACT.md 를 따릅니다.
+ * ============================================================ */
+var INSOLE = window.INSOLE || {};
+
+INSOLE.ble = (function () {
+  "use strict";
+  var C = INSOLE.config;
+
+  /* DATA_CONTRACT.md 의 값. 펌웨어가 확정되면 여기만 바꾸면 됩니다. */
+  var SERVICE_UUID = "0000fff0-0000-1000-8000-00805f9b34fb";
+  var NOTIFY_UUID  = "0000fff1-0000-1000-8000-00805f9b34fb";
+  var PACKET_BYTES = 2 + C.CHANNELS * 2 * 2;   /* 헤더1 + 순번1 + 16채널×2바이트 = 34 */
+  var HEADER = 0xA5;
+
+  var device = null, characteristic = null;
+  var listeners = [];
+  var stats = { packets: 0, dropped: 0, bad: 0, lastSeq: -1 };
+
+  function emit(type, detail) {
+    listeners.forEach(function (fn) { try { fn(type, detail); } catch (e) {} });
+  }
+  function onChange(fn) { listeners.push(fn); }
+
+  /** 이 브라우저가 웹 블루투스를 지원하는가. */
+  function supported() {
+    return typeof navigator !== "undefined" &&
+           !!navigator.bluetooth && typeof navigator.bluetooth.requestDevice === "function";
+  }
+
+  /** 왜 못 쓰는지 사람이 읽을 수 있는 이유. */
+  function unsupportedReason() {
+    if (supported()) return null;
+    var ua = navigator.userAgent || "";
+    /* 아이폰·아이패드는 브라우저를 바꿔도 안 됩니다. 엔진이 같기 때문입니다. */
+    if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) {
+      return "아이폰·아이패드는 브라우저에서 블루투스를 쓸 수 없습니다. 크롬을 깔아도 마찬가지입니다. 실제 센서 연결은 안드로이드 휴대폰을 쓰시거나, Xcode 로 설치한 앱이 필요합니다.";
+    }
+    if (location.protocol !== "https:" && location.hostname !== "localhost") {
+      return "보안 연결(https)에서만 블루투스를 쓸 수 있습니다. 주소가 https 로 시작하는지 확인하세요.";
+    }
+    return "이 브라우저는 블루투스를 지원하지 않습니다. 안드로이드에서 크롬·엣지·삼성인터넷을 쓰세요.";
+  }
+
+  function isConnected() {
+    return !!(device && device.gatt && device.gatt.connected);
+  }
+
+  /* ── 패킷 해석 ────────────────────────────────────────────
+   * 34바이트를 받아 채널값으로 풉니다. 형식이 어긋나면 버립니다.
+   * 잘못된 패킷을 그냥 쓰면 화면이 튀고 원인을 찾기 어려워집니다.
+   */
+  function handlePacket(dv) {
+    if (dv.byteLength !== PACKET_BYTES || dv.getUint8(0) !== HEADER) {
+      stats.bad++;
+      return;
+    }
+
+    /* 순번으로 유실을 셉니다. 무선이 불안정한지 판단하는 근거가 됩니다. */
+    var seq = dv.getUint8(1);
+    if (stats.lastSeq >= 0) {
+      var gap = (seq - stats.lastSeq + 256) % 256;
+      if (gap > 1) stats.dropped += gap - 1;
+    }
+    stats.lastSeq = seq;
+    stats.packets++;
+
+    var v = INSOLE.sensor.values;
+    for (var i = 0; i < C.CHANNELS; i++) {
+      v.L[i] = dv.getUint16(2 + i * 2, true);                          /* ch1~8  */
+      v.R[i] = dv.getUint16(2 + (i + C.CHANNELS) * 2, true);           /* ch9~16 */
+    }
+    /* 오류값 정리와 수신 시각 기록은 health 가 담당합니다. */
+    INSOLE.health.sanitize(v);
+    INSOLE.health.markFrame();
+  }
+
+  /**
+   * 인솔에 연결합니다.
+   * 반드시 사용자가 버튼을 눌러 호출해야 합니다 —
+   * 브라우저가 기기 선택 창을 띄우려면 사용자 동작이 필요합니다.
+   */
+  function connect() {
+    if (!supported()) return Promise.reject(new Error(unsupportedReason()));
+
+    return navigator.bluetooth.requestDevice({
+      filters: [{ services: [SERVICE_UUID] }],
+      optionalServices: [SERVICE_UUID]
+    }).then(function (d) {
+      device = d;
+      device.addEventListener("gattserverdisconnected", function () {
+        characteristic = null;
+        INSOLE.sensor.setSource("sim");
+        emit("disconnected", { name: device && device.name });
+      });
+      emit("connecting", { name: d.name });
+      return d.gatt.connect();
+    }).then(function (server) {
+      return server.getPrimaryService(SERVICE_UUID);
+    }).then(function (service) {
+      return service.getCharacteristic(NOTIFY_UUID);
+    }).then(function (ch) {
+      characteristic = ch;
+      ch.addEventListener("characteristicvaluechanged", function (e) {
+        handlePacket(e.target.value);
+      });
+      return ch.startNotifications();
+    }).then(function () {
+      stats = { packets: 0, dropped: 0, bad: 0, lastSeq: -1 };
+      /* 이제 시뮬레이터 대신 실제 값이 들어옵니다. */
+      INSOLE.sensor.setSource("ble");
+      emit("connected", { name: device.name || "인솔" });
+      return true;
+    }).catch(function (err) {
+      /* 사용자가 선택 창을 닫은 것은 오류가 아닙니다. */
+      if (err && err.name === "NotFoundError") {
+        emit("cancelled", {});
+        return false;
+      }
+      emit("error", { message: (err && err.message) || String(err) });
+      throw err;
+    });
+  }
+
+  function disconnect() {
+    try { if (device && device.gatt && device.gatt.connected) device.gatt.disconnect(); } catch (e) {}
+    characteristic = null;
+    INSOLE.sensor.setSource("sim");
+    emit("disconnected", {});
+  }
+
+  function deviceName() { return device && device.name ? device.name : null; }
+  function getStats() { return stats; }
+
+  return {
+    supported: supported, unsupportedReason: unsupportedReason,
+    connect: connect, disconnect: disconnect, isConnected: isConnected,
+    deviceName: deviceName, stats: getStats, onChange: onChange,
+    SERVICE_UUID: SERVICE_UUID, NOTIFY_UUID: NOTIFY_UUID, PACKET_BYTES: PACKET_BYTES
+  };
 })();
 
 </script>

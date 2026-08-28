@@ -30,6 +30,11 @@ INSOLE.sensor = (function () {
   var scenario = "normal";
   var reps = 0, lastPhase = 0;
 
+  /* "sim" 이면 시뮬레이터가 값을 만들고,
+   * "ble" 이면 실제 인솔이 보낸 값이 들어옵니다.
+   * 실제 연결 중에는 시뮬레이터가 값을 덮어쓰면 안 됩니다. */
+  var source = "sim";
+
   function labelOf(key) {
     for (var i = 0; i < SCENARIOS.length; i++) if (SCENARIOS[i].key === key) return SCENARIOS[i].label;
     return key;
@@ -42,6 +47,9 @@ INSOLE.sensor = (function () {
    * fwdBias   : + 면 앞쪽으로, - 면 뒤꿈치로 무게가 이동
    */
   function step(tSec) {
+    /* 실제 인솔이 붙어 있으면 시뮬레이터는 아무것도 하지 않습니다. */
+    if (source === "ble") return;
+
     var phase = 0, load;
     if (scenario === "stand") {
       load = 0.42 + Math.sin(tSec * 0.7) * 0.015 + noise(0.01);
@@ -99,6 +107,13 @@ INSOLE.sensor = (function () {
 
     getScenario: function () { return scenario; },
     setScenario: function (k) { scenario = k; },
+
+    /** "sim" 또는 "ble". 11-ble.js 가 연결·해제 시 바꿉니다. */
+    getSource: function () { return source; },
+    setSource: function (s) {
+      source = s;
+      if (s === "ble") { reps = 0; lastPhase = 0; }
+    },
 
     getReps: function () { return reps; },
     resetReps: function () { reps = 0; lastPhase = 0; },

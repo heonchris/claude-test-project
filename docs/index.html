@@ -119,6 +119,16 @@
 
     <!-- 진단 -->
     <section class="screen" id="sc-diag" role="tabpanel" aria-label="진단">
+
+      <div class="card">
+        <div class="card-t"><h2>인솔 연결</h2><span class="n" id="bleMode">시뮬레이션</span></div>
+        <p class="hintline" id="bleHint">실제 인솔을 연결하면 시뮬레이션 대신 진짜 값이 들어옵니다.</p>
+        <div class="exp-btns">
+          <button class="mini" id="bleConnect" type="button">인솔 연결</button>
+          <button class="mini ghost" id="bleDisconnect" type="button" hidden>연결 끊기</button>
+        </div>
+      </div>
+
       <div class="card">
         <div class="card-t"><h2>수신 상태</h2><span class="n">실물 연결 시 여기부터 확인</span></div>
         <div class="dgrid">
@@ -126,6 +136,8 @@
           <div class="d"><span class="l">실제 주기</span><span class="v" id="dHz">–<small>Hz</small></span></div>
           <div class="d"><span class="l">정상 채널</span><span class="v" id="dOk">–<small>/16</small></span></div>
           <div class="d"><span class="l">문제 채널</span><span class="v" id="dBad">–</span></div>
+          <div class="d"><span class="l">받은 패킷</span><span class="v" id="dPkt">–</span></div>
+          <div class="d"><span class="l">유실 패킷</span><span class="v" id="dDrop">–</span></div>
         </div>
       </div>
 
@@ -220,6 +232,7 @@
 <script src="js/08-health.js"></script>
 <script src="js/09-storage.js"></script>
 <script src="js/10-wakelock.js"></script>
+<script src="js/11-ble.js"></script>
 <script src="js/07-app.js"></script>
 
 <!-- 오프라인 지원. https 에서만 동작하므로 file:// 로 열면 조용히 건너뜁니다. -->

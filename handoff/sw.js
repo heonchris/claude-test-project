@@ -7,7 +7,7 @@
  * 주의: 파일을 고친 뒤에는 아래 VERSION 을 반드시 올리세요.
  * 올리지 않으면 사용자 기기에 옛날 파일이 계속 남습니다.
  * ============================================================ */
-var VERSION = "insole-v2";
+var VERSION = "insole-v3";
 
 var SHELL = [
   "./",
@@ -23,6 +23,7 @@ var SHELL = [
   "./js/08-health.js",
   "./js/09-storage.js",
   "./js/10-wakelock.js",
+  "./js/11-ble.js",
   "./icon-512.png",
   "./manifest.webmanifest"
 ];
