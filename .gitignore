@@ -39,3 +39,10 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# footscan (Phase 0 파이썬 엔진)
+footscan/engine/samples/*.jpg
+footscan/engine/samples/*.png
+footscan/engine/results/
+__pycache__/
+*.pyc

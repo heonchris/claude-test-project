@@ -1,0 +1,33 @@
+{
+  "name": "arch_low",
+  "foot": "right",
+  "top_image": "arch_low_top.jpg",
+  "side_image": "arch_low_side.jpg",
+  "exif_orientation": 0,
+  "top": {
+    "foot_length_mm": 251.1,
+    "ball_width_mm": 104.1,
+    "heel_width_mm": 63.9,
+    "width_ratio": 0.4146,
+    "toe_type": "roman",
+    "side": "right",
+    "design_length_mm": 252.0,
+    "design_ball_width_mm": 104.0,
+    "design_heel_width_mm": 64.0,
+    "design_hallux_valgus_deg": 8.0,
+    "design_rotate_deg": 5.0
+  },
+  "side": {
+    "foot_length_side_mm": 252.1,
+    "arch_clearance_mm": 4.0,
+    "arch_gap_length_mm": 48.8,
+    "arch_gap_ratio": 0.1936,
+    "instep_height_mm": 74.0,
+    "arch_height_index": 0.2935,
+    "design_length_mm": 252.0,
+    "design_arch_clearance_mm": 4.0,
+    "design_instep_height_mm": 74.0,
+    "design_roll_deg": 3.0,
+    "expected_px_per_mm": 3.0
+  }
+}

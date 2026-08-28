@@ -1,0 +1,33 @@
+{
+  "name": "narrow",
+  "foot": "right",
+  "top_image": "narrow_top.jpg",
+  "side_image": "narrow_side.jpg",
+  "exif_orientation": 0,
+  "top": {
+    "foot_length_mm": 262.0,
+    "ball_width_mm": 92.1,
+    "heel_width_mm": 59.9,
+    "width_ratio": 0.3515,
+    "toe_type": "greek",
+    "side": "right",
+    "design_length_mm": 262.0,
+    "design_ball_width_mm": 92.0,
+    "design_heel_width_mm": 60.0,
+    "design_hallux_valgus_deg": 8.0,
+    "design_rotate_deg": 5.0
+  },
+  "side": {
+    "foot_length_side_mm": 262.1,
+    "arch_clearance_mm": 16.0,
+    "arch_gap_length_mm": 92.8,
+    "arch_gap_ratio": 0.3541,
+    "instep_height_mm": 89.0,
+    "arch_height_index": 0.3396,
+    "design_length_mm": 262.0,
+    "design_arch_clearance_mm": 16.0,
+    "design_instep_height_mm": 89.0,
+    "design_roll_deg": 3.0,
+    "expected_px_per_mm": 3.0
+  }
+}

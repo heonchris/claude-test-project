@@ -1,0 +1,33 @@
+{
+  "name": "left",
+  "foot": "left",
+  "top_image": "left_top.jpg",
+  "side_image": "left_side.jpg",
+  "exif_orientation": 0,
+  "top": {
+    "foot_length_mm": 246.9,
+    "ball_width_mm": 96.1,
+    "heel_width_mm": 60.9,
+    "width_ratio": 0.3892,
+    "toe_type": "egyptian",
+    "side": "left",
+    "design_length_mm": 247.0,
+    "design_ball_width_mm": 96.0,
+    "design_heel_width_mm": 61.0,
+    "design_hallux_valgus_deg": 8.0,
+    "design_rotate_deg": 5.0
+  },
+  "side": {
+    "foot_length_side_mm": 247.1,
+    "arch_clearance_mm": 13.0,
+    "arch_gap_length_mm": 84.8,
+    "arch_gap_ratio": 0.3432,
+    "instep_height_mm": 84.0,
+    "arch_height_index": 0.3399,
+    "design_length_mm": 247.0,
+    "design_arch_clearance_mm": 13.0,
+    "design_instep_height_mm": 84.0,
+    "design_roll_deg": 3.0,
+    "expected_px_per_mm": 3.0
+  }
+}
