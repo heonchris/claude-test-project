@@ -76,7 +76,8 @@ def _straightness_error(contour: np.ndarray, quad: np.ndarray) -> float:
     owner = np.argmin(dists, axis=1)
     worst = 0.0
     for i in range(4):
-        sel = (owner == i) & (ts[:, i] > 0.2) & (ts[:, i] < 0.8)
+        lo_t, hi_t = C.PAPER_STRAIGHTNESS_SAMPLE_RANGE
+        sel = (owner == i) & (ts[:, i] > lo_t) & (ts[:, i] < hi_t)
         if sel.sum() < 3 or lens[i] < 1e-6:
             continue
         # 상위 5%는 노이즈일 수 있으므로 95 백분위수를 씁니다
@@ -97,7 +98,8 @@ def detect_paper(img_bgr: np.ndarray, dbg: DebugSaver | None = None) -> tuple[np
     gray = to_gray_blurred(img_bgr)
     edges = auto_canny(gray)
     # 끊어진 경계를 이어 붙입니다 (종이 모서리가 조명 때문에 끊기는 일이 흔합니다)
-    edges = cv2.dilate(edges, np.ones((3, 3), np.uint8), iterations=1)
+    k = C.PAPER_EDGE_DILATE
+    edges = cv2.dilate(edges, np.ones((k, k), np.uint8), iterations=1)
 
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     contours = sorted(contours, key=cv2.contourArea, reverse=True)[:C.CONTOUR_TOP_N]

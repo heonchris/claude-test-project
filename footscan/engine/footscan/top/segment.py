@@ -23,10 +23,11 @@ def _paper_color_lab(lab: np.ndarray) -> np.ndarray:
     아래쪽은 뒤꿈치가 닿아 있을 수 있어 제외합니다.
     """
     h, w = lab.shape[:2]
-    band = max(4, int(w * 0.06))
+    band = max(4, int(w * C.TOP_PAPER_SAMPLE_BAND_RATIO))
+    y_end = int(h * (1.0 - C.TOP_PAPER_SAMPLE_EXCLUDE_BOTTOM))
     samples = [
-        lab[: int(h * 0.9), :band].reshape(-1, 3),
-        lab[: int(h * 0.9), w - band:].reshape(-1, 3),
+        lab[:y_end, :band].reshape(-1, 3),
+        lab[:y_end, w - band:].reshape(-1, 3),
         lab[:band, :].reshape(-1, 3),
     ]
     return np.median(np.concatenate(samples, axis=0), axis=0)
@@ -112,7 +113,8 @@ def segment_foot(warped_bgr: np.ndarray, dbg: DebugSaver | None = None) -> tuple
         warnings.append("일반 방식으로 발을 찾지 못해 보조 방식(적응형 이진화)으로 재시도했습니다.")
         gray = cv2.cvtColor(warped_bgr, cv2.COLOR_BGR2GRAY)
         adapt = cv2.adaptiveThreshold(
-            gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 151, 12
+            gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV,
+            C.TOP_ADAPTIVE_BLOCK, C.TOP_ADAPTIVE_C,
         )
         adapt = _clean(adapt)
         adapt = _fill_holes(adapt)

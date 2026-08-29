@@ -56,7 +56,8 @@ def _bright_masks(gray: np.ndarray, y_start: int):
     for t in thresholds:
         m = np.zeros_like(gray)
         m[y_start:, :] = (roi >= t).astype(np.uint8) * 255
-        m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, np.ones((7, 7), np.uint8))
+        k = C.SIDE_BRIGHT_CLOSE
+        m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, np.ones((k, k), np.uint8))
         yield t, m
 
 

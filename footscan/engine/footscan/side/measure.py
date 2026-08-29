@@ -75,12 +75,59 @@ def classify_arch(clearance_mm: float, gap_ratio: float) -> str:
     return "normal"
 
 
+def check_sole_plausibility(runs: list[tuple[int, int]], xs: np.ndarray,
+                            ppm: float, foot_length_mm: float) -> tuple[float, list[str]]:
+    """
+    발바닥이 상식적인 모양으로 잡혔는지 스스로 점검합니다.
+
+    ★ 왜 이게 필요한가 (한계 시험에서 찾아낸 문제):
+      사진이 어둡거나 노이즈가 심하면 발바닥 아랫면 일부가 배경으로 잘려나갑니다.
+      그러면 "발 길이는 맞는데 아치만 14mm → 26mm 로 튀는" 일이 생깁니다.
+      길이 교차검증(B6)은 길이만 보므로 이걸 못 잡습니다. 그래서 따로 봅니다.
+
+    돌려주는 값: (신뢰도 배율 0~1, 경고 목록)
+    """
+    warnings: list[str] = []
+    quality = 1.0
+    if foot_length_mm <= 0:
+        return quality, warnings
+
+    if len(runs) > C.SIDE_MAX_CONTACT_RUNS:
+        quality *= C.SIDE_QUALITY_PENALTY
+        warnings.append(
+            f"발바닥이 바닥에 닿은 부분이 {len(runs)}조각으로 잘게 나뉘었습니다. "
+            "발 아랫면을 제대로 못 잡았을 가능성이 큽니다. 더 밝은 곳에서 다시 찍어 주세요."
+        )
+
+    if runs:
+        heel_mm = (xs[runs[0][1]] - xs[runs[0][0]]) / ppm
+        if heel_mm / foot_length_mm < C.SIDE_MIN_HEEL_CONTACT_RATIO:
+            quality *= C.SIDE_QUALITY_PENALTY
+            warnings.append(
+                f"뒤꿈치가 바닥에 닿은 부분이 {heel_mm:.0f}mm 밖에 안 됩니다(보통 발 길이의 20% 안팎). "
+                "체중을 실어 똑바로 서고, 더 밝은 곳에서 다시 찍어 주세요."
+            )
+
+        total_mm = sum((xs[b] - xs[a]) / ppm for a, b in runs)
+        lo, hi = C.SIDE_CONTACT_TOTAL_RATIO_RANGE
+        ratio = total_mm / foot_length_mm
+        if not (lo <= ratio <= hi):
+            quality *= C.SIDE_QUALITY_PENALTY
+            warnings.append(
+                f"바닥에 닿은 부분이 발 길이의 {ratio*100:.0f}% 입니다(정상 {lo*100:.0f}~{hi*100:.0f}%). "
+                "아치 값을 믿기 어렵습니다."
+            )
+
+    return max(0.0, min(1.0, quality)), warnings
+
+
 def measure_side(mask: np.ndarray, ref: SideReference,
                  foot_length_top_mm: float | None = None,
-                 dbg: DebugSaver | None = None) -> tuple[SideMeasurement, list[str]]:
+                 dbg: DebugSaver | None = None) -> tuple[SideMeasurement, list[str], float]:
     """
     측면 마스크에서 아치/발등을 잽니다.
     foot_length_top_mm 이 주어지면 비율 계산에 상면 길이를 씁니다(더 정확하므로).
+    돌려주는 값: (측정 결과, 경고 목록, 신뢰도 배율)
     """
     warnings: list[str] = []
     ppm = ref.px_per_mm
@@ -140,6 +187,10 @@ def measure_side(mask: np.ndarray, ref: SideReference,
 
     arch_grade = classify_arch(arch_clearance_mm, arch_gap_ratio)
 
+    # 발바닥이 상식적인 모양으로 잡혔는지 스스로 점검
+    quality, w_quality = check_sole_plausibility(runs, xs, ppm, foot_length_side_mm)
+    warnings += w_quality
+
     delta = abs(length_for_ratio - foot_length_side_mm) if foot_length_top_mm else 0.0
 
     meas = SideMeasurement(
@@ -187,4 +238,4 @@ def measure_side(mask: np.ndarray, ref: SideReference,
         put_label(vis, f"heel is on the LEFT (flipped={flipped})", (20, 84), scale=0.7, thick=2)
         dbg.save("side_measured", vis)
 
-    return meas, warnings
+    return meas, warnings, quality

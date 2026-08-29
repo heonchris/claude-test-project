@@ -158,7 +158,7 @@ def analyze_toes(mask: np.ndarray, r_heel: int, r_toe: int) -> tuple[str, int, l
     toes = []
     for p_i in peaks:
         # 이 봉우리의 "밑동 폭" (엄지를 찾는 데 씁니다. 엄지가 가장 굵습니다)
-        lvl = hs[p_i] - 6.0
+        lvl = hs[p_i] - C.TOE_BASE_WIDTH_DROP_MM
         li = p_i
         while li > 0 and hs[li - 1] >= lvl:
             li -= 1

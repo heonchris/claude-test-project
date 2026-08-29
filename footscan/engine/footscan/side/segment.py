@@ -46,11 +46,12 @@ def _try_rembg(img_bgr: np.ndarray) -> np.ndarray | None:
         return None
 
 
-def _background_clusters(lab: np.ndarray, floor_y: float, k: int = 3) -> np.ndarray:
+def _background_clusters(lab: np.ndarray, floor_y: float, k: int | None = None) -> np.ndarray:
     """
     사진 좌우 가장자리에서 배경 색을 배웁니다.
     벽·바닥·종이처럼 배경이 여러 색일 수 있으므로 k개의 대표색으로 나눕니다.
     """
+    k = C.SIDE_BG_CLUSTERS if k is None else k
     h, w = lab.shape[:2]
     m = max(4, int(w * C.SIDE_BG_SAMPLE_MARGIN_RATIO))
     y_end = int(min(h, floor_y + 1))
@@ -58,8 +59,9 @@ def _background_clusters(lab: np.ndarray, floor_y: float, k: int = 3) -> np.ndar
         lab[:y_end, :m].reshape(-1, 3),
         lab[:y_end, w - m:].reshape(-1, 3),
     ], axis=0).astype(np.float32)
-    if len(samples) > 20000:                      # 속도를 위해 솎아냅니다
-        samples = samples[:: len(samples) // 20000 + 1]
+    cap = C.SIDE_BG_MAX_SAMPLES
+    if len(samples) > cap:                        # 속도를 위해 솎아냅니다
+        samples = samples[:: len(samples) // cap + 1]
     crit = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 20, 1.0)
     _, _, centers = cv2.kmeans(samples, k, None, crit, 3, cv2.KMEANS_PP_CENTERS)
     return centers
@@ -174,7 +176,8 @@ def segment_foot_side(ref: SideReference, dbg: DebugSaver | None = None) -> tupl
     if C.SIDE_GRABCUT_ITERS > 0:
         gc = np.full(mask.shape, cv2.GC_PR_BGD, np.uint8)
         gc[mask > 0] = cv2.GC_PR_FGD
-        er = cv2.erode(mask, np.ones((25, 25), np.uint8))
+        ek = C.SIDE_GRABCUT_SURE_ERODE
+        er = cv2.erode(mask, np.ones((ek, ek), np.uint8))
         gc[er > 0] = cv2.GC_FGD
         bgd, fgd = np.zeros((1, 65), np.float64), np.zeros((1, 65), np.float64)
         cv2.grabCut(img, gc, None, bgd, fgd, C.SIDE_GRABCUT_ITERS, cv2.GC_INIT_WITH_MASK)

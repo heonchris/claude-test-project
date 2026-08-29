@@ -63,8 +63,9 @@ def scan_foot(
         warnings += ref.warnings
         smask, w4 = segment_foot_side(ref, dbg)
         warnings += w4
-        side_meas, w5 = measure_side(smask, ref, top_meas.foot_length_mm, dbg)
+        side_meas, w5, side_quality = measure_side(smask, ref, top_meas.foot_length_mm, dbg)
         warnings += w5
+        confidence = min(confidence, side_quality)
 
         # ---------- 교차 검증 ----------
         side_conf, w6 = cross_check(top_meas.foot_length_mm, side_meas.foot_length_side_mm)

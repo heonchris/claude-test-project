@@ -321,12 +321,17 @@ def _paper_texture(h: int, w: int, rng) -> np.ndarray:
     return np.clip(img + gx + gy, 0, 255)
 
 
-def _skin(h: int, w: int, rng) -> np.ndarray:
+# 맨발 기본 색 (BGR). 흰 양말/검은 양말 시험은 render_* 의 skin_bgr 로 바꿉니다.
+SKIN_BGR = (150.0, 172.0, 196.0)
+
+
+def _skin(h: int, w: int, rng, bgr=None) -> np.ndarray:
     """발 색 (BGR). 종이보다 확실히 어둡고 붉은 기가 돕니다."""
+    b, g, r = bgr or SKIN_BGR
     img = np.zeros((h, w, 3))
-    img[:, :, 0] = 150.0   # B
-    img[:, :, 1] = 172.0   # G
-    img[:, :, 2] = 196.0   # R
+    img[:, :, 0] = b
+    img[:, :, 1] = g
+    img[:, :, 2] = r
     return np.clip(img + _noise((h, w, 3), 4.0, rng), 0, 255)
 
 
@@ -374,6 +379,7 @@ def render_top(
     perspective: float,
     seed: int,
     with_foot: bool = True,
+    skin_bgr: tuple[float, float, float] | None = None,
 ) -> tuple[np.ndarray, dict]:
     """
     A4 위에 발이 놓인 모습을 위에서 비스듬히 찍은 사진을 만듭니다.
@@ -417,7 +423,7 @@ def render_top(
     if not with_foot:
         canvas_mask[:] = 0
         paper = _paper_texture(PH, PW, rng)
-    skin = _skin(PH, PW, rng)
+    skin = _skin(PH, PW, rng, skin_bgr)
     m3 = (canvas_mask > 0)[:, :, None]
     flat = np.where(m3, skin, paper)
 
@@ -477,6 +483,7 @@ def render_side(
     focal_ratio: float,
     roll_deg: float,
     seed: int,
+    skin_bgr: tuple[float, float, float] | None = None,
 ) -> tuple[np.ndarray, dict]:
     """
     바닥에 놓인 A4의 긴 변 옆에 발을 딛고, 낮은 위치에서 찍은 사진을 만듭니다.
@@ -540,7 +547,7 @@ def render_side(
     sh = cv2.GaussianBlur(sh, (41, 41), 0).astype(np.float64) / 255.0
     img = img * (1.0 - 0.16 * sh[:, :, None])
 
-    skin = _skin(out_h, out_w, rng)
+    skin = _skin(out_h, out_w, rng, skin_bgr)
     img = np.where((foot_layer > 0)[:, :, None], skin, img)
     img = np.clip(img + _noise((out_h, out_w, 3), 2.0, rng), 0, 255).astype(np.uint8)
 
