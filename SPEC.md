@@ -424,7 +424,8 @@ npm run iphone     # = expo run:ios --device --configuration Release
 | `Project is incompatible with this version of Expo Go` | 폰의 Expo Go가 SDK 57을 못 읽는다. Expo Go를 지우고 다시 설치하거나, **Xcode 경로로 간다** |
 | `Failed to install CocoaPods CLI` | `sudo gem install cocoapods` (sudo 없이는 권한이 없어 실패한다) |
 | `No such file or directory: /Users/.../...100btx` | **폴더 이름에 띄어쓰기가 있으면 안 된다.** `cat-health` 같은 짧은 영문으로 바꾸고 `ios` 폴더를 지운 뒤 다시 실행 |
-| `Personal development teams ... do not support the Push Notifications capability` | 무료 계정은 푸시 알림을 못 쓴다. 이 앱은 로컬 알림만 쓰므로 필요 없다. `app.json`에서 `expo-notifications` 플러그인을 뺐다 |
+| `Personal development teams ... do not support the Push Notifications capability` | 무료 계정은 푸시 알림 권한으로 서명할 수 없다. **`app.json`에서 플러그인을 빼는 것만으로는 해결되지 않는다** — `expo-notifications`는 설치만 해도 `aps-environment` 권한을 넣는다. `plugins/withoutPushNotifications.js`가 생성된 권한 목록에서 그 항목을 걷어낸다. 로컬 알림은 그대로 동작한다 |
+| `No profiles for 'com.cathealth.app' were found` | 번들 ID가 되돌아간 것이다. `app.json`의 `ios.bundleIdentifier`에 고정해 두었으므로 `ios` 폴더를 새로 만들어도 유지된다 |
 | `Failed to register bundle identifier` | 다른 사람이 쓰는 ID다. Xcode에서 `Bundle Identifier` 뒤에 본인 글자를 붙인다 |
 | `Developer Mode disabled` | 아이폰 **설정 → 개인정보 보호 및 보안 → 개발자 모드** 켜기 → 재부팅 |
 | `codesign이 키체인 접근을 허용하고자 합니다` | 맥 로그인 암호 입력 후 **`항상 허용`** (그냥 `허용`을 누르면 파일마다 계속 물어본다) |
@@ -464,7 +465,9 @@ npm install
 npm run iphone
 ```
 
-`--exclude ios`가 핵심이다. 이걸 빼면 서명 설정이 날아가 Xcode에서 Team을 다시 골라야 한다.
+`ios` 폴더가 없으면 `expo run:ios`가 알아서 다시 만든다.
+번들 ID와 권한 설정은 `app.json`과 `plugins/`에 들어 있어 매번 같은 결과가 나온다.
+Xcode에서 손으로 고칠 필요가 없다.
 
 계속 고쳐 나갈 거라면 **GitHub Desktop**이 편하다.
 `Fetch origin` → `Pull origin` 버튼 한 번이면 위 과정이 필요 없다.
@@ -509,6 +512,15 @@ npm run iphone
 **사진은 이름만 저장한다**
 `photo_uri`는 파일 이름이다. 화면에 띄울 때 `resolvePhotoUri()`가 현재 앱 폴더와 합친다.
 파일이 없으면 `components/Photo.tsx`가 메모나 안내 문구로 대신한다.
+
+**푸시 권한을 코드로 걷어낸다**
+`expo-notifications`는 설치만 해도 `aps-environment`(원격 푸시) 권한을 iOS 프로젝트에 넣는데,
+무료 Apple 계정은 이 권한으로 서명할 수 없어 실기기 빌드가 실패한다.
+`plugins/withoutPushNotifications.js`가 그 항목만 지운다. 로컬 알림에는 영향이 없다.
+
+**번들 ID를 `app.json`에 고정했다**
+`com.cathealth.app.seungheon`. Xcode에서 손으로 바꾸면 `ios` 폴더를 새로 만들 때마다 되돌아가고,
+ID가 달라지면 아이폰이 다른 앱으로 보기 때문에 **기록이 전부 사라진다.**
 
 **앱을 켤 때 알림을 다시 건다**
 예약된 알림은 재설치와 함께 사라지므로, 설정이 켜져 있으면 `app/_layout.tsx`에서 조용히 재예약한다.

@@ -7,10 +7,9 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "backgroundColor": "#FBF7F0",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.cathealth.app",
+      "bundleIdentifier": "com.cathealth.app.seungheon",
       "infoPlist": {
         "NSCameraUsageDescription": "식단 사진을 찍어 기록하기 위해 카메라를 사용합니다.",
         "NSPhotoLibraryUsageDescription": "앨범에서 식단 사진을 골라 기록하기 위해 사용합니다."
@@ -48,7 +47,8 @@
           "photosPermission": "앨범에서 식단 사진을 골라 기록하기 위해 사용합니다.",
           "cameraPermission": "식단 사진을 찍어 기록하기 위해 카메라를 사용합니다."
         }
-      ]
+      ],
+      "./plugins/withoutPushNotifications"
     ]
   }
 }
