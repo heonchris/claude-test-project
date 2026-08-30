@@ -34,6 +34,11 @@ import { consumeSaved } from '../../lib/savedSignal';
 import { colors, radius, screenPadding, shadow, space } from '../../theme/colors';
 import { useDayData } from '../../hooks/useDayData';
 
+/** 반응 연출 길이. 길면 기록할 때마다 기다려야 해서 짧게 유지한다. */
+const STRETCH_MS = 600;
+const REACTION_MS = 1300;
+const CLIMB_MS = 800;
+
 export default function TodayScreen() {
   const today = useToday();
   const router = useRouter();
@@ -56,10 +61,23 @@ export default function TodayScreen() {
 
   /** 저장 직전에 오늘이 비어 있었는지 (자다가 일어나는 연출용) */
   const wasEmptyRef = useRef(true);
+  /** 달성률이 올랐는가 (반응이 끝나면 벽을 타고 올라간다) */
+  const pendingClimbRef = useRef(false);
+
+  /** 반응이 끝났다. 올라갈 게 남았으면 올라가고, 아니면 원래 자세로. */
+  const finishReaction = useCallback(() => {
+    if (pendingClimbRef.current) {
+      pendingClimbRef.current = false;
+      setReaction({ pose: 'climbing', line: '올라간다냥' });
+      timers.current.push(setTimeout(() => setReaction(null), CLIMB_MS));
+    } else {
+      setReaction(null);
+    }
+  }, []);
 
   /**
    * SPEC 6-1. 저장 직후 짧게 반응한다.
-   * 자고 있다가 첫 기록이면 기지개를 먼저 켠다.
+   * 자고 있었으면 기지개 → 반응 → (올랐으면) 벽 오르기 순서로 이어진다.
    */
   const react = useCallback(
     (kind: RecordKind) => {
@@ -76,14 +94,14 @@ export default function TodayScreen() {
       clearTimers();
       if (wasEmptyRef.current) {
         setReaction({ pose: 'stretching', line: '이제 일어났다냥' });
-        timers.current.push(setTimeout(() => setReaction({ pose, line }), 700));
-        timers.current.push(setTimeout(() => setReaction(null), 2300));
+        timers.current.push(setTimeout(() => setReaction({ pose, line }), STRETCH_MS));
+        timers.current.push(setTimeout(finishReaction, STRETCH_MS + REACTION_MS));
       } else {
         setReaction({ pose, line });
-        timers.current.push(setTimeout(() => setReaction(null), 1600));
+        timers.current.push(setTimeout(finishReaction, REACTION_MS));
       }
     },
-    [clearTimers]
+    [clearTimers, finishReaction]
   );
 
   useEffect(() => clearTimers, [clearTimers]);
@@ -110,6 +128,28 @@ export default function TodayScreen() {
   useEffect(() => {
     if (!reaction) wasEmptyRef.current = progress.totalRecords === 0;
   }, [reaction, progress.totalRecords]);
+
+  /**
+   * 반응 중에는 벽을 그대로 두었다가, 반응이 끝날 때 올라간다.
+   * 그래야 '밥을 다 먹고 나서 올라간다'처럼 순서대로 보인다.
+   */
+  const holdWall = !!reaction && reaction.pose !== 'climbing';
+  const [shownProgress, setShownProgress] = useState(0);
+  const seenProgressRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const seen = seenProgressRef.current;
+    if (seen !== null && progress.overall > seen + 0.001) pendingClimbRef.current = true;
+    seenProgressRef.current = progress.overall;
+  }, [progress.overall]);
+
+  useEffect(() => {
+    if (holdWall) return;
+    setShownProgress(progress.overall);
+    // 반응 없이 조용히 반영된 변화는 '올라갈 빚'으로 남기지 않는다
+    // (기록 탭에서 고치고 돌아온 경우 등)
+    if (!reaction) pendingClimbRef.current = false;
+  }, [holdWall, progress.overall, reaction]);
 
   const changeWater = async (delta: number) => {
     if (delta > 0) react('water');
@@ -164,7 +204,7 @@ export default function TodayScreen() {
         <CatWall
           pose={pose}
           animate={focused}
-          progress={progress.overall}
+          progress={shownProgress}
           line={line}
           dots={{
             meal: snapshot.meals.length > 0,

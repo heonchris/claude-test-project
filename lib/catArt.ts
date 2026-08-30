@@ -269,12 +269,13 @@ function feeding(f: CatFrame, p: CatPalette): string {
       headCy - 36
     )} ${n(headCx + 21)},${n(headCy - 6)}" fill="${p.body}"/>` +
     ellipse(headCx, headCy, 21, 18, p.body) +
-    eyes(
+    // 고개를 기울인 자세라 눈을 감기면 두 선이 하나로 붙어 보인다.
+    // 1초 남짓 스쳐가는 자세이므로 여기서는 눈을 감기지 않는다.
+    openEyes(
       [
         { cx: headCx - 9, cy: headCy - 2, r: 8.6, pupil: 4.2, dy: 2.4 },
         { cx: headCx + 9, cy: headCy - 3, r: 8.6, pupil: 4.2, dy: 2.4 },
       ],
-      f.blink,
       p
     ) +
     `</g>` +

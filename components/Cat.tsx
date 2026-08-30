@@ -69,7 +69,8 @@ export function Cat({ pose, width, animate = true }: Props) {
   }, [moving, pose]);
 
   // 눈 깜빡임. 규칙적이면 기계처럼 보여서 간격을 흩뜨린다.
-  const blinkTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  // 타이머는 항상 하나만 살아 있게 유지한다 (오래 켜두면 쌓이기 때문).
+  const blinkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     if (!moving) {
       setBlink(false);
@@ -78,25 +79,21 @@ export function Cat({ pose, width, animate = true }: Props) {
     let cancelled = false;
     const schedule = () => {
       const wait = BLINK_MIN_GAP + Math.random() * BLINK_EXTRA_GAP;
-      blinkTimers.current.push(
-        setTimeout(() => {
+      blinkTimer.current = setTimeout(() => {
+        if (cancelled) return;
+        setBlink(true);
+        blinkTimer.current = setTimeout(() => {
           if (cancelled) return;
-          setBlink(true);
-          blinkTimers.current.push(
-            setTimeout(() => {
-              if (cancelled) return;
-              setBlink(false);
-              schedule();
-            }, BLINK_MS)
-          );
-        }, wait)
-      );
+          setBlink(false);
+          schedule();
+        }, BLINK_MS);
+      }, wait);
     };
     schedule();
     return () => {
       cancelled = true;
-      blinkTimers.current.forEach(clearTimeout);
-      blinkTimers.current = [];
+      if (blinkTimer.current) clearTimeout(blinkTimer.current);
+      blinkTimer.current = null;
     };
   }, [moving]);
 
