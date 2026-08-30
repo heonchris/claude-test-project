@@ -46,3 +46,4 @@ footscan/engine/samples/*.png
 footscan/engine/results/
 __pycache__/
 *.pyc
+footscan/engine/web/*.png.bak

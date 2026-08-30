@@ -8,7 +8,13 @@ pillow>=10.0              # EXIF 회전 보정
 typer>=0.9                # CLI
 pydantic>=2.0             # 결과 스키마
 
+# --- Phase 1: 휴대폰에서 쓰기 위한 서버 (python server.py) ---
+fastapi>=0.110
+uvicorn[standard]>=0.27
+python-multipart>=0.0.9   # 사진 업로드 처리
+
 # --- 선택 ---
 # rembg>=2.0              # 측면 발 분할 정확도 향상(U2Net). 없으면 색 기반 폴백으로 동작합니다.
 #                         # 설치 시 onnxruntime 와 모델(약 170MB)을 함께 내려받습니다.
-# pytest>=7.0             # 테스트를 pytest 로 돌리고 싶을 때 (없어도 python tests/test_measure.py 로 실행 가능)
+# pytest>=7.0             # 테스트를 pytest 로 돌리고 싶을 때 (없어도 python tests/*.py 로 실행 가능)
+# httpx2                  # tests/test_server.py 를 돌릴 때만 필요합니다

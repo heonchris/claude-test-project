@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f2937">
+<title>발 스캔</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+  /* ── 기본 ─────────────────────────────────────────── */
+  :root{
+    --bg:#f5f6f8; --card:#fff; --ink:#1f2937; --sub:#6b7280; --line:#e5e7eb;
+    --brand:#2563eb; --brand-dark:#1d4ed8; --ok:#059669; --warn:#b45309; --bad:#dc2626;
+    --radius:14px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0; padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR","Malgun Gothic",sans-serif;
+    font-size:16px; line-height:1.55; -webkit-text-size-adjust:100%;
+    padding:0 0 96px;
+  }
+  .wrap{max-width:560px; margin:0 auto; padding:16px}
+  h1{font-size:22px; margin:4px 0 2px}
+  h2{font-size:17px; margin:0 0 10px}
+  p{margin:6px 0}
+  .sub{color:var(--sub); font-size:14px}
+  .card{background:var(--card); border-radius:var(--radius); padding:16px; margin:12px 0;
+        box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .btn{display:block; width:100%; padding:16px; border:0; border-radius:var(--radius);
+       background:var(--brand); color:#fff; font-size:17px; font-weight:700; cursor:pointer}
+  .btn:disabled{background:#c7ccd4; color:#fff}
+  .btn.sec{background:#fff; color:var(--brand); border:1.5px solid var(--brand)}
+  .hide{display:none !important}
+
+  /* ── 촬영 슬롯 ────────────────────────────────────── */
+  .slot{display:flex; align-items:center; gap:12px; padding:12px; border:1.5px dashed var(--line);
+        border-radius:var(--radius); margin:10px 0; background:#fff; cursor:pointer}
+  .slot.done{border-style:solid; border-color:var(--ok); background:#f0fdf7}
+  .slot .thumb{width:64px; height:64px; border-radius:10px; background:#eef0f3; flex:0 0 64px;
+               display:flex; align-items:center; justify-content:center; font-size:26px; overflow:hidden}
+  .slot .thumb img{width:100%; height:100%; object-fit:cover}
+  .slot .t{flex:1; min-width:0}
+  .slot .t b{display:block; font-size:15px}
+  .slot .t span{font-size:13px; color:var(--sub)}
+  .slot .state{font-size:13px; color:var(--ok); font-weight:700}
+  .req{font-size:11px; background:#fee2e2; color:#b91c1c; padding:1px 6px; border-radius:6px; margin-left:6px}
+  .opt{font-size:11px; background:#eef2ff; color:#4338ca; padding:1px 6px; border-radius:6px; margin-left:6px}
+  input[type=file]{display:none}
+
+  /* ── 가이드 ──────────────────────────────────────── */
+  ol.guide{margin:8px 0 0; padding-left:20px; font-size:14.5px}
+  ol.guide li{margin:5px 0}
+  .tip{background:#fffbeb; border-left:4px solid #f59e0b; padding:10px 12px; border-radius:8px;
+       font-size:14px; margin:10px 0}
+
+  /* ── 결과 ────────────────────────────────────────── */
+  .big{font-size:34px; font-weight:800; letter-spacing:-.5px}
+  .unit{font-size:16px; font-weight:600; color:var(--sub)}
+  .row{display:flex; justify-content:space-between; align-items:baseline; gap:14px;
+       padding:9px 0; border-bottom:1px solid var(--line)}
+  .row:last-child{border-bottom:0}
+  /* 라벨은 줄이지 않고(두 줄로 깨지지 않게), 값 쪽이 남는 자리를 씁니다 */
+  .row .k{color:var(--sub); font-size:14.5px; flex:0 0 auto}
+  .row .v{font-weight:700; flex:1 1 auto; text-align:right; min-width:0; word-break:keep-all}
+  .grade{display:inline-block; padding:5px 12px; border-radius:999px; font-weight:800; font-size:15px}
+  .grade.low{background:#fef3c7; color:#92400e}
+  .grade.normal{background:#d1fae5; color:#065f46}
+  .grade.high{background:#dbeafe; color:#1e40af}
+  .tabs{display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; margin:2px 0 12px}
+  .tab{padding:9px 14px; border-radius:999px; background:#eef0f3; font-size:14px; white-space:nowrap; cursor:pointer}
+  .tab.on{background:var(--brand); color:#fff; font-weight:700}
+  .sizegrid{display:flex; gap:8px; text-align:center; margin-top:6px}
+  .sizegrid div{flex:1; background:#f8fafc; border-radius:10px; padding:8px 4px}
+  .sizegrid .lab{font-size:11px; color:var(--sub)}
+  .sizegrid .val{font-size:17px; font-weight:700}
+  .alert{border-radius:var(--radius); padding:14px; margin:12px 0; font-size:14.5px}
+  .alert.bad{background:#fef2f2; border:1.5px solid #fecaca; color:#991b1b}
+  .alert.warn{background:#fffbeb; border:1.5px solid #fde68a; color:#92400e}
+  details{margin-top:10px} summary{cursor:pointer; font-size:14px; color:var(--sub)}
+  details img{width:100%; border-radius:10px; margin:8px 0}
+
+  /* ── 진행 표시 ───────────────────────────────────── */
+  .steps{margin:14px 0 0}
+  .step{display:flex; gap:10px; align-items:center; padding:7px 0; color:var(--sub); font-size:15px}
+  .step.on{color:var(--ink); font-weight:700}
+  .step .dot{width:10px; height:10px; border-radius:50%; background:#d1d5db; flex:0 0 10px}
+  .step.on .dot{background:var(--brand)}
+  .spin{width:34px;height:34px;border:3.5px solid #dbe3f0;border-top-color:var(--brand);
+        border-radius:50%;animation:sp 1s linear infinite;margin:6px auto 12px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  /* ── 하단 고정 면책 ──────────────────────────────── */
+  .fixed{position:fixed; left:0; right:0; bottom:0; background:#1f2937; color:#d1d5db;
+         font-size:12px; text-align:center; padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
+</style>
+</head>
+<body>
+
+<!-- ══ 1. 시작 화면 ══════════════════════════════════ -->
+<section id="scr-intro" class="wrap">
+  <h1>발 스캔</h1>
+  <p class="sub">A4 종이 한 장이면 발 크기를 잽니다.</p>
+
+  <div class="card">
+    <h2>준비물</h2>
+    <p>· A4 용지 1장<br>· 단단하고 평평한 바닥 (카펫 ✕)<br>· 밝은 조명</p>
+  </div>
+
+  <div class="card">
+    <h2>공통 주의</h2>
+    <ol class="guide">
+      <li>A4 용지를 단단하고 평평한 바닥에 놓으세요. (카펫 ✕)</li>
+      <li>조명을 켜고, 짙은 그림자가 지지 않게 해주세요.</li>
+      <li><b>맨발 또는 어두운 색 양말</b>을 신으세요. (흰색·회색 양말 ✕)</li>
+      <li>체중을 실어 똑바로 서세요.</li>
+    </ol>
+    <div class="tip">
+      <b>왜 서서 재나요?</b> 서 있을 때 발은 앉아 있을 때보다 3~7mm 깁니다.
+      신발은 체중이 실린 상태로 신으니 반드시 선 채로 재야 합니다.
+      저녁에는 부어서 아침보다 크게 나옵니다.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>위에서 찍을 때</h2>
+    <ol class="guide" start="5">
+      <li>뒤꿈치를 종이 아래 가장자리에 맞추세요.</li>
+      <li>발 위 40~60cm 높이에서 바닥과 수평으로 찍으세요.</li>
+      <li>종이 <b>네 모서리가 모두</b> 보이는지 확인하세요.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>옆에서 찍을 때 <span class="opt">건너뛰기 가능</span></h2>
+    <ol class="guide" start="8">
+      <li>발 안쪽(엄지 쪽) 라인을 종이의 <b>긴 변</b>에 맞춰 딛으세요.</li>
+      <li>휴대폰을 바닥에서 10~15cm 높이로 낮추고, 지면과 수직으로 세우세요.</li>
+      <li>발에서 약 1m 떨어져, 종이 긴 변이 화면 가로로 꽉 차게 찍으세요.</li>
+    </ol>
+    <div class="tip">
+      <b>가장 흔한 실패:</b> 발이 종이의 양쪽 끝을 가리면 기준 길이를 잴 수 없습니다.
+      발을 종이 긴 변의 <b>가운데</b>에 딛어, 종이 양 끝이 보이게 해주세요.
+    </div>
+  </div>
+
+  <button class="btn" onclick="go('capture')">촬영 시작</button>
+</section>
+
+<!-- ══ 2. 촬영 화면 ══════════════════════════════════ -->
+<section id="scr-capture" class="wrap hide">
+  <h1>사진 찍기</h1>
+  <p class="sub">위에서 찍은 사진 1장이면 사이즈가 나옵니다.<br>
+     옆면까지 찍으면 아치·발등도 나옵니다.</p>
+
+  <div class="card">
+    <h2>오른발</h2>
+    <label class="slot" id="slot-right_top">
+      <span class="thumb">📄</span>
+      <span class="t"><b>위에서<span class="req">필수</span></b><span>A4 위에 발을 올리고 위에서</span></span>
+      <span class="state"></span>
+      <input type="file" accept="image/*" data-k="right_top">
+    </label>
+    <label class="slot" id="slot-right_side">
+      <span class="thumb">👣</span>
+      <span class="t"><b>옆에서<span class="opt">선택</span></b><span>안쪽에서 낮게, 아치가 보이게</span></span>
+      <span class="state"></span>
+      <input type="file" accept="image/*" data-k="right_side">
+    </label>
+  </div>
+
+  <div class="card">
+    <h2>왼발 <span class="opt">선택</span></h2>
+    <label class="slot" id="slot-left_top">
+      <span class="thumb">📄</span>
+      <span class="t"><b>위에서</b><span>좌우 차이를 보려면 필요합니다</span></span>
+      <span class="state"></span>
+      <input type="file" accept="image/*" data-k="left_top">
+    </label>
+    <label class="slot" id="slot-left_side">
+      <span class="thumb">👣</span>
+      <span class="t"><b>옆에서</b><span>왼발 아치까지 보려면</span></span>
+      <span class="state"></span>
+      <input type="file" accept="image/*" data-k="left_side">
+    </label>
+  </div>
+
+  <button class="btn" id="btn-measure" disabled onclick="measure()">측정하기</button>
+  <button class="btn sec" style="margin-top:8px" onclick="go('intro')">촬영 방법 다시 보기</button>
+</section>
+
+<!-- ══ 3. 처리 중 ════════════════════════════════════ -->
+<section id="scr-loading" class="wrap hide">
+  <div class="card" style="margin-top:60px">
+    <div class="spin"></div>
+    <h2 style="text-align:center">재는 중입니다</h2>
+    <div class="steps">
+      <div class="step" id="st0"><span class="dot"></span>사진 올리는 중</div>
+      <div class="step" id="st1"><span class="dot"></span>종이 인식</div>
+      <div class="step" id="st2"><span class="dot"></span>발 인식</div>
+      <div class="step" id="st3"><span class="dot"></span>측정</div>
+      <div class="step" id="st4"><span class="dot"></span>교차검증</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 4. 결과 ══════════════════════════════════════ -->
+<section id="scr-result" class="wrap hide">
+  <h1>측정 결과</h1>
+  <div id="result-body"></div>
+  <button class="btn sec" style="margin-top:14px" onclick="reset()">다시 찍기</button>
+</section>
+
+<!-- ══ 5. 오류 ══════════════════════════════════════ -->
+<section id="scr-error" class="wrap hide">
+  <h1>다시 찍어 주세요</h1>
+  <div id="error-body"></div>
+  <button class="btn" style="margin-top:14px" onclick="go('capture')">사진 다시 찍기</button>
+</section>
+
+<div class="fixed">본 측정값은 참고용이며 의료적 진단이 아닙니다.</div>
+
+<script>
+/* ════════════════════════════════════════════════════
+   화면 전환
+   ════════════════════════════════════════════════════ */
+const SCREENS = ['intro','capture','loading','result','error'];
+function go(name){
+  SCREENS.forEach(s => document.getElementById('scr-'+s).classList.toggle('hide', s !== name));
+  window.scrollTo(0,0);
+}
+
+/* ════════════════════════════════════════════════════
+   사진 고르기 / 찍기
+   ════════════════════════════════════════════════════ */
+const files = {};                       // {right_top: File, ...}
+const SLOT_LABEL = {right_top:'오른발 위', right_side:'오른발 옆',
+                    left_top:'왼발 위',  left_side:'왼발 옆'};
+
+document.querySelectorAll('input[type=file]').forEach(inp => {
+  inp.addEventListener('change', e => {
+    const k = inp.dataset.k, f = e.target.files[0];
+    if(!f) return;
+    files[k] = f;
+    const slot = document.getElementById('slot-'+k);
+    slot.classList.add('done');
+    slot.querySelector('.state').textContent = '✓ 완료';
+    const thumb = slot.querySelector('.thumb');
+    thumb.innerHTML = '';
+    const img = new Image();
+    img.src = URL.createObjectURL(f);
+    thumb.appendChild(img);
+    refresh();
+  });
+});
+
+function refresh(){
+  // 위에서 찍은 사진이 한 장이라도 있으면 측정 가능
+  const ok = !!(files.right_top || files.left_top);
+  document.getElementById('btn-measure').disabled = !ok;
+}
+
+function reset(){
+  Object.keys(files).forEach(k => delete files[k]);
+  document.querySelectorAll('.slot').forEach(s => {
+    s.classList.remove('done');
+    s.querySelector('.state').textContent = '';
+  });
+  document.getElementById('slot-right_top').querySelector('.thumb').textContent = '📄';
+  document.getElementById('slot-left_top').querySelector('.thumb').textContent  = '📄';
+  document.getElementById('slot-right_side').querySelector('.thumb').textContent = '👣';
+  document.getElementById('slot-left_side').querySelector('.thumb').textContent  = '👣';
+  document.querySelectorAll('input[type=file]').forEach(i => i.value = '');
+  refresh();
+  go('capture');
+}
+
+/* ════════════════════════════════════════════════════
+   서버로 보내기
+   ════════════════════════════════════════════════════ */
+let stepTimer = null;
+function runSteps(){
+  let i = 0;
+  const mark = () => {
+    document.querySelectorAll('.step').forEach((el,idx) => el.classList.toggle('on', idx <= i));
+    i = Math.min(i+1, 4);
+  };
+  mark();
+  stepTimer = setInterval(mark, 900);
+}
+
+async function measure(){
+  go('loading');
+  runSteps();
+  const fd = new FormData();
+  Object.entries(files).forEach(([k,f]) => fd.append(k, f, f.name || (k+'.jpg')));
+  try{
+    const res = await fetch('/api/scan', {method:'POST', body:fd});
+    const data = await res.json();
+    clearInterval(stepTimer);
+    if(!res.ok){ showError(data.detail || data); return; }
+    showResult(data);
+  }catch(err){
+    clearInterval(stepTimer);
+    showError({message:'서버에 연결하지 못했습니다.',
+               hint:'PC 의 서버가 켜져 있는지, 폰과 PC 가 같은 와이파이인지 확인해 주세요.',
+               error_code:'NETWORK'});
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   결과 그리기
+   ════════════════════════════════════════════════════ */
+const TOE_KR   = {egyptian:'이집트형 (엄지가 가장 김)', greek:'그리스형 (검지가 가장 김)', roman:'로마형 (엄지≈검지)'};
+const ARCH_KR  = {low:'낮은 편', normal:'보통', high:'높은 편'};
+const SHOE_KR  = {dress:'구두', sneakers:'스니커즈', running:'러닝화', hiking:'등산화', sandals:'샌들'};
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function footCard(f){
+  if(!f) return '';
+  const t = f.top, s = f.lateral;
+  const name = f.side === 'right' ? '오른발' : '왼발';
+  let h = `<div class="card"><h2>${name}</h2>`;
+  h += `<div style="margin:2px 0 10px"><span class="big">${t.foot_length_mm.toFixed(1)}</span><span class="unit"> mm</span>
+        <span class="sub"> · 발 길이</span></div>`;
+  h += `<div class="row"><span class="k">발볼 너비</span><span class="v">${t.ball_width_mm.toFixed(1)} mm</span></div>`;
+  h += `<div class="row"><span class="k">뒤꿈치 너비</span><span class="v">${t.heel_width_mm.toFixed(1)} mm</span></div>`;
+  h += `<div class="row"><span class="k">발가락 형태</span><span class="v">${TOE_KR[t.toe_type]||t.toe_type}</span></div>`;
+  if(t.hallux_valgus_angle_deg != null){
+    h += `<div class="row"><span class="k">엄지 기울기<br><span style="font-size:12px">겉모양 기반 추정</span></span>
+          <span class="v">${t.hallux_valgus_angle_deg.toFixed(1)}°</span></div>`;
+  }
+  if(s){
+    h += `<div class="row"><span class="k">아치</span><span class="v"><span class="grade ${s.arch_grade}">${ARCH_KR[s.arch_grade]}</span></span></div>`;
+    h += `<div class="row"><span class="k">아치 들림 (보조 참고값)</span><span class="v">${s.arch_clearance_mm.toFixed(1)} mm</span></div>`;
+    h += `<div class="row"><span class="k">발등 높이</span><span class="v">${s.instep_height_mm.toFixed(1)} mm</span></div>`;
+  }else{
+    h += `<div class="row"><span class="k">아치 · 발등</span><span class="v" style="color:var(--sub)">미측정</span></div>
+          <p class="sub" style="margin-top:8px">옆면 사진을 추가로 찍으면 아치와 발등도 볼 수 있습니다.</p>`;
+  }
+  if(f.debug_images && Object.keys(f.debug_images).length){
+    h += `<details><summary>측정 과정 사진 보기 (문제가 있을 때 확인용)</summary>`;
+    Object.entries(f.debug_images).forEach(([k,v]) => { h += `<img src="${esc(v)}" alt="${esc(k)}" loading="lazy">`; });
+    h += `</details>`;
+  }
+  h += `</div>`;
+  return h;
+}
+
+function sizeCard(rec){
+  if(!rec) return '';
+  let h = `<div class="card"><h2>신발 사이즈 <span class="sub">(참고용)</span></h2>`;
+  h += `<div class="tabs" id="shoe-tabs">`;
+  rec.options.forEach((o,i) => {
+    h += `<div class="tab ${i===1?'on':''}" data-i="${i}">${SHOE_KR[o.shoe_type]||o.shoe_type}</div>`;
+  });
+  h += `</div><p class="sub" style="margin:-6px 0 8px; font-size:12.5px">← 좌우로 밀어 보세요</p><div id="size-body"></div>`;
+  if(rec.width_grade_label){
+    // 폭 등급은 글자가 길어 한 줄에 안 들어갑니다. 위아래로 쌓아 보여 줍니다.
+    h += `<div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--line)">
+            <div class="sub" style="font-size:14px">발볼 폭</div>
+            <div style="font-weight:700; font-size:17px; margin-top:2px">${esc(rec.width_grade_label)}</div>
+          </div>`;
+  }
+  rec.notes.forEach(n => { h += `<p class="sub" style="margin-top:8px">· ${esc(n)}</p>`; });
+  h += `</div>`;
+  return h;
+}
+
+function drawSize(rec, i){
+  const o = rec.options[i];
+  const f = v => (v == null ? '–' : v);
+  document.getElementById('size-body').innerHTML =
+    `<div style="text-align:center; margin:6px 0 2px">
+       <span class="big">${o.kr_jp_mm}</span><span class="unit"> mm (KR/JP)</span>
+     </div>
+     <p class="sub" style="text-align:center; margin-top:0">
+       발 길이 ${rec.based_on_length_mm.toFixed(1)}mm + 여유 ${o.allowance_mm}mm</p>
+     <div class="sizegrid">
+       <div><div class="lab">US 남</div><div class="val">${f(o.us_men)}</div></div>
+       <div><div class="lab">US 여</div><div class="val">${f(o.us_women)}</div></div>
+       <div><div class="lab">EU</div><div class="val">${f(o.eu)}</div></div>
+       <div><div class="lab">UK</div><div class="val">${f(o.uk)}</div></div>
+     </div>`;
+}
+
+function showResult(d){
+  const feet = [d.right, d.left].filter(Boolean);
+  const minConf = Math.min(...feet.map(f => f.confidence));
+  let h = '';
+
+  // 신뢰도가 낮으면 결과보다 재촬영 안내를 먼저 보여 줍니다
+  if(minConf < 0.7){
+    h += `<div class="alert bad"><b>측정 신뢰도가 낮습니다 (${minConf.toFixed(2)})</b><br>
+          아래 값은 참고만 하시고, 안내에 맞춰 다시 찍어 주세요.</div>`;
+  }
+
+  const warns = [...new Set(feet.flatMap(f => f.warnings))];
+  warns.filter(w => !w.includes('rembg')).forEach(w => {
+    h += `<div class="alert warn">${esc(w.replace('[LOW_CONFIDENCE] ',''))}</div>`;
+  });
+
+  h += feet.map(footCard).join('');
+
+  if(d.asymmetry_mm != null){
+    h += `<div class="card"><h2>좌우 비교</h2>
+          <div class="row"><span class="k">길이 차이</span><span class="v">${d.asymmetry_mm.toFixed(1)} mm</span></div>
+          <p class="sub" style="margin-top:8px">${d.asymmetry_mm >= 4
+            ? '차이가 있어 큰 발 기준으로 사이즈를 잡았습니다.' : '좌우가 거의 같습니다.'}</p></div>`;
+  }
+
+  h += sizeCard(d.recommended_size);
+  h += `<p class="sub" style="text-align:center">측정에 걸린 시간 ${d.elapsed_sec}초</p>`;
+  document.getElementById('result-body').innerHTML = h;
+
+  if(d.recommended_size){
+    drawSize(d.recommended_size, 1);
+    document.querySelectorAll('#shoe-tabs .tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('#shoe-tabs .tab').forEach(t => t.classList.remove('on'));
+        tab.classList.add('on');
+        drawSize(d.recommended_size, +tab.dataset.i);
+      });
+    });
+  }
+  go('result');
+}
+
+function showError(e){
+  document.getElementById('error-body').innerHTML =
+    `<div class="alert bad"><b>${esc(e.message || '측정에 실패했습니다.')}</b></div>
+     ${e.hint ? `<div class="card"><h2>이렇게 해보세요</h2><p>${esc(e.hint)}</p></div>` : ''}
+     <p class="sub">오류 코드: ${esc(e.error_code || '알 수 없음')}${e.stage ? ' · 단계: ' + esc(e.stage) : ''}</p>`;
+  go('error');
+}
+</script>
+</body>
+</html>
