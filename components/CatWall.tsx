@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 import Svg, { Line } from 'react-native-svg';
-import { Cat, CAT_ASPECT } from './Cat';
+import { Cat, CAT_ASPECT, type CatPose } from './Cat';
 import { Txt } from './Txt';
 import { colors, radius, shadow, space } from '../theme/colors';
-import type { CatState } from '../lib/progress';
 
 /**
  * SPEC 6-2. 오늘의 벽 오르기.
@@ -13,18 +12,20 @@ import type { CatState } from '../lib/progress';
  */
 
 type Props = {
-  state: CatState;
+  pose: CatPose;
   /** 0~1 */
   progress: number;
   line: string;
   dots: { meal: boolean; water: boolean; workout: boolean };
   height: number;
+  /** 화면을 보고 있을 때만 고양이를 움직인다 */
+  animate?: boolean;
 };
 
 const FLOOR_PADDING = 10;
 const TOP_PADDING = 12;
 
-export function CatWall({ state, progress, line, dots, height }: Props) {
+export function CatWall({ pose, progress, line, dots, height, animate = true }: Props) {
   const [wall, setWall] = useState({ width: 0, height: 0 });
   const catWidth = Math.min(150, Math.max(96, wall.width * 0.42));
   const catHeight = catWidth * CAT_ASPECT;
@@ -65,7 +66,7 @@ export function CatWall({ state, progress, line, dots, height }: Props) {
             { top: TOP_PADDING, transform: [{ translateY }] },
           ]}
         >
-          <Cat state={state} width={catWidth} />
+          <Cat pose={pose} width={catWidth} animate={animate} />
         </Animated.View>
 
         <View style={styles.dots}>

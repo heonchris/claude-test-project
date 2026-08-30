@@ -1,6 +1,7 @@
 import type { Meal, PlanCheck, Workout } from '../db/queries';
 
-export type CatState = 'napping' | 'awake' | 'climbing' | 'top' | 'startled';
+/** 오늘의 기록으로 정해지는 상태. 화면에 그려지는 '자세'(CatPose)와는 다르다. */
+export type CatState = 'napping' | 'awake' | 'climbing' | 'top';
 
 export type DaySnapshot = {
   meals: Meal[];
@@ -72,7 +73,16 @@ const LINES: Record<CatState, string[]> = {
   awake: ['일어났다냥', '뭐 남겼어요?', '좋아요, 시작'],
   climbing: ['올라가는 중', '잘하고 있어요', '조금만 더 올라가 볼까'],
   top: ['꼭대기 도착. 오늘 푹 쉬어요', '오늘은 여기까지. 잘했어요'],
-  startled: ['기록했다냥!', '오, 놀랐잖아'],
+};
+
+/** 방금 무엇을 남겼는지에 따라 다르게 반응한다 */
+export type RecordKind = 'meal' | 'water' | 'workout' | 'plan';
+
+export const REACTION_LINE: Record<RecordKind, string> = {
+  meal: '잘 먹었다냥',
+  water: '시원하다냥',
+  workout: '같이 뛰었다냥',
+  plan: '하나 해냈다냥',
 };
 
 /** 잔소리·재촉·죄책감 주는 대사는 넣지 않는다 (SPEC 6-3). */

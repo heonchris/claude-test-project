@@ -23,7 +23,7 @@
 | 맥 안의 시뮬레이터로 보기 | `npm run xcode` |
 | Expo Go로 열기 (QR) | `npm start` |
 | 폰과 맥이 다른 와이파이일 때 | `npm run tunnel` |
-| 고양이 모양 미리보기 · 아이콘 다시 만들기 | `python3 tools/render_assets.py` |
+| 고양이 모양 미리보기 · 아이콘 다시 만들기 | `npm run cat` |
 
 ## 고양이 모양 고치기
 

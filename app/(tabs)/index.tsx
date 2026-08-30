@@ -23,7 +23,13 @@ import { addWaterCup, deleteMeal, togglePlanCheck, type Meal } from '../../db/qu
 import { formatKorean, formatTimeOfDay, useNow, useToday } from '../../lib/dates';
 import { computeFasting } from '../../lib/fasting';
 import { deletePhoto } from '../../lib/photos';
-import { catLine, catStateFor, type CatState } from '../../lib/progress';
+import {
+  catLine,
+  catStateFor,
+  REACTION_LINE,
+  type RecordKind,
+} from '../../lib/progress';
+import type { CatPose } from '../../lib/catArt';
 import { consumeSaved } from '../../lib/savedSignal';
 import { colors, radius, screenPadding, shadow, space } from '../../theme/colors';
 import { useDayData } from '../../hooks/useDayData';
@@ -37,42 +43,77 @@ export default function TodayScreen() {
   const now = useNow();
 
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [startled, setStartled] = useState(false);
   const [viewing, setViewing] = useState<Meal | null>(null);
-  const startleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [focused, setFocused] = useState(true);
+  /** 잠깐 스쳐가는 반응 자세. 없으면 오늘 상태 그대로 보여준다. */
+  const [reaction, setReaction] = useState<{ pose: CatPose; line: string } | null>(null);
 
-  /** SPEC 6-1. 저장 직후 1.5초만 놀란 표정 */
-  const startle = useCallback(() => {
-    setStartled(true);
-    if (startleTimer.current) clearTimeout(startleTimer.current);
-    startleTimer.current = setTimeout(() => setStartled(false), 1500);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const clearTimers = useCallback(() => {
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
   }, []);
 
-  useEffect(() => () => {
-    if (startleTimer.current) clearTimeout(startleTimer.current);
-  }, []);
+  /** 저장 직전에 오늘이 비어 있었는지 (자다가 일어나는 연출용) */
+  const wasEmptyRef = useRef(true);
+
+  /**
+   * SPEC 6-1. 저장 직후 짧게 반응한다.
+   * 자고 있다가 첫 기록이면 기지개를 먼저 켠다.
+   */
+  const react = useCallback(
+    (kind: RecordKind) => {
+      const pose: CatPose =
+        kind === 'meal'
+          ? 'eating'
+          : kind === 'water'
+            ? 'drinking'
+            : kind === 'workout'
+              ? 'running'
+              : 'startled';
+      const line = REACTION_LINE[kind];
+
+      clearTimers();
+      if (wasEmptyRef.current) {
+        setReaction({ pose: 'stretching', line: '이제 일어났다냥' });
+        timers.current.push(setTimeout(() => setReaction({ pose, line }), 700));
+        timers.current.push(setTimeout(() => setReaction(null), 2300));
+      } else {
+        setReaction({ pose, line });
+        timers.current.push(setTimeout(() => setReaction(null), 1600));
+      }
+    },
+    [clearTimers]
+  );
+
+  useEffect(() => clearTimers, [clearTimers]);
 
   useFocusEffect(
     useCallback(() => {
-      if (consumeSaved()) startle();
-    }, [startle])
+      setFocused(true);
+      const kind = consumeSaved();
+      if (kind) react(kind);
+      return () => setFocused(false);
+    }, [react])
   );
 
   const { progress, snapshot } = day;
   const waterDone = snapshot.cups >= snapshot.waterGoal && snapshot.waterGoal > 0;
   const fasting = computeFasting(day.lastMeal, day.fastingGoalHours, now);
   const baseState = catStateFor(progress, waterDone);
-  const state: CatState = startled ? 'startled' : baseState;
-  const line = catLine(
-    baseState,
-    waterDone,
-    snapshot.meals.length + snapshot.cups,
-    fasting.reached
-  );
+  const pose: CatPose = reaction?.pose ?? baseState;
+  const line =
+    reaction?.line ??
+    catLine(baseState, waterDone, snapshot.meals.length + snapshot.cups, fasting.reached);
+
+  // 다음 저장 때 '기지개'를 켤지 판단하려고 현재 상태를 기억해 둔다
+  useEffect(() => {
+    if (!reaction) wasEmptyRef.current = progress.totalRecords === 0;
+  }, [reaction, progress.totalRecords]);
 
   const changeWater = async (delta: number) => {
+    if (delta > 0) react('water');
     await addWaterCup(today, delta);
-    if (delta > 0) startle();
     day.reload();
   };
 
@@ -100,6 +141,7 @@ export default function TodayScreen() {
   };
 
   const toggleCheck = async (id: number, done: boolean) => {
+    if (done) react('plan');
     await togglePlanCheck(id, done);
     day.reload();
   };
@@ -120,7 +162,8 @@ export default function TodayScreen() {
         </Txt>
 
         <CatWall
-          state={state}
+          pose={pose}
+          animate={focused}
           progress={progress.overall}
           line={line}
           dots={{

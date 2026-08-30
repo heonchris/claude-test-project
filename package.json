@@ -7,6 +7,7 @@
     "tunnel": "expo start --tunnel",
     "xcode": "expo run:ios",
     "iphone": "expo run:ios --device --configuration Release",
+    "cat": "node --experimental-strip-types --no-warnings tools/render-cat.mjs",
     "android": "expo run:android",
     "typecheck": "tsc --noEmit"
   },

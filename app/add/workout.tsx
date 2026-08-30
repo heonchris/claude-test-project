@@ -73,7 +73,7 @@ export default function WorkoutScreen() {
     } else {
       await updateWorkout(editingId, value);
     }
-    markSaved();
+    markSaved('workout');
     router.back();
   };
 

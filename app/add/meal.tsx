@@ -169,7 +169,7 @@ export default function MealScreen() {
         if (photoDirty && originalName) deletePhoto(originalName);
       }
 
-      markSaved();
+      markSaved('meal');
       router.back();
     } catch {
       Alert.alert('저장하지 못했어요', '사진이 너무 크거나 저장 공간이 부족할 수 있어요.');
