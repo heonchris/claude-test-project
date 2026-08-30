@@ -293,23 +293,49 @@ function runSteps(){
   stepTimer = setInterval(mark, 900);
 }
 
-async function measure(){
+function measure(){
   go('loading');
   runSteps();
   const fd = new FormData();
   Object.entries(files).forEach(([k,f]) => fd.append(k, f, f.name || (k+'.jpg')));
-  try{
-    const res = await fetch('/api/scan', {method:'POST', body:fd});
-    const data = await res.json();
+
+  // fetch 대신 XHR 을 쓰는 이유: 업로드 진행률(%)을 보여줄 수 있습니다.
+  // 폰 사진은 한 장에 3~8MB 라 와이파이가 느리면 몇 초씩 걸리는데,
+  // 아무 표시가 없으면 멈춘 줄 알고 앱을 닫게 됩니다.
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', '/api/scan');
+  xhr.timeout = 180000;                       // 3분이 넘으면 포기하고 안내합니다
+  xhr.responseType = 'json';
+
+  xhr.upload.onprogress = e => {
+    if(!e.lengthComputable) return;
+    const pct = Math.round(e.loaded / e.total * 100);
+    const el = document.getElementById('st0');
+    el.textContent = '';
+    el.insertAdjacentHTML('beforeend', `<span class="dot"></span>사진 올리는 중 ${pct}%`);
+    if(pct >= 100) el.textContent = '';
+    if(pct >= 100) el.insertAdjacentHTML('beforeend', '<span class="dot"></span>사진 올리기 완료');
+  };
+
+  xhr.onload = () => {
     clearInterval(stepTimer);
-    if(!res.ok){ showError(data.detail || data); return; }
-    showResult(data);
-  }catch(err){
+    const data = xhr.response || {};
+    if(xhr.status >= 200 && xhr.status < 300) showResult(data);
+    else showError(data.detail || data);
+  };
+  xhr.onerror = () => {
     clearInterval(stepTimer);
     showError({message:'서버에 연결하지 못했습니다.',
-               hint:'PC 의 서버가 켜져 있는지, 폰과 PC 가 같은 와이파이인지 확인해 주세요.',
+               hint:'PC 의 서버 창이 켜져 있는지, 폰과 PC 가 같은 와이파이인지 확인해 주세요.',
                error_code:'NETWORK'});
-  }
+  };
+  xhr.ontimeout = () => {
+    clearInterval(stepTimer);
+    showError({message:'시간이 너무 오래 걸려 중단했습니다.',
+               hint:'와이파이 신호를 확인하고, 사진 장수를 줄여서 다시 시도해 보세요.',
+               error_code:'TIMEOUT'});
+  };
+  xhr.send(fd);
 }
 
 /* ════════════════════════════════════════════════════
