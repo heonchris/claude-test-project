@@ -59,8 +59,11 @@ export default function TodayScreen() {
     timers.current = [];
   }, []);
 
-  /** 저장 직전에 오늘이 비어 있었는지 (자다가 일어나는 연출용) */
-  const wasEmptyRef = useRef(true);
+  /**
+   * 지금까지의 기록 수. 반응이 시작되는 시점(아직 다시 읽기 전)의 값이라
+   * '저장 직전에 비어 있었는지'를 그대로 알려준다.
+   */
+  const totalRecordsRef = useRef(0);
   /** 달성률이 올랐는가 (반응이 끝나면 벽을 타고 올라간다) */
   const pendingClimbRef = useRef(false);
 
@@ -92,7 +95,8 @@ export default function TodayScreen() {
       const line = REACTION_LINE[kind];
 
       clearTimers();
-      if (wasEmptyRef.current) {
+      // 자고 있다가 남긴 첫 기록이면 기지개부터
+      if (totalRecordsRef.current === 0) {
         setReaction({ pose: 'stretching', line: '이제 일어났다냥' });
         timers.current.push(setTimeout(() => setReaction({ pose, line }), STRETCH_MS));
         timers.current.push(setTimeout(finishReaction, STRETCH_MS + REACTION_MS));
@@ -124,10 +128,7 @@ export default function TodayScreen() {
     reaction?.line ??
     catLine(baseState, waterDone, snapshot.meals.length + snapshot.cups, fasting.reached);
 
-  // 다음 저장 때 '기지개'를 켤지 판단하려고 현재 상태를 기억해 둔다
-  useEffect(() => {
-    if (!reaction) wasEmptyRef.current = progress.totalRecords === 0;
-  }, [reaction, progress.totalRecords]);
+  totalRecordsRef.current = progress.totalRecords;
 
   /**
    * 반응 중에는 벽을 그대로 두었다가, 반응이 끝날 때 올라간다.
