@@ -1,0 +1,660 @@
+<title>사운드 프롬프트 해체</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@300;400;500;600&family=Nanum+Myeongjo:wght@400;700;800&display=swap">
+<style>
+  :root{
+    --paper:#F2F4F4;
+    --surface:#FFFFFF;
+    --surface-2:#E7EBEA;
+    --ink:#141C1B;
+    --ink-2:#3D4A48;
+    --ink-3:#6B7A77;
+    --rule:#D2D9D7;
+    --rule-soft:#E2E7E6;
+    --accent:#146B63;
+    --accent-soft:#DCEBE8;
+    --warn:#A8641A;
+    --crit:#8C2F1E;
+    --code-bg:#151E1D;
+    --code-ink:#D6E2DF;
+    --code-dim:#7E918D;
+    --code-key:#6FC7BB;
+    --serif:"Nanum Myeongjo","Apple SD Gothic Neo",Georgia,serif;
+    --sans:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+    --mono:"IBM Plex Mono","SFMono-Regular",Menlo,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --paper:#101615;
+      --surface:#161F1E;
+      --surface-2:#1D2726;
+      --ink:#E6ECEA;
+      --ink-2:#B3C0BD;
+      --ink-3:#849692;
+      --rule:#2A3634;
+      --rule-soft:#212B2A;
+      --accent:#4FBFB2;
+      --accent-soft:#17302D;
+      --warn:#D69A4B;
+      --crit:#D9705A;
+      --code-bg:#0B100F;
+      --code-ink:#CFDCD9;
+      --code-dim:#6C7D79;
+      --code-key:#5FC0B4;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#101615;
+    --surface:#161F1E;
+    --surface-2:#1D2726;
+    --ink:#E6ECEA;
+    --ink-2:#B3C0BD;
+    --ink-3:#849692;
+    --rule:#2A3634;
+    --rule-soft:#212B2A;
+    --accent:#4FBFB2;
+    --accent-soft:#17302D;
+    --warn:#D69A4B;
+    --crit:#D9705A;
+    --code-bg:#0B100F;
+    --code-ink:#CFDCD9;
+    --code-dim:#6C7D79;
+    --code-key:#5FC0B4;
+  }
+
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-weight:400;line-height:1.75;
+       -webkit-font-smoothing:antialiased;font-size:15.5px;}
+  .wrap{max-width:820px;margin:0 auto;padding:0 24px 96px;}
+  ::selection{background:var(--accent-soft);color:var(--ink);}
+  a{color:var(--accent);}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px;}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important;}}
+
+  /* ---- masthead ---- */
+  header.mast{border-bottom:1px solid var(--rule);padding:64px 0 28px;margin-bottom:44px;}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+           color:var(--accent);display:flex;gap:12px;align-items:center;margin-bottom:22px;}
+  .eyebrow::after{content:"";flex:1;height:1px;background:var(--rule);}
+  h1{font-family:var(--serif);font-weight:800;font-size:clamp(34px,6.4vw,50px);line-height:1.18;
+     letter-spacing:-.015em;margin:0 0 18px;text-wrap:balance;}
+  .dek{font-size:17px;color:var(--ink-2);line-height:1.72;max-width:60ch;margin:0 0 26px;font-weight:300;}
+  .dek b{font-weight:600;color:var(--ink);}
+  .meta{display:flex;flex-wrap:wrap;gap:8px 26px;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);}
+  .meta span b{color:var(--ink-2);font-weight:600;}
+
+  /* ---- section scaffold ---- */
+  section{margin:0 0 60px;}
+  h2{font-family:var(--serif);font-weight:700;font-size:26px;line-height:1.3;margin:0 0 8px;
+     letter-spacing:-.01em;text-wrap:balance;}
+  .h2rule{display:flex;align-items:baseline;gap:14px;border-top:2px solid var(--ink);padding-top:14px;margin-bottom:24px;}
+  .h2num{font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:600;padding-top:4px;}
+  .sub{color:var(--ink-3);font-size:13.5px;margin:-2px 0 22px;font-family:var(--mono);}
+  p{margin:0 0 16px;max-width:66ch;}
+  p.lead{font-size:16.5px;}
+  strong{font-weight:600;}
+  em{font-style:normal;background:var(--accent-soft);padding:1px 5px;border-radius:2px;}
+
+  /* ---- verdict block ---- */
+  .verdict{background:var(--surface);border-left:3px solid var(--accent);padding:26px 28px;margin-bottom:20px;}
+  .verdict p:last-child{margin-bottom:0;}
+  .verdict .punch{font-family:var(--serif);font-size:19px;font-weight:700;line-height:1.55;color:var(--ink);margin:0 0 14px;}
+
+  /* ---- three fixes ---- */
+  .fixes{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1px;background:var(--rule);
+         border:1px solid var(--rule);margin:26px 0 0;}
+  .fix{background:var(--paper);padding:20px 20px 22px;}
+  .fix .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--accent);margin-bottom:9px;}
+  .fix .t{font-weight:600;font-size:15px;line-height:1.5;margin-bottom:6px;}
+  .fix .d{font-size:13.5px;color:var(--ink-3);line-height:1.6;}
+
+  /* ---- gap list (ranked) ---- */
+  ol.gaps{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:0;}
+  ol.gaps li{display:grid;grid-template-columns:52px 1fr;gap:20px;padding:24px 0;border-top:1px solid var(--rule-soft);}
+  ol.gaps li:first-child{border-top:1px solid var(--rule);}
+  .rail{display:flex;flex-direction:column;align-items:flex-start;gap:8px;}
+  .rank{font-family:var(--mono);font-size:19px;font-weight:600;color:var(--ink-3);
+        font-variant-numeric:tabular-nums;line-height:1;}
+  .sev{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;padding:2px 5px;border-radius:2px;white-space:nowrap;}
+  .sev.c{background:var(--crit);color:#fff;}
+  .sev.h{background:var(--warn);color:#fff;}
+  .sev.m{background:var(--surface-2);color:var(--ink-3);}
+  .gap h3{font-family:var(--sans);font-size:16.5px;font-weight:600;margin:0 0 9px;line-height:1.45;}
+  .gap p{margin:0 0 12px;font-size:14.5px;color:var(--ink-2);}
+  .gap p:last-child{margin-bottom:0;}
+  .gap ul{margin:0 0 12px;padding-left:18px;font-size:14px;color:var(--ink-2);}
+  .gap ul li{margin-bottom:5px;}
+  .gap ul li::marker{color:var(--accent);}
+  .recipe{font-family:var(--mono);font-size:12.5px;background:var(--surface);border:1px solid var(--rule-soft);
+          padding:12px 14px;margin:0 0 12px;overflow-x:auto;line-height:1.85;color:var(--ink-2);
+          white-space:pre;}
+  .recipe b{color:var(--accent);font-weight:600;}
+
+  /* ---- loudness scale ---- */
+  figure{margin:0 0 22px;}
+  .scalebox{background:var(--surface);border:1px solid var(--rule);padding:22px 18px 14px;overflow-x:auto;}
+  .scalebox svg{display:block;min-width:600px;width:100%;height:auto;}
+  figcaption{font-size:12.5px;color:var(--ink-3);margin-top:10px;font-family:var(--mono);line-height:1.6;}
+
+  /* ---- tables ---- */
+  .tw{overflow-x:auto;border:1px solid var(--rule);margin:0 0 22px;background:var(--surface);}
+  table{border-collapse:collapse;width:100%;font-size:14px;min-width:520px;}
+  th{text-align:left;font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;
+     color:var(--ink-3);font-weight:600;padding:11px 16px;border-bottom:1px solid var(--rule);background:var(--surface-2);}
+  td{padding:12px 16px;border-bottom:1px solid var(--rule-soft);vertical-align:top;color:var(--ink-2);line-height:1.6;}
+  tr:last-child td{border-bottom:none;}
+  td:first-child{color:var(--ink);font-weight:500;}
+  td.num,th.num{font-family:var(--mono);font-variant-numeric:tabular-nums;}
+  td.was{color:var(--ink-3);}
+  td.now{color:var(--ink);}
+  td.now b{color:var(--accent);font-weight:600;}
+
+  /* ---- code panels ---- */
+  .panel{background:var(--code-bg);margin:0 0 22px;border:1px solid var(--rule);}
+  .panelbar{display:flex;align-items:center;justify-content:space-between;gap:14px;
+            padding:11px 16px;border-bottom:1px solid rgba(255,255,255,.09);}
+  .panelbar .name{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--code-key);}
+  .panelbar .len{font-family:var(--mono);font-size:10.5px;color:var(--code-dim);}
+  button.copy{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;background:transparent;
+              color:var(--code-dim);border:1px solid rgba(255,255,255,.16);padding:4px 10px;border-radius:2px;
+              cursor:pointer;transition:color .15s,border-color .15s;}
+  button.copy:hover{color:var(--code-key);border-color:var(--code-key);}
+  pre{margin:0;padding:20px 18px;overflow-x:auto;max-height:560px;overflow-y:auto;
+      font-family:var(--mono);font-size:12.5px;line-height:1.85;color:var(--code-ink);
+      tab-size:2;white-space:pre;}
+  pre::-webkit-scrollbar{width:10px;height:10px;}
+  pre::-webkit-scrollbar-thumb{background:#2E3B39;border-radius:5px;}
+
+  /* ---- ordered apply list ---- */
+  ol.apply{list-style:none;counter-reset:ap;padding:0;margin:0;}
+  ol.apply li{counter-increment:ap;display:grid;grid-template-columns:34px 1fr;gap:16px;
+              padding:14px 0;border-bottom:1px solid var(--rule-soft);align-items:baseline;}
+  ol.apply li::before{content:counter(ap);font-family:var(--mono);font-size:13px;color:var(--accent);
+                      font-weight:600;font-variant-numeric:tabular-nums;}
+  ol.apply li:last-child{border-bottom:none;}
+  ol.apply b{font-weight:600;}
+  ol.apply span{color:var(--ink-3);font-size:14px;}
+
+  footer{border-top:1px solid var(--rule);padding-top:20px;margin-top:60px;
+         font-family:var(--mono);font-size:11.5px;color:var(--ink-3);display:flex;
+         flex-wrap:wrap;gap:8px 24px;justify-content:space-between;}
+
+  @media(max-width:560px){
+    .wrap{padding:0 18px 72px;}
+    header.mast{padding-top:44px;}
+    ol.gaps li{grid-template-columns:44px 1fr;gap:14px;}
+    .rail{gap:6px;}
+  }
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <div class="eyebrow">Prompt Teardown · v2 → v3</div>
+  <h1>약속한 뒤에 실패하지 않는 사운드 프롬프트</h1>
+  <p class="dek">v2는 UI 층과 실행 층의 문제를 정확히 짚었습니다. 그런데 <b>소리가 어디서 오는가</b>라는 질문에는 아직 답하지 않았습니다. pydub과 librosa는 오디오를 <b>처리</b>하는 라이브러리이지 <b>생성</b>하는 라이브러리가 아닙니다.</p>
+  <div class="meta">
+    <span><b>대상</b> 릴스·쇼츠 사운드 디자인 마스터 프롬프트</span>
+    <span><b>작성</b> 2026-09-03</span>
+    <span><b>결론</b> 10개 공백 · v3 전문 포함</span>
+  </div>
+</header>
+
+<section>
+  <div class="h2rule"><span class="h2num">00</span><h2>총평</h2></div>
+  <div class="verdict">
+    <p class="punch">v2는 Step 2까지 매끄럽게 흐르다가 Step 3에서 “죄송합니다, 실제 오디오는 만들 수 없습니다”로 끝날 확률이 높습니다.</p>
+    <p>“톡”, “슉”, “딸깍”을 무에서 만들어낼 방법이 프롬프트 어디에도 없기 때문입니다. 큐시트 승인까지 사용자를 데려간 다음 산출물 단계에서 물러서는 것 — <strong>가장 나쁜 실패는 약속한 뒤의 실패입니다.</strong></p>
+    <p>v3는 워크플로우의 모양을 바꾸지 않습니다. 대신 그 안에 빠져 있던 세 가지를 채웁니다.</p>
+  </div>
+  <div class="fixes">
+    <div class="fix">
+      <div class="k">FIX 01</div>
+      <div class="t">음원 조달 경로 명시</div>
+      <div class="d">사용자 팩 → 절차적 합성 → 외부 API. 셋 다 불가하면 약속하기 전에 물러선다.</div>
+    </div>
+    <div class="fix">
+      <div class="k">FIX 02</div>
+      <div class="t">음성 기준 상대 레벨 + 더킹</div>
+      <div class="d">절대 LUFS 수치보다 훨씬 중요하다. 체감 품질 차이가 가장 크게 나는 항목.</div>
+    </div>
+    <div class="fix">
+      <div class="k">FIX 03</div>
+      <div class="t">선언이 아닌 측정으로 검증</div>
+      <div class="d">“✓”는 모델이 타이핑하면 그만인 문자열이다. 코드가 뱉은 숫자여야 의미가 있다.</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="h2rule"><span class="h2num">01</span><h2>v2의 진단 재검토</h2></div>
+  <p class="sub">두 진단 모두 방향은 맞지만, 하나는 범위가 좁고 하나는 처방이 틀렸습니다.</p>
+
+  <h3 style="font-family:var(--sans);font-size:16px;font-weight:600;margin:0 0 10px;">“객관식 버튼은 렌더링 불가” — 부분적으로만 맞음</h3>
+  <p>일부 환경은 실제로 클릭 가능한 선택지를 렌더링합니다. “텍스트 번호만 써라”는 안전하지만 최적은 아닙니다. 더 견고한 규칙은 <em>입력 방식을 강제하지 않는 것</em>입니다 — 번호·보기 텍스트·자유서술 어느 답이든 받고, 보기 밖 답은 되묻지 말고 가장 가까운 보기로 해석한 뒤 한 줄로 확인시킵니다.</p>
+
+  <h3 style="font-family:var(--sans);font-size:16px;font-weight:600;margin:26px 0 10px;">“파이썬 코드 실행을 유도하라” — 방향은 맞고 라이브러리 지정이 틀림</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>v2가 지정한 것</th><th>실제로 필요한 것</th></tr></thead>
+      <tbody>
+        <tr><td class="was">pydub, librosa</td><td class="now"><b>numpy/scipy</b> 합성 · <b>pyloudnorm</b> LUFS · <b>ffmpeg</b> 디코딩·트루피크 · <b>soundfile</b> I/O</td></tr>
+        <tr><td class="was">“−20 LUFS 정규화”</td><td class="now">pydub의 <code>dBFS</code>는 RMS이지 <b>LUFS가 아님</b>. ITU-R BS.1770 측정에는 pyloudnorm 필수</td></tr>
+        <tr><td class="was">“트루피크 −1dBFS”</td><td class="now">트루피크는 오버샘플링 측정. <code>ffmpeg loudnorm</code> 또는 4× 업샘플 후 피크</td></tr>
+        <tr><td class="was">“가우시안 필터”</td><td class="now">오디오의 통상 용어가 아님. <b>엔벨로프 스무딩</b>인지 <b>버터워스 대역 정리</b>인지 명시해야 함</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>라이브러리 이름을 잘못 지정하면 모델은 존재하지 않는 API를 호출하고 조용히 폴백합니다. <strong>“−20 LUFS로 맞췄습니다”라고 말하면서 실제로는 RMS를 맞춘 파일</strong>이 나오는 것이 최악의 결과입니다.</p>
+</section>
+
+<section>
+  <div class="h2rule"><span class="h2num">02</span><h2>v2가 놓친 것</h2></div>
+  <p class="sub">중요도 순 · 순번은 적용 우선순위이기도 합니다</p>
+
+  <ol class="gaps">
+    <li>
+      <div class="rail"><span class="rank">01</span><span class="sev c">치명</span></div>
+      <div class="gap">
+        <h3>음원 조달 경로가 없음</h3>
+        <p>프롬프트 전체에 “이 소리를 어디서 가져오는가”가 없습니다. 세 갈래를 명시해야 하고, 합성을 택한다면 레시피까지 프롬프트에 박아둬야 모델이 매번 다른 결과를 내지 않습니다.</p>
+        <div class="recipe"><b>팝/톡</b>   사인 800→200Hz 글라이드 40ms + 지수감쇠 τ=25ms
+<b>슉</b>      화이트노이즈 + 밴드패스 스윕 400→6kHz, 180ms
+<b>딸깍</b>    임펄스 + 하이패스 2kHz + 감쇠 8ms
+<b>상승/하강</b> 삼각파 3음 아르페지오, 각 60ms</div>
+        <p><strong>BGM은 별도 문제입니다.</strong> numpy로 만든 코드 패드는 “BGM”이라 부르기 민망한 수준입니다. 정직한 기본값은 사용자 제공 BGM을 받아 레벨·페이드·더킹만 처리하는 것입니다.</p>
+      </div>
+    </li>
+
+    <li>
+      <div class="rail"><span class="rank">02</span><span class="sev c">치명</span></div>
+      <div class="gap">
+        <h3>원본 영상의 음성을 무시함</h3>
+        <p>Step 1이 프레임만 추출합니다. 하지만 쇼츠의 대부분에는 내레이션이 있고, <strong>효과음·BGM 작업의 절반은 음성을 피해 배치하는 일</strong>입니다.</p>
+        <ul>
+          <li>ffmpeg로 오디오 트랙 추출 → RMS 게이팅 또는 VAD로 발화 구간 검출</li>
+          <li>발화 구간에는 액센트 배치 금지, 텍스처는 −3dB 추가 감쇠</li>
+          <li><strong>BGM 사이드체인 더킹</strong> −6~9dB, 어택 80ms / 릴리스 300ms</li>
+        </ul>
+        <p>체감 품질에서 가장 큰 차이를 만드는 항목인데 v2에 통째로 없습니다.</p>
+      </div>
+    </li>
+
+    <li>
+      <div class="rail"><span class="rank">03</span><span class="sev h">높음</span></div>
+      <div class="gap">
+        <h3>절대 LUFS 목표가 플랫폼 현실과 어긋남</h3>
+        <p>인스타·틱톡·유튜브는 최종 믹스를 대략 −14 LUFS로 정규화합니다. “BGM −20 LUFS”는 그 자체로는 의미가 없고 <em>음성 대비 상대값</em>일 때만 의미가 있습니다.</p>
+        <figure>
+          <div class="scalebox">
+            <svg viewBox="0 0 720 178" role="img" aria-label="라우드니스 목표 스케일: BGM 베드 −32~−26 LUFS, BGM 단독 −20 LUFS, 내레이션 −16~−14 LUFS, 최종 믹스 −14 LUFS">
+              <g fill="none" stroke="var(--rule-soft)" stroke-width="1">
+                <line x1="40" y1="18" x2="40" y2="134"/>
+                <line x1="146.7" y1="18" x2="146.7" y2="134"/>
+                <line x1="253.3" y1="18" x2="253.3" y2="134"/>
+                <line x1="360" y1="18" x2="360" y2="134"/>
+                <line x1="466.7" y1="18" x2="466.7" y2="134"/>
+                <line x1="573.3" y1="18" x2="573.3" y2="134"/>
+                <line x1="680" y1="18" x2="680" y2="134"/>
+              </g>
+
+              <rect x="111.1" y="23" width="106.7" height="14" fill="var(--accent)" opacity="0.35"/>
+              <text x="226" y="34" fill="var(--ink-2)" font-family="IBM Plex Mono, monospace" font-size="11">BGM 베드 · 음성 대비 −12~−18 LU</text>
+
+              <rect x="322.4" y="49" width="4" height="14" fill="var(--accent)"/>
+              <text x="334" y="60" fill="var(--ink-2)" font-family="IBM Plex Mono, monospace" font-size="11">BGM 단독 −20 LUFS</text>
+
+              <rect x="395.6" y="75" width="35.5" height="14" fill="var(--accent)" opacity="0.75"/>
+              <text x="439" y="86" fill="var(--ink-2)" font-family="IBM Plex Mono, monospace" font-size="11">내레이션 −16 ~ −14 LUFS</text>
+
+              <rect x="429.1" y="101" width="4" height="14" fill="var(--warn)"/>
+              <text x="441" y="112" fill="var(--ink-2)" font-family="IBM Plex Mono, monospace" font-size="11">최종 믹스 −14 LUFS · 플랫폼 정규화 기준</text>
+
+              <line x1="40" y1="134" x2="680" y2="134" stroke="var(--ink-3)" stroke-width="1"/>
+              <g stroke="var(--ink-3)" stroke-width="1">
+                <line x1="40" y1="134" x2="40" y2="140"/>
+                <line x1="146.7" y1="134" x2="146.7" y2="140"/>
+                <line x1="253.3" y1="134" x2="253.3" y2="140"/>
+                <line x1="360" y1="134" x2="360" y2="140"/>
+                <line x1="466.7" y1="134" x2="466.7" y2="140"/>
+                <line x1="573.3" y1="134" x2="573.3" y2="140"/>
+                <line x1="680" y1="134" x2="680" y2="140"/>
+              </g>
+              <g fill="var(--ink-3)" font-family="IBM Plex Mono, monospace" font-size="10.5" text-anchor="middle">
+                <text x="40" y="156">−36</text>
+                <text x="146.7" y="156">−30</text>
+                <text x="253.3" y="156">−24</text>
+                <text x="360" y="156">−18</text>
+                <text x="466.7" y="156">−12</text>
+                <text x="573.3" y="156">−6</text>
+                <text x="680" y="156">0</text>
+              </g>
+              <text x="40" y="172" fill="var(--ink-3)" font-family="IBM Plex Mono, monospace" font-size="10.5">LUFS (통합)</text>
+            </svg>
+          </div>
+          <figcaption>피크 실링 −1 dBTP는 단위가 달라 축에 얹지 않았습니다. 트루피크는 별도 오버샘플 측정으로 확인합니다.</figcaption>
+        </figure>
+      </div>
+    </li>
+
+    <li>
+      <div class="rail"><span class="rank">04</span><span class="sev h">높음</span></div>
+      <div class="gap">
+        <h3>큐시트가 사람용 표로만 존재함</h3>
+        <p>Step 2는 마크다운 표를, Step 3은 코드를 씁니다. 그 사이에 <strong>모델이 표를 다시 읽어 코드로 옮기는 전사 구간</strong>이 있고, 여기서 타임스탬프가 조용히 어긋납니다.</p>
+        <p>해결책은 단순합니다. 큐시트를 <em>표(승인용)와 JSON(단일 진실원본)</em> 두 형태로 동시 출력하고, 렌더 단계는 JSON만 읽습니다. 사용자가 표를 고치면 JSON을 먼저 고치고 표를 재생성합니다.</p>
+      </div>
+    </li>
+
+    <li>
+      <div class="rail"><span class="rank">05</span><span class="sev h">높음</span></div>
+      <div class="gap">
+        <h3>인터뷰가 영상보다 먼저 옴 — 구조적 순서 오류</h3>
+        <p>v2의 Step 0(인터뷰) → Step 1(분석) 순서는, <strong>AI가 보지도 않은 영상에 대해 사용자에게 장르를 묻는</strong> 구조입니다. 장르·길이·컷 밀도는 영상에서 자동으로 읽히므로 그 질문은 낭비되는 턴입니다.</p>
+        <p>v3는 순서를 뒤집습니다: <em>접수 → 자동 분석 → 분석이 못 정한 것만 질문.</em> 질문 수가 4개에서 2개로 줄고, 남은 질문의 정보량은 올라갑니다.</p>
+      </div>
+    </li>
+
+    <li>
+      <div class="rail"><span class="rank">06</span><span class="sev h">높음</span></div>
+      <div class="gap">
+        <h3>10년 차라면 당연히 지킬 규칙들이 빠짐</h3>
+        <ul>
+          <li><strong>지각 동기화 오프셋</strong> — 시각 이벤트보다 효과음을 30~50ms 먼저 배치해야 붙어 들립니다</li>
+          <li><strong>최소 간격</strong> — 큐 간 120ms 미만이면 기관총 소리가 됩니다. 우선순위 기준 솎아내기 패스 필요</li>
+          <li><strong>동시발음 제한</strong> — 겹치는 효과음 최대 2~3개</li>
+          <li><strong>주파수 분리</strong> — 효과음 2kHz 하이셸프, 음성 대역 300Hz~3.5kHz 마스킹 회피, BGM 200Hz 이하 정리</li>
+          <li><strong>포맷 정합</strong> — 영상 표준은 48kHz/24bit. 44.1kHz로 내보내면 NLE에서 리샘플 아티팩트</li>
+          <li><strong>길이 정합</strong> — 두 파일 모두 영상과 정확히 같은 길이(끝 무음 포함)여야 드래그&amp;드롭 정렬됨</li>
+        </ul>
+      </div>
+    </li>
+
+    <li>
+      <div class="rail"><span class="rank">07</span><span class="sev h">높음</span></div>
+      <div class="gap">
+        <h3>체크리스트가 측정이 아니라 선언임</h3>
+        <p><code>"효과음 트랙 ✓ / BGM 트랙 ✓"</code>는 모델이 그냥 타이핑하면 되는 문자열입니다. <strong>검증은 코드가 출력한 숫자여야</strong> 의미가 있습니다 — 통합 라우드니스 실측, 트루피크 실측, 길이 차이, 배치된 큐 수, 샘플레이트.</p>
+      </div>
+    </li>
+
+    <li>
+      <div class="rail"><span class="rank">08</span><span class="sev m">중간</span></div>
+      <div class="gap">
+        <h3>초당 4프레임 추출은 나쁜 범용 규칙</h3>
+        <p>60초 영상이면 240프레임. 비전 토큰 낭비이고 전환 검출 정확도도 낮습니다. 이벤트 유형별로 방법이 다릅니다.</p>
+        <div class="recipe"><b>컷/전환</b>   ffmpeg -vf "select='gt(scene,0.3)',showinfo"  ← 이미지 추출 불필요
+<b>자막 등장</b> 하단 1/3 ROI의 프레임간 차분 피크
+<b>동작 강조</b> 위 결과가 비는 구간만 선별 확인 · 총 40장 예산</div>
+      </div>
+    </li>
+
+    <li>
+      <div class="rail"><span class="rank">09</span><span class="sev m">중간</span></div>
+      <div class="gap">
+        <h3>실패 경로와 스킵 규칙이 없음</h3>
+        <p>사용자가 이미 정보를 준 항목은 질문을 건너뛰어야 하는데 “절대 순서 준수”가 이를 막습니다. 명시적 스킵 규칙이 필요합니다. 영상이 없거나 라이브러리가 없을 때의 대체 경로도 없습니다.</p>
+      </div>
+    </li>
+
+    <li>
+      <div class="rail"><span class="rank">10</span><span class="sev m">중간</span></div>
+      <div class="gap">
+        <h3>저작권 게이트가 없음</h3>
+        <p>릴스·쇼츠에서 권리 없는 BGM은 음소거 또는 수익화 차단으로 직결됩니다. 사용자가 BGM 파일을 제공하면 출처와 사용 범위를 한 번 확인하는 단계가 필요합니다. “모른다”면 절차적 생성이나 로열티프리 소스로 유도합니다.</p>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<section>
+  <div class="h2rule"><span class="h2num">03</span><h2>v3 프롬프트</h2></div>
+  <p class="sub">그대로 복사해 쓰는 전문 · 변경점은 아래 요약표 참조</p>
+  <div class="panel">
+    <div class="panelbar">
+      <span class="name">sound_designer_v3.txt</span>
+      <button class="copy" data-target="p1" type="button">COPY</button>
+    </div>
+    <pre id="p1"># Role
+당신은 릴스·쇼츠 전문 10년 차 사운드 디자이너다. 포스트 프로덕션 스튜디오 워크플로우에 따라
+ffmpeg / numpy / scipy / soundfile / pyloudnorm 을 사용해 정확한 레벨 관리와 레이어링을 수행한다.
+품질 기준을 지키지 못하는 상황에서는, 지키는 척하기보다 한계를 먼저 밝힌다.
+
+# Final Deliverables
+□ sfx_track.wav   — 효과음 통합 트랙 (48kHz/24bit, 영상 00:00 정렬, 영상과 동일 길이)
+□ bgm_track.wav   — BGM 트랙 (48kHz/24bit, 동일 길이, 페이드·더킹 반영)
+□ cue_sheet.json  — 최종 큐시트 (재렌더링용 단일 진실원본)
+□ render.py       — 위 3개로부터 트랙을 재생성하는 스크립트
+* 원본 영상에 오디오를 병합하지 말 것. 트랙은 반드시 분리 제공.
+* 최종 보고는 선언이 아니라 measure() 함수가 출력한 실측 숫자로 할 것.
+
+# Step -1: 역량 점검 (약속하기 전에 확인)
+코드로 다음을 확인하고 결과를 3줄로 보고한다.
+  1) ffmpeg 사용 가능 여부
+  2) numpy / scipy / soundfile / pyloudnorm 임포트 가능 여부
+  3) 파일 출력 및 사용자 전달 가능 여부
+하나라도 불가하면 **그 시점에** 무엇을 못 하는지 밝히고, 가능한 대체 산출물
+(큐시트 JSON + render.py 만 제공하여 사용자가 로컬 실행)을 제안한 뒤 승인받고 진행한다.
+pyloudnorm이 없으면 "LUFS"라는 단어를 쓰지 말고 RMS dBFS로 보고한다. 절대 혼용하지 않는다.
+
+# Step 0: 접수
+영상 파일과 (있다면) 효과음 팩 / BGM 파일을 요청한다.
+BGM을 사용자가 제공하는 경우, 출처와 사용 권리를 한 번 확인한다.
+권리가 불명확하면 사용을 보류하고 절차적 생성 또는 로열티프리 소스를 제안한다.
+
+# Step 1: 자동 분석 (질문보다 먼저)
+1) 영상 메타: 길이, fps, 해상도, 오디오 트랙 유무
+2) 컷/전환: ffmpeg -vf "select='gt(scene,0.3)',showinfo" 로 장면전환 타임스탬프 추출
+3) 자막 등장: 하단 1/3 ROI 프레임간 차분 피크
+4) 음성 구간: 오디오 트랙 추출 후 RMS 게이팅(또는 VAD)으로 발화 구간 목록화
+5) 동작 강조: 위 결과가 비는 구간만 선별 확인. 프레임 이미지는 총 40장을 넘기지 않는다.
+분석 결과를 "영상 프로파일"로 요약 출력한다 (길이 / 컷 n개 / 자막 n개 / 발화 점유율 %).
+영상을 받을 수 없으면 사용자에게 이벤트 시각 목록(초 단위)을 요청한다.
+
+# Step 2: 표적 인터뷰 (분석이 못 정하는 것만)
+규칙: 한 번에 하나씩. 보기에 ①②③ 번호를 붙이되 번호·텍스트·자유서술 어느 형태의 답도 받는다.
+      답이 보기 밖이면 되묻지 말고 가장 가까운 보기로 해석한 뒤 한 줄로 확인시킨다.
+      항상 마지막 보기로 "④ 추천해 줘"를 둔다.
+      사용자가 이미 밝힌 항목은 질문을 건너뛰고 "○○로 이해했습니다" 한 줄로 대체한다.
+
+  Q1. 효과음 밀도는? (① 미니멀 10초당 1~2개 ② 스탠다드 10초당 3~4개 ③ 리치 모든 동작에 반응 ④ 추천해 줘)
+  Q2. 톤과 무드는?   (① 차분·어두운 ② 밝고·귀여운 ③ 화려·임팩트 ④ 추천해 줘)
+
+Step 1의 영상 프로파일과 위 두 답을 합쳐 "사운드 프로파일"을 요약한다.
+장르·비트 존재감은 영상 프로파일에서 추론하고, 추론 결과를 요약에 명시해 사용자가 반박할 수 있게 한다.
+
+# Step 3: 큐시트 (표 + JSON 동시 출력, 승인 필수)
+표는 사람이 읽고, JSON은 코드가 읽는다. Step 4는 JSON만 참조한다.
+
+레이어: accent(주요 전환·강조) / texture(자막·잔동작)
+매핑:   자막=톡·팝 / 전환=슉 / 클릭=딸깍 / 실패=하강음 / 성공=상승음
+
+배치 규칙 (이 순서로 적용):
+  a) 지각 동기화 — 시각 이벤트 시각에서 40ms 앞당겨 배치한다.
+  b) 최소 간격  — 큐 간 120ms 미만이면 우선순위(accent &gt; 일반 &gt; texture)로 낮은 쪽을 제거한다.
+  c) 음성 회피  — 발화 구간에 accent를 두지 않는다. texture는 두되 -3dB 추가 감쇠한다.
+  d) 동시발음   — 같은 시각에 겹치는 효과음은 최대 2개.
+
+JSON 스키마:
+{ "video_duration": 34.2, "sample_rate": 48000,
+  "cues": [ {"t": 2.46, "layer": "accent", "type": "whoosh", "gain_db": 0, "src": "synth|pack:file.wav"} ],
+  "speech_ranges": [[1.2, 5.8]],
+  "bgm": {"src": "user|synth", "target_lufs": -20, "duck_db": -7} }
+
+# Step 4: 음원 조달
+큐 유형별로 다음 순서로 조달한다. 사용한 경로를 보고한다.
+  A. 사용자 제공 팩 — 파일명·길이로 카탈로그화 후 큐 유형에 매핑 (최우선)
+  B. 절차적 합성 (numpy) — 팩이 없거나 매칭이 없을 때
+       팝/톡  = 사인 800→200Hz 글라이드 40ms + 지수감쇠 τ=25ms
+       슉     = 화이트노이즈 + 밴드패스 스윕 400→6kHz, 180ms
+       딸깍   = 임펄스 + 하이패스 2kHz + 감쇠 8ms
+       상승/하강 = 삼각파 3음 아르페지오, 각 60ms
+       모든 합성음: 어택 최소 2ms, 시작·끝 5ms 마이크로 페이드
+  C. 외부 생성 API — 사용 가능한 경우에 한함
+
+BGM: 사용자 제공이 기본. 생성해야 한다면 루프형 앰비언트 패드로 한정하고,
+     "절차적 생성 BGM은 완성 음악 수준이 아닙니다"를 먼저 고지한 뒤 진행한다.
+
+# Step 5: 믹싱 (임의 게인 금지 — 아래 수치만 사용)
+효과음 트랙
+  - 개별 소스 피크 -6dBFS 정규화 후 역할별 게인: accent 0dB / 일반 -3dB / texture -6dB
+  - 2kHz 하이셸프 +2dB, 300Hz~3.5kHz(음성 대역) 침범 시 -2dB 딥
+  - 트랙 트루피크 -1dBTP 이하 (4x 업샘플 측정 또는 ffmpeg loudnorm)
+  - 모노 합산 시 위상 상쇄 없을 것
+BGM 트랙
+  - 음성이 있으면: 음성 통합 라우드니스 대비 -12~-18 LU
+  - 음성이 없으면: 통합 -20 LUFS
+  - 발화 구간 더킹 -7dB (어택 80ms / 릴리스 300ms)
+  - 200Hz 이하 하이패스, 시작 1.5초 페이드인 / 끝 3초 페이드아웃
+공통
+  - 48kHz / 24bit / 영상과 동일 길이(끝 무음 포함)
+
+# Step 6: 측정 기반 검증 (선언 금지)
+코드로 실측한 값을 표로 출력한다. 목표를 벗어난 항목은 ✗로 표시하고 재처리한다.
+  | 항목 | 목표 | 실측 |
+  | 효과음 트루피크 | ≤ -1.0 dBTP | (측정값) |
+  | BGM 통합 라우드니스 | (목표값) | (측정값) |
+  | 트랙 길이 vs 영상 | ±50ms | (차이) |
+  | 배치된 큐 수 | 큐시트 n개 | (실제 n개) |
+  | 샘플레이트 / 비트뎁스 | 48000 / 24 | (실측) |
+전부 통과했을 때만 "검증 통과"라고 쓴다.
+
+# Step 7: 전달 및 수정
+4개 산출물을 전달한다. 수정 요청 시 cue_sheet.json의 해당 항목만 고치고
+render.py를 재실행한다. 전체 재생성은 하지 않는다.</pre>
+  </div>
+</section>
+
+<section>
+  <div class="h2rule"><span class="h2num">04</span><h2>v2 대비 변경 요약</h2></div>
+  <div class="tw">
+    <table>
+      <thead><tr><th>영역</th><th>v2</th><th>v3</th></tr></thead>
+      <tbody>
+        <tr><td>순서</td><td class="was">인터뷰 → 분석</td><td class="now"><b>분석 → 표적 인터뷰</b> (질문 4개 → 2개)</td></tr>
+        <tr><td>음원</td><td class="was">미지정 — 실패 지점</td><td class="now"><b>A/B/C 조달 경로 + 합성 레시피</b></td></tr>
+        <tr><td>음성</td><td class="was">고려 없음</td><td class="now"><b>발화 구간 검출 + 회피 배치 + 더킹</b></td></tr>
+        <tr><td>레벨</td><td class="was">절대 −20 LUFS</td><td class="now"><b>음성 대비 상대 LU</b> + 플랫폼 −14 LUFS 정합</td></tr>
+        <tr><td>동기화</td><td class="was">언급 없음</td><td class="now">−40ms 지각 오프셋 · 최소 간격 120ms · 동시발음 2개</td></tr>
+        <tr><td>큐시트</td><td class="was">표만</td><td class="now"><b>표 + JSON</b>, 코드는 JSON만 참조</td></tr>
+        <tr><td>검증</td><td class="was">“✓” 선언</td><td class="now"><b>실측 숫자 표</b>, 미달 시 재처리</td></tr>
+        <tr><td>실패</td><td class="was">경로 없음</td><td class="now"><b>Step −1 역량 점검</b> — 약속 전 물러서기</td></tr>
+        <tr><td>산출물</td><td class="was">오디오 2개</td><td class="now">오디오 2개 + <b>cue_sheet.json + render.py</b></td></tr>
+        <tr><td>권리</td><td class="was">없음</td><td class="now">BGM 출처·사용권 확인 게이트</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="h2rule"><span class="h2num">05</span><h2>재사용 템플릿 v2</h2></div>
+  <p class="sub">기존 템플릿은 워크플로우의 모양만 복제합니다. 이 버전은 위에서 얻은 교훈 네 가지를 골격에 넣습니다.</p>
+  <div class="panel">
+    <div class="panelbar">
+      <span class="name">expert_workflow_template_v2.txt</span>
+      <button class="copy" data-target="p2" type="button">COPY</button>
+    </div>
+    <pre id="p2"># Role
+당신은 [분야] 전문 [N]년 차 [직업]이다. [작업 기준]으로 작업하며,
+[도구/라이브러리]를 사용한다. 기준을 못 지키는 상황에서는 지키는 척하지 않고 먼저 밝힌다.
+
+# Final Deliverables
+□ [최종 산출물 1]
+□ [최종 산출물 2]
+□ [중간 산출물 — 기계가 읽는 구조화 형식. 재생성의 단일 진실원본]
+□ [재현 수단 — 사용자가 직접 다시 만들 수 있는 스크립트/설정]
+
+# Step -1: 역량 점검   ← [교훈 1] 약속하기 전에 확인한다
+필요한 도구·데이터·권한의 가용 여부를 실제로 확인하고 3줄로 보고한다.
+불가한 것이 있으면 그 시점에 밝히고, 축소된 대체 산출물을 제안해 승인받는다.
+측정할 수 없는 지표는 그 이름을 쓰지 않는다 (근사치를 정식 명칭으로 부르지 않는다).
+
+# Step 0: 접수
+[입력물]을 요청한다. 사용자 제공 자료에 권리·출처 문제가 있을 수 있으면 여기서 확인한다.
+
+# Step 1: 자동 분석   ← [교훈 2] 질문보다 분석이 먼저다
+[입력물]에서 자동으로 알 수 있는 것을 전부 먼저 추출한다.
+결과를 "[대상] 프로파일"로 요약하고, 추론한 항목은 추론임을 밝혀 사용자가 반박할 수 있게 한다.
+
+# Step 2: 표적 인터뷰
+분석으로 정할 수 없는 것만 묻는다. 한 번에 하나씩, 번호 붙인 보기 + "추천해 줘" 옵션.
+번호·텍스트·자유서술 어느 답이든 받고, 보기 밖 답은 가장 가까운 보기로 해석 후 한 줄 확인.
+사용자가 이미 밝힌 항목은 건너뛰고 "○○로 이해했습니다"로 대체한다.
+
+# Step 3: 계획 승인   ← [교훈 3] 사람용과 기계용을 동시에 만든다
+계획을 [사람이 읽는 형식]과 [기계가 읽는 구조화 형식] 두 가지로 동시에 출력한다.
+이후 단계는 기계용만 참조한다. 수정은 기계용을 먼저 고치고 사람용을 재생성한다.
+
+# Step 4: 자원 조달
+[재료]를 어디서 얻는지 우선순위로 명시한다:
+  A. 사용자 제공 → B. 직접 생성([구체적 레시피]) → C. 외부 소스
+각 경로의 품질 한계를 미리 밝힌다. 사용한 경로를 결과와 함께 보고한다.
+
+# Step 5: 제작 (임의 판단 금지 — 아래 수치만 사용)
+[정량 기준 1: 목표값과 단위]
+[정량 기준 2: 목표값과 단위]
+[상호작용 규칙: 요소들이 서로 충돌할 때의 우선순위]
+
+# Step 6: 측정 기반 검증   ← [교훈 4] 검증은 선언이 아니라 숫자다
+| 항목 | 목표 | 실측 | 형태의 표를 코드/도구 출력으로 채운다.
+미달 항목은 ✗로 표시하고 재처리한다. 전부 통과했을 때만 "검증 통과"라고 쓴다.
+
+# Step 7: 전달 및 수정
+산출물 전달. 수정 요청 시 [중간 산출물]의 해당 항목만 고치고 재생성한다. 전체 재작업 금지.</pre>
+  </div>
+</section>
+
+<section>
+  <div class="h2rule"><span class="h2num">06</span><h2>부분 적용한다면 이 순서로</h2></div>
+  <ol class="apply">
+    <li><span><b>Step −1 역량 점검</b> — 한 문단 추가로 “약속 후 실패”가 사라집니다.</span></li>
+    <li><span><b>큐시트 JSON 병기</b> — 두 줄 추가로 전사 오류가 사라집니다.</span></li>
+    <li><span><b>측정 기반 검증표</b> — “✓”를 숫자 표로 바꿉니다.</span></li>
+    <li><span><b>음성 검출 + 더킹</b> — 체감 품질 향상이 가장 큽니다.</span></li>
+    <li><span><b>분석 → 인터뷰 순서 반전</b> — 대화 턴이 줄고 질문의 질이 올라갑니다.</span></li>
+    <li><span>나머지 — 음원 조달 경로, 지각 오프셋, 권리 게이트</span></li>
+  </ol>
+</section>
+
+<section>
+  <div class="h2rule"><span class="h2num">07</span><h2>남은 정직한 한계</h2></div>
+  <div class="verdict">
+    <p>v3를 그대로 써도 <strong>절차적 합성 효과음의 품질은 상용 사운드 팩에 미치지 못합니다.</strong> “미니멀·모던” 톤에서는 충분하지만 “예능 리치” 톤에서는 차이가 뚜렷합니다.</p>
+    <p>따라서 실무에서 최고 결과를 원한다면 <em>사용자가 효과음 팩을 준비하는 경로(A)를 기본</em>으로 두고, 합성(B)은 팩이 없을 때의 폴백으로 쓰는 것이 맞습니다. v3는 이 사실을 숨기지 않고 프롬프트 안에 명시하도록 설계했습니다.</p>
+  </div>
+</section>
+
+<footer>
+  <span>사운드 디자인 마스터 프롬프트 · v2 → v3 해체 보고서</span>
+  <span>2026-09-03</span>
+</footer>
+
+</div>
+
+<script>
+  document.querySelectorAll("button.copy").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var el = document.getElementById(btn.dataset.target);
+      if(!el){ return; }
+      var done = function(){
+        var prev = btn.textContent;
+        btn.textContent = "COPIED";
+        setTimeout(function(){ btn.textContent = prev; }, 1400);
+      };
+      try{
+        navigator.clipboard.writeText(el.textContent).then(done, function(){ select(el); });
+      }catch(e){
+        select(el);
+      }
+    });
+  });
+  function select(el){
+    try{
+      var r = document.createRange();
+      r.selectNodeContents(el);
+      var s = window.getSelection();
+      s.removeAllRanges();
+      s.addRange(r);
+    }catch(e){}
+  }
+</script>
