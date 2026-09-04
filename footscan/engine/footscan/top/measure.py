@@ -155,15 +155,23 @@ def analyze_toes(mask: np.ndarray, r_heel: int, r_toe: int) -> tuple[str, int, l
         top5 = np.argsort(proms)[-5:]
         peaks, proms = peaks[np.sort(top5)], proms[np.sort(top5)]
 
+    # 발가락 밑동 폭을 잴 때는 옆 발가락 쪽으로 '중간 지점'까지만,
+    # 그리고 TOE_BASE_WIDTH_MAX_MM 까지만 봅니다.
+    # (제한이 없으면 맨 끝 발가락에서 폭이 발 전체로 번져 엄지를 잘못 고릅니다)
+    cap_px = int(round(C.TOE_BASE_WIDTH_MAX_MM * PPM / 2))
     toes = []
-    for p_i in peaks:
+    for k, p_i in enumerate(peaks):
         # 이 봉우리의 "밑동 폭" (엄지를 찾는 데 씁니다. 엄지가 가장 굵습니다)
         lvl = hs[p_i] - C.TOE_BASE_WIDTH_DROP_MM
+        prev_p = peaks[k - 1] if k > 0 else -1
+        next_p = peaks[k + 1] if k < len(peaks) - 1 else len(hs)
+        l_limit = max((prev_p + p_i) // 2 if prev_p >= 0 else 0, p_i - cap_px)
+        r_limit = min(-(-(p_i + next_p) // 2) if next_p < len(hs) else len(hs) - 1, p_i + cap_px)
         li = p_i
-        while li > 0 and hs[li - 1] >= lvl:
+        while li > l_limit and hs[li - 1] >= lvl:
             li -= 1
         ri = p_i
-        while ri < len(hs) - 1 and hs[ri + 1] >= lvl:
+        while ri < r_limit and hs[ri + 1] >= lvl:
             ri += 1
         toes.append({
             "x": int(xs[p_i]),

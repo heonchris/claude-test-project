@@ -1,0 +1,350 @@
+<title>발 스캔</title>
+<style>
+/* ══════════════════════════════════════════════════════════════
+   발 스캔 — 휴대폰 앱
+   설치 없이 브라우저에서 돌지만, 실제 앱처럼 보이고 동작하도록
+   만들었습니다. 측정은 폰 안에서 직접 합니다(서버 없음).
+   ══════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#f4f5f7; --surface:#fff; --surface-2:#f8f9fb;
+  --ink:#12151a; --ink-2:#3f4753; --muted:#6b7482;
+  --line:#e4e7ec; --line-soft:#eef0f4;
+  --accent:#2b5ce6; --accent-press:#1f47b8; --accent-soft:#e9eefc;
+  --good:#12805c; --good-soft:#e1f4ec;
+  --warn:#96610d; --warn-soft:#fbf0dd;
+  --bad:#c0392f; --bad-soft:#fceceb;
+  --shadow-1:0 1px 2px rgba(16,20,28,.06);
+  --shadow-2:0 2px 8px rgba(16,20,28,.08), 0 12px 28px -18px rgba(16,20,28,.5);
+  --r:16px; --r-sm:10px;
+  --bar:56px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1116; --surface:#171b21; --surface-2:#1d222a;
+    --ink:#e8ecf2; --ink-2:#c5ccd6; --muted:#8f99a6;
+    --line:#282e37; --line-soft:#212730;
+    --accent:#6f97f5; --accent-press:#587fdd; --accent-soft:#1a2439;
+    --good:#4fb08a; --good-soft:#12261f; --warn:#d5a458; --warn-soft:#2a2216;
+    --bad:#e08a82; --bad-soft:#2c1a19;
+    --shadow-1:0 1px 2px rgba(0,0,0,.5);
+    --shadow-2:0 2px 8px rgba(0,0,0,.5), 0 12px 28px -18px rgba(0,0,0,.9);
+  }
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR","Malgun Gothic",sans-serif;
+  font-size:16px; line-height:1.6; -webkit-text-size-adjust:100%;
+  word-break:keep-all; overflow-wrap:break-word;
+  overscroll-behavior-y:none;
+}
+button{font:inherit; color:inherit}
+:focus-visible{outline:3px solid var(--accent); outline-offset:2px; border-radius:6px}
+/* 화면이 바뀔 때 제목으로 초점을 옮기는데(스크린리더 안내용),
+   이때 눈에 보이는 파란 테두리는 필요 없으므로 감춥니다. */
+[tabindex="-1"]:focus, [tabindex="-1"]:focus-visible{outline:none}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ── 앱 바 ── */
+.appbar{
+  position:sticky; top:0; z-index:50; height:calc(var(--bar) + env(safe-area-inset-top));
+  padding-top:env(safe-area-inset-top);
+  background:var(--surface); border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:4px; padding-inline:6px;
+}
+.appbar .t{flex:1; font-size:17px; font-weight:700; text-align:center; letter-spacing:-.02em}
+.iconbtn{
+  width:44px;height:44px;border:0;background:none;border-radius:12px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--ink-2);
+}
+.iconbtn:active{background:var(--surface-2)}
+.iconbtn[hidden]{display:none}
+
+/* ── 화면 ── */
+main{padding:16px 16px calc(28px + env(safe-area-inset-bottom)); max-width:600px; margin:0 auto}
+.screen[hidden]{display:none}
+h1{font-size:24px; font-weight:800; letter-spacing:-.03em; margin:6px 0 4px}
+h2{font-size:17px; font-weight:700; margin:0 0 10px; letter-spacing:-.02em}
+p{margin:0 0 12px}
+.sub{color:var(--muted); font-size:14.5px}
+
+/* ── 카드 ── */
+.card{background:var(--surface); border-radius:var(--r); padding:18px; margin-bottom:14px; box-shadow:var(--shadow-1)}
+.card.flat{box-shadow:none; border:1px solid var(--line)}
+
+/* ── 버튼 ── */
+.btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+  padding:16px; border:0; border-radius:14px; background:var(--accent); color:#fff;
+  font-size:16.5px; font-weight:700; cursor:pointer; transition:transform .06s, background .15s;
+}
+.btn:active{transform:scale(.985); background:var(--accent-press)}
+.btn:disabled{background:var(--line); color:var(--muted); cursor:default; transform:none}
+.btn.sec{background:var(--surface); color:var(--accent); border:1.5px solid var(--accent)}
+.btn.sec:active{background:var(--accent-soft)}
+.btn.quiet{background:var(--surface-2); color:var(--ink-2); border:1px solid var(--line)}
+.btn+.btn{margin-top:9px}
+
+/* ── 촬영 슬롯 ── */
+.slot{
+  display:flex;align-items:center;gap:13px;width:100%;text-align:left;
+  padding:12px; border:1.5px dashed var(--line); border-radius:14px;
+  background:var(--surface); margin-bottom:10px; cursor:pointer; transition:border-color .15s;
+}
+.slot:active{background:var(--surface-2)}
+.slot.done{border-style:solid; border-color:var(--good); background:var(--good-soft)}
+.slot.bad{border-style:solid; border-color:var(--bad); background:var(--bad-soft)}
+.slot .thumb{
+  width:60px;height:60px;flex:0 0 60px;border-radius:12px;background:var(--surface-2);
+  display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden;
+}
+.slot .thumb img{width:100%;height:100%;object-fit:cover}
+.slot .t{flex:1;min-width:0}
+.slot .t b{display:block;font-size:15px;font-weight:700}
+.slot .t > span{display:block;font-size:13px;color:var(--muted);line-height:1.45}
+.slot .mark{font-size:13px;font-weight:700;color:var(--good);white-space:nowrap}
+.slot.bad .mark{color:var(--bad)}
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;margin-left:6px;vertical-align:2px}
+.pill.req{background:var(--bad-soft);color:var(--bad)}
+.pill.opt{background:var(--accent-soft);color:var(--accent)}
+input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+
+/* ── 안내/경고 ── */
+.note{border-radius:12px;padding:12px 14px;font-size:14px;margin-bottom:12px;line-height:1.55}
+.note.info{background:var(--accent-soft);color:var(--accent)}
+.note.warn{background:var(--warn-soft);color:var(--warn)}
+.note.bad{background:var(--bad-soft);color:var(--bad)}
+.note.good{background:var(--good-soft);color:var(--good)}
+.note b{font-weight:800}
+ol.guide{margin:6px 0 0;padding-left:20px;font-size:14.5px}
+ol.guide li{margin:6px 0}
+
+/* ── 진행 ── */
+.ring{width:132px;height:132px;margin:20px auto 10px;position:relative}
+.ring svg{transform:rotate(-90deg)}
+.ring .val{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:26px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;
+}
+.steplist{margin-top:14px}
+.stepline{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:15px;color:var(--muted)}
+.stepline.on{color:var(--ink);font-weight:700}
+.stepline.done{color:var(--good)}
+.stepline .dot{width:9px;height:9px;border-radius:50%;background:var(--line);flex:0 0 9px}
+.stepline.on .dot{background:var(--accent)}
+.stepline.done .dot{background:var(--good)}
+.spin{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:sp 1s linear infinite;margin:0 auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* ── 결과 ── */
+.hero{text-align:center;padding:4px 0 10px}
+.hero .big{font-size:46px;font-weight:800;letter-spacing:-.04em;line-height:1}
+.hero .big .u{font-size:18px;font-weight:600;color:var(--muted);margin-left:4px;letter-spacing:0}
+.hero .cap{color:var(--muted);font-size:14px;margin-top:4px}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:11px 0;border-bottom:1px solid var(--line-soft)}
+.row:last-child{border-bottom:0}
+.row .k{color:var(--muted);font-size:14.5px;flex:0 0 auto}
+.row .v{font-weight:700;flex:1 1 auto;text-align:right;min-width:0}
+.grade{display:inline-block;padding:5px 13px;border-radius:999px;font-weight:800;font-size:14.5px}
+.grade.low{background:var(--warn-soft);color:var(--warn)}
+.grade.normal{background:var(--good-soft);color:var(--good)}
+.grade.high{background:var(--accent-soft);color:var(--accent)}
+.tabs{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:9px 15px;border:0;border-radius:999px;background:var(--surface-2);font-size:14px;white-space:nowrap;cursor:pointer;color:var(--ink-2)}
+.tab.on{background:var(--accent);color:#fff;font-weight:700}
+.sizegrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:8px}
+.sizegrid div{background:var(--surface-2);border-radius:10px;padding:9px 4px;text-align:center}
+.sizegrid .lab{font-size:11px;color:var(--muted)}
+.sizegrid .val{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums}
+details{border-top:1px solid var(--line-soft);padding-top:10px;margin-top:4px}
+summary{cursor:pointer;font-size:14px;color:var(--muted);list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:'▸ ';}
+details[open] summary::before{content:'▾ ';}
+details img{width:100%;border-radius:12px;margin:10px 0 0;border:1px solid var(--line)}
+details figcaption{font-size:13px;color:var(--muted);margin-top:6px}
+
+/* ── 이력 ── */
+.hist{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:14px;border:0;
+      background:var(--surface);border-radius:14px;margin-bottom:9px;box-shadow:var(--shadow-1);cursor:pointer}
+.hist:active{background:var(--surface-2)}
+.hist .d{flex:1;min-width:0}
+.hist .d b{display:block;font-size:15.5px;font-weight:700}
+.hist .d span{font-size:13px;color:var(--muted)}
+.hist .n{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.hist .n small{font-size:12px;color:var(--muted);font-weight:600}
+.empty{text-align:center;color:var(--muted);padding:40px 20px;font-size:14.5px}
+.empty .ico{font-size:40px;display:block;margin-bottom:10px;opacity:.5}
+
+/* ── 하단 고정 문구 ── */
+.disc{
+  position:fixed;left:0;right:0;bottom:0;z-index:40;
+  background:#141920;color:#c8cfd9;font-size:11.5px;text-align:center;
+  padding:9px 12px calc(9px + env(safe-area-inset-bottom));
+}
+body{padding-bottom:44px}
+
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+
+<div class="appbar">
+  <button class="iconbtn" id="back" hidden aria-label="뒤로">←</button>
+  <span class="t" id="bartitle">발 스캔</span>
+  <button class="iconbtn" id="histbtn" aria-label="측정 이력">🕘</button>
+</div>
+
+<main>
+  <p class="sr" id="live" role="status" aria-live="polite"></p>
+
+  <!-- ══ 준비 중 ══ -->
+  <section class="screen" id="s-boot">
+    <div class="card" style="margin-top:48px;text-align:center">
+      <div class="spin" style="margin-bottom:16px"></div>
+      <h2 style="text-align:center">측정 엔진을 준비하고 있습니다</h2>
+      <p class="sub" id="boot-msg">처음 한 번만 약 10MB를 내려받습니다.<br>다음부터는 바로 열립니다.</p>
+      <p class="sub" id="boot-sec" style="font-variant-numeric:tabular-nums"></p>
+    </div>
+    <div class="note info">
+      이 앱은 <b>사진을 서버로 보내지 않습니다.</b> 측정은 전부 이 휴대폰 안에서 이뤄집니다.
+    </div>
+  </section>
+
+  <!-- ══ 홈 ══ -->
+  <section class="screen" id="s-home" hidden>
+    <h1>발 스캔</h1>
+    <p class="sub">A4 종이 한 장이면 발 크기를 잽니다.</p>
+    <div class="card" style="margin-top:14px">
+      <h2>새로 측정하기</h2>
+      <p class="sub" style="margin-bottom:14px">
+        위에서 찍은 사진 1장이면 사이즈가 나옵니다.<br>옆면까지 찍으면 아치·발등도 나옵니다.</p>
+      <button class="btn" id="go-guide">측정 시작</button>
+    </div>
+    <div id="home-recent"></div>
+  </section>
+
+  <!-- ══ 촬영 안내 ══ -->
+  <section class="screen" id="s-guide" hidden>
+    <h1>이렇게 찍어 주세요</h1>
+    <div class="card">
+      <h2>준비물</h2>
+      <p class="sub" style="margin:0">A4 용지 1장 · 단단하고 평평한 바닥(카펫 ✕) · 밝은 조명</p>
+    </div>
+    <div class="card">
+      <h2>공통</h2>
+      <ol class="guide">
+        <li>A4 용지를 <b>단단하고 평평한 바닥</b>에 놓으세요. (카펫 ✕)</li>
+        <li>조명을 켜고, <b>짙은 그림자가 지지 않게</b> 해주세요.</li>
+        <li><b>맨발 또는 어두운 색 양말</b>을 신으세요. (흰색·회색 양말 ✕)</li>
+        <li><b>체중을 실어 똑바로</b> 서세요.</li>
+      </ol>
+      <div class="note warn" style="margin:12px 0 0">
+        <b>왜 서서 재나요?</b> 서 있을 때 발은 앉아 있을 때보다 3~7mm 깁니다.
+        신발은 체중이 실린 상태로 신으니 반드시 선 채로 재야 합니다.
+      </div>
+    </div>
+    <div class="card">
+      <h2>위에서 찍을 때</h2>
+      <ol class="guide" start="5">
+        <li>뒤꿈치를 종이 아래 가장자리에 맞추세요.</li>
+        <li>발 위 <b>40~60cm</b> 높이에서 바닥과 수평으로.</li>
+        <li>종이 <b>네 모서리가 모두</b> 보이게.</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h2>옆에서 찍을 때 <span class="pill opt">건너뛰기 가능</span></h2>
+      <ol class="guide" start="8">
+        <li>발 안쪽(엄지 쪽) 라인을 종이의 <b>긴 변</b>에 맞춰 딛으세요.</li>
+        <li>휴대폰을 바닥에서 <b>10~15cm</b> 높이로 낮추고 지면과 수직으로.</li>
+        <li>발에서 약 1m 떨어져, 종이 긴 변이 화면 가로로 꽉 차게.</li>
+      </ol>
+      <div class="note bad" style="margin:12px 0 0">
+        <b>가장 흔한 실패:</b> 발이 종이의 양쪽 끝을 가리면 기준 길이를 잴 수 없습니다.
+        발을 종이 긴 변의 <b>가운데</b>에 딛어, 종이 양 끝이 보이게 해주세요.
+      </div>
+    </div>
+    <button class="btn" id="go-capture">알겠습니다, 촬영하기</button>
+  </section>
+
+  <!-- ══ 촬영 ══ -->
+  <section class="screen" id="s-capture" hidden>
+    <h1>사진 넣기</h1>
+    <p class="sub">사진을 고르면 <b>바로 품질을 검사</b>해서 알려드립니다.</p>
+    <button class="btn quiet" id="use-sample">예시 사진으로 해보기 &mdash; 발을 안 찍어도 됩니다</button>
+    <div id="quality-note"></div>
+
+    <div class="card">
+      <h2>오른발</h2>
+      <button class="slot" data-k="right_top">
+        <span class="thumb">📄</span>
+        <span class="t"><b>위에서<span class="pill req">필수</span></b><span>A4 위에 발을 올리고 위에서</span></span>
+        <span class="mark"></span>
+      </button>
+      <button class="slot" data-k="right_side">
+        <span class="thumb">👣</span>
+        <span class="t"><b>옆에서<span class="pill opt">선택</span></b><span>안쪽에서 낮게, 아치가 보이게</span></span>
+        <span class="mark"></span>
+      </button>
+    </div>
+    <div class="card">
+      <h2>왼발 <span class="pill opt">선택</span></h2>
+      <button class="slot" data-k="left_top">
+        <span class="thumb">📄</span>
+        <span class="t"><b>위에서</b><span>좌우 차이를 보려면 필요합니다</span></span>
+        <span class="mark"></span>
+      </button>
+      <button class="slot" data-k="left_side">
+        <span class="thumb">👣</span>
+        <span class="t"><b>옆에서</b><span>왼발 아치까지 보려면</span></span>
+        <span class="mark"></span>
+      </button>
+    </div>
+
+    <button class="btn" id="measure" disabled>측정하기</button>
+    <button class="btn quiet" id="clear-photos">사진 모두 지우기</button>
+    <input type="file" accept="image/*" id="filepick">
+  </section>
+
+  <!-- ══ 처리 중 ══ -->
+  <section class="screen" id="s-processing" hidden>
+    <div class="card" style="margin-top:26px">
+      <div class="ring">
+        <svg width="132" height="132" viewBox="0 0 132 132" aria-hidden="true">
+          <circle cx="66" cy="66" r="58" fill="none" stroke="var(--line)" stroke-width="9"></circle>
+          <circle cx="66" cy="66" r="58" fill="none" stroke="var(--accent)" stroke-width="9"
+                  stroke-linecap="round" id="ring-fg"
+                  stroke-dasharray="364.4" stroke-dashoffset="364.4"></circle>
+        </svg>
+        <div class="val" id="ring-val">0%</div>
+      </div>
+      <h2 style="text-align:center" id="proc-step">준비 중</h2>
+      <div class="steplist" id="steplist"></div>
+    </div>
+    <p class="sub" style="text-align:center">사진은 이 휴대폰 밖으로 나가지 않습니다.</p>
+  </section>
+
+  <!-- ══ 결과 ══ -->
+  <section class="screen" id="s-result" hidden>
+    <div id="result-body"></div>
+    <button class="btn sec" id="share">결과 저장 · 공유</button>
+    <button class="btn quiet" id="again">다시 측정하기</button>
+  </section>
+
+  <!-- ══ 오류 ══ -->
+  <section class="screen" id="s-error" hidden>
+    <h1>다시 찍어 주세요</h1>
+    <div id="error-body"></div>
+    <button class="btn" id="err-retry">사진 다시 넣기</button>
+    <button class="btn quiet" id="err-home">홈으로</button>
+  </section>
+
+  <!-- ══ 이력 ══ -->
+  <section class="screen" id="s-history" hidden>
+    <h1>측정 이력</h1>
+    <p class="sub">이 휴대폰에만 저장됩니다.</p>
+    <div id="hist-body"></div>
+  </section>
+</main>
+
+<div class="disc">본 측정값은 참고용이며 의료적 진단이 아닙니다.</div>

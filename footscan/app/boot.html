@@ -1,0 +1,10 @@
+<script>
+/* 외부 라이브러리가 없어 곧바로 시작합니다.
+   (예전에는 OpenCV.js 10MB 를 내려받아야 했습니다) */
+window.addEventListener('load', function () {
+  try {
+    if (typeof CVL === 'undefined' || typeof scan !== 'function') throw new Error('engine missing');
+    onEngineReady();
+  } catch (e) { onEngineFailed(); }
+});
+</script>
