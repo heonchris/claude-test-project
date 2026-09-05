@@ -1,0 +1,8 @@
+# 자동으로 생기는 파일들 — 저장소에 넣지 않습니다
+__pycache__/
+.pytest_cache/
+*.pyc
+engine/samples/
+engine/results/
+app/app_test.html
+dist/
