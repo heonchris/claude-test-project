@@ -1,0 +1,25 @@
+const { chromium, devices } = require('/tmp/node_modules/playwright');
+const SP='/tmp/claude-0/-home-user-claude-test-project/8474b402-a113-54c2-8af8-3986351a5477/scratchpad/';
+(async()=>{
+  const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+  const c=await b.newContext({...devices['Galaxy S9+'],locale:'ko-KR'});
+  const p=await c.newPage();
+  const errs=[]; p.on('pageerror',e=>errs.push(e.message.slice(0,200)));
+  const t0=Date.now();
+  await p.goto('http://127.0.0.1:8777/app_test.html');
+  await p.waitForSelector('#s-home:not([hidden])',{timeout:180000});
+  console.log('첫 화면까지', ((Date.now()-t0)/1000).toFixed(1)+'초');
+  await p.click('#go-guide'); await p.click('#go-capture');
+  await p.click('#use-sample');
+  await p.waitForFunction(()=>document.querySelectorAll('.slot.done, .slot.bad').length>=2,null,{timeout:60000});
+  console.log('예시 사진 채워짐:', await p.locator('.slot.done').count(), '장');
+  console.log('품질 안내:', (await p.locator('#quality-note').innerText()).replace(/\n+/g,' ').trim());
+  await p.click('#measure');
+  await p.waitForSelector('#s-result:not([hidden])',{timeout:180000});
+  const t=(await p.locator('#result-body').innerText());
+  console.log('결과:', t.split('\n').filter(x=>x.trim()).slice(0,6).join(' | '));
+  console.log('가로 넘침:', await p.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth));
+  await p.screenshot({path:SP+'new_9_sample.png'});
+  console.log('오류:', errs.length?errs:'없음');
+  await b.close();
+})();

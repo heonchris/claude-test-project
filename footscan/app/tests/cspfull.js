@@ -1,0 +1,21 @@
+const { chromium, devices } = require('/tmp/node_modules/playwright');
+(async()=>{
+  const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome'});
+  const c=await b.newContext({...devices['Galaxy S9+'],locale:'ko-KR'});
+  const p=await c.newPage();
+  const bad=[]; p.on('pageerror',e=>bad.push('ERR '+e.message.slice(0,140)));
+  p.on('console',m=>{const t=m.text(); if(m.type()==='error'&&!t.includes('favicon'))bad.push('CON '+t.slice(0,140))});
+  await p.goto('http://127.0.0.1:8779/app_test.html');
+  await p.waitForSelector('#s-home:not([hidden])',{timeout:120000});
+  await p.click('#go-guide'); await p.click('#go-capture'); await p.click('#use-sample');
+  await p.waitForFunction(()=>document.querySelectorAll('.slot.done').length>=2,null,{timeout:60000});
+  await p.click('#measure');
+  await p.waitForSelector('#s-result:not([hidden])',{timeout:180000});
+  const t=await p.locator('#result-body').innerText();
+  console.log('엄격한 보안정책(unsafe-eval 금지) 아래 전체 측정:', t.match(/(\d{3}\.\d)mm/)[1]+'mm');
+  await p.locator('details summary').first().click(); await p.waitForTimeout(800);
+  const im=await p.evaluate(()=>{const a=[...document.querySelectorAll('details img')];return a.length+'장 중 '+a.filter(i=>i.naturalWidth>0).length+'장 로드'});
+  console.log('측정 과정 사진:', im);
+  console.log('문제:', bad.length?bad:'없음');
+  await b.close();
+})();
