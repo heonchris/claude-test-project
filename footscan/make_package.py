@@ -33,6 +33,19 @@ def copy_tree(src: pathlib.Path, dst: pathlib.Path) -> None:
     )
 
 
+def wrap_html(body: str, title: str) -> str:
+    """<head> 가 없는 조각을 혼자서도 열리는 온전한 HTML 문서로 감쌉니다."""
+    return (
+        "<!doctype html>\n"
+        '<html lang="ko">\n<head>\n'
+        '<meta charset="utf-8">\n'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+        f"<title>{title}</title>\n"
+        "<style>body{margin:0}img{max-width:100%}</style>\n"
+        "</head>\n<body>\n" + body + "\n</body>\n</html>\n"
+    )
+
+
 def main() -> None:
     report = pathlib.Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else None
     if report and not report.exists():
@@ -56,8 +69,13 @@ def main() -> None:
     copy_tree(HERE / "app" / "tests", root / "1_앱" / "원본코드" / "tests")
 
     # 2. 보고서
+    #    보고서 원본은 웹에 올릴 때 쓰는 조각(<head> 없음)이라, 파일로 그냥 열면
+    #    브라우저가 인코딩을 잘못 추측해 한글이 깨집니다. 껍데기를 씌워 저장합니다.
     if report:
-        shutil.copy2(report, root / "2_보고서" / "개발보고서.html")
+        (root / "2_보고서" / "개발보고서.html").write_text(
+            wrap_html(report.read_text(encoding="utf-8"), "발 스캔 개발 현황"),
+            encoding="utf-8",
+        )
 
     # 3. 원본 파이썬 엔진
     copy_tree(HERE / "engine", root / "3_원본엔진_파이썬")
