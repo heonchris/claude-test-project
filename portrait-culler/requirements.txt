@@ -1,0 +1,10 @@
+# 인물 사진 1차 셀렉 도구 — 필요한 무료 오픈소스 라이브러리
+# 설치:  pip install -r requirements.txt
+
+mediapipe>=0.10.9        # 얼굴 검출 + Face Mesh(눈 landmark). cv2도 함께 딸려옵니다.
+opencv-contrib-python    # 영상처리(선명도/노출). mediapipe와 같은 계열이라 충돌하지 않습니다.
+Pillow>=10.0             # 이미지 열기/저장
+numpy                    # 수치 계산
+ImageHash>=4.3           # perceptual hash (유사 컷 판별)
+ExifRead>=3.0            # EXIF 촬영시각 읽기 (RAW/JPEG 모두)
+rawpy>=0.19              # RAW 내장 미리보기 추출 / 축소 디코딩
