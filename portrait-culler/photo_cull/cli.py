@@ -64,7 +64,8 @@ def cmd_check(args):
             print("  [X] %-10s 설치 안 됨 (%s)" % (m, type(e).__name__))
 
     print("\n모델 파일 폴더: %s" % faces_mod.MODEL_DIR)
-    for p in (faces_mod.DETECTOR_MODEL, faces_mod.LANDMARKER_MODEL):
+    for p in (faces_mod.DETECTOR_MODEL_FULL, faces_mod.DETECTOR_MODEL_SHORT,
+              faces_mod.LANDMARKER_MODEL):
         mark = "O" if os.path.exists(p) else "X"
         size = ("%.1f MB" % (os.path.getsize(p) / 1024 / 1024)) if os.path.exists(p) else "없음"
         print("  [%s] %-32s %s" % (mark, os.path.basename(p), size))
@@ -76,6 +77,8 @@ def cmd_check(args):
                    "legacy": "MediaPipe 구버전 solutions",
                    "haar": "OpenCV Haar (얼굴만, 눈 판정 불가)"}
         print("  → 사용 엔진: %s" % kind_kr.get(eng.kind, eng.kind))
+        if getattr(eng, "detector_model", None):
+            print("  → 얼굴 검출 모델: %s" % eng.detector_model)
         print("  → 눈 landmark: %s / 깜빡임 점수: %s"
               % ("가능" if eng.has_landmarks else "불가",
                  "가능" if eng.has_blendshapes else "불가"))

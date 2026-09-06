@@ -43,13 +43,19 @@ def get_engine():
     return _ENGINE
 
 
-def _detect_with_rotation_retry(engine, bgr):
+def _detect_faces_thorough(engine, bgr):
     """
-    얼굴을 못 찾으면 이미지를 90도/270도 돌려 한 번 더 시도합니다.
-    (회전 정보가 잘못 기록된 세로 사진 구제용)
+    얼굴을 찾습니다. 한 장도 못 찾으면 두 단계로 더 시도합니다.
+      1) 화면을 4조각으로 나눠 조각마다 검출 (전신 샷/원거리 컷 구제)
+      2) 이미지를 90도/270도 돌려 검출 (회전 정보가 잘못된 세로 사진 구제)
     반환: (faces, 사용한 이미지, 적용한 회전각)
     """
     found = engine.detect(bgr)
+    if not found and config.RETRY_TILED_WHEN_NO_FACE:
+        found = engine.detect_tiled(bgr)
+        if found:
+            found.sort(key=lambda f: f["box"][2] * f["box"][3], reverse=True)
+            return found, bgr, 0
     if found or not config.RETRY_ROTATED_WHEN_NO_FACE:
         return found, bgr, 0
     for angle, code in ((90, cv2.ROTATE_90_CLOCKWISE), (270, cv2.ROTATE_90_COUNTERCLOCKWISE)):
@@ -141,7 +147,7 @@ def analyze_file(path, thumb_dir=None, want_debug=False):
 
         # --- 얼굴 검출 ---
         engine = get_engine()
-        found, work, rot = _detect_with_rotation_retry(engine, bgr)
+        found, work, rot = _detect_faces_thorough(engine, bgr)
         rec["engine"] = engine.kind
         rec["rotated_for_detect"] = rot
         rec["faces"] = len(found)

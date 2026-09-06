@@ -28,12 +28,23 @@ MODEL_DIR = os.environ.get(
     "PORTRAIT_CULLER_MODELS",
     os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models"),
 )
-DETECTOR_MODEL = os.path.join(MODEL_DIR, "blaze_face_short_range.tflite")
+# 얼굴 검출 모델은 두 가지입니다.
+#  - full range : 멀리 있는(작은) 얼굴까지 찾습니다. 전신 샷이 많은 인물 촬영에 적합.
+#  - short range: 가까운 얼굴 전용. 가볍지만 화면의 15%보다 작은 얼굴은 놓칩니다.
+# 실측(분석 긴 변 1280px 기준, 얼굴이 화면에서 차지하는 비율):
+#   0.20  0.15  0.10  0.07  0.05
+#   short  O     O     X     X     X
+#   full   O     O     O     O     X
+# 그래서 full range를 우선 사용하고, 없으면 short range로 넘어갑니다.
+DETECTOR_MODEL_FULL = os.path.join(MODEL_DIR, "blaze_face_full_range.tflite")
+DETECTOR_MODEL_SHORT = os.path.join(MODEL_DIR, "blaze_face_short_range.tflite")
 LANDMARKER_MODEL = os.path.join(MODEL_DIR, "face_landmarker.task")
 
 MODEL_URLS = {
-    DETECTOR_MODEL: "https://storage.googleapis.com/mediapipe-models/face_detector/"
-                    "blaze_face_short_range/float16/1/blaze_face_short_range.tflite",
+    DETECTOR_MODEL_FULL: "https://storage.googleapis.com/mediapipe-models/face_detector/"
+                         "blaze_face_full_range/float16/1/blaze_face_full_range.tflite",
+    DETECTOR_MODEL_SHORT: "https://storage.googleapis.com/mediapipe-models/face_detector/"
+                          "blaze_face_short_range/float16/1/blaze_face_short_range.tflite",
     LANDMARKER_MODEL: "https://storage.googleapis.com/mediapipe-models/face_landmarker/"
                       "face_landmarker/float16/1/face_landmarker.task",
 }
@@ -129,8 +140,11 @@ class FaceEngine:
             pass
 
     def _init_tasks(self):
-        if not (os.path.exists(DETECTOR_MODEL) and os.path.exists(LANDMARKER_MODEL)):
+        detector_model = (DETECTOR_MODEL_FULL if os.path.exists(DETECTOR_MODEL_FULL)
+                          else DETECTOR_MODEL_SHORT)
+        if not (os.path.exists(detector_model) and os.path.exists(LANDMARKER_MODEL)):
             return False
+        self.detector_model = os.path.basename(detector_model)
         import mediapipe as mp
         from mediapipe.tasks import python as mp_python
         from mediapipe.tasks.python import vision
@@ -138,7 +152,7 @@ class FaceEngine:
         self._mp = mp
         self._detector = vision.FaceDetector.create_from_options(
             vision.FaceDetectorOptions(
-                base_options=mp_python.BaseOptions(model_asset_path=DETECTOR_MODEL),
+                base_options=mp_python.BaseOptions(model_asset_path=detector_model),
                 running_mode=vision.RunningMode.IMAGE,
                 min_detection_confidence=0.2,   # 필터링은 우리 쪽에서(설정값으로) 합니다
             )
@@ -232,6 +246,30 @@ class FaceEngine:
         return [{"box": (int(x), int(y), int(w), int(h)), "score": 0.9}
                 for (x, y, w, h) in rects]
 
+    def detect_tiled(self, bgr, rows=2, cols=2, overlap=0.25):
+        """
+        화면을 겹치게 나눠 조각마다 얼굴을 찾습니다.
+        조각 안에서는 얼굴이 상대적으로 커 보이므로, 전신 샷처럼 얼굴이 작은 사진에서
+        전체 화면으로는 못 찾던 얼굴을 찾을 수 있습니다.
+        (전체 화면에서 하나도 못 찾았을 때만 쓰는 보조 수단입니다)
+        """
+        H, W = bgr.shape[:2]
+        th = int(H / rows * (1 + overlap))
+        tw = int(W / cols * (1 + overlap))
+        found = []
+        for r in range(rows):
+            for c in range(cols):
+                y0, x0 = int(r * H / rows), int(c * W / cols)
+                y1, x1 = min(H, y0 + th), min(W, x0 + tw)
+                y0, x0 = max(0, y1 - th), max(0, x1 - tw)
+                sub = bgr[y0:y1, x0:x1]
+                if sub.size == 0:
+                    continue
+                for f in self.detect(sub):
+                    x, y, w, h = f["box"]
+                    found.append({"box": (x + x0, y + y0, w, h), "score": f["score"]})
+        return _dedupe(found)
+
     # ---------------- 눈 landmark ----------------
     def eye_metrics(self, bgr, box, margin=0.6, size=384):
         """
@@ -296,6 +334,27 @@ class FaceEngine:
             setattr(self, name, None)
 
 
+def _iou(a, b):
+    """두 상자가 얼마나 겹치는지(0~1). 조각별 검출 결과의 중복 제거에 씁니다."""
+    ax, ay, aw, ah = a
+    bx, by, bw, bh = b
+    x0, y0 = max(ax, bx), max(ay, by)
+    x1, y1 = min(ax + aw, bx + bw), min(ay + ah, by + bh)
+    inter = max(0, x1 - x0) * max(0, y1 - y0)
+    union = aw * ah + bw * bh - inter
+    return inter / union if union > 0 else 0.0
+
+
+def _dedupe(faces, iou_threshold=0.35):
+    """같은 얼굴이 여러 조각에서 중복 검출된 것을 하나로 합칩니다."""
+    faces = sorted(faces, key=lambda f: f["score"], reverse=True)
+    kept = []
+    for f in faces:
+        if all(_iou(f["box"], k["box"]) < iou_threshold for k in kept):
+            kept.append(f)
+    return kept
+
+
 def _crop_square(bgr, box, margin):
     """얼굴 상자를 정사각형으로 여유 있게 잘라냅니다."""
     x, y, w, h = box
@@ -331,4 +390,5 @@ def download_models(verbose=True):
 
 
 def models_ready():
-    return os.path.exists(DETECTOR_MODEL) and os.path.exists(LANDMARKER_MODEL)
+    return (os.path.exists(LANDMARKER_MODEL)
+            and (os.path.exists(DETECTOR_MODEL_FULL) or os.path.exists(DETECTOR_MODEL_SHORT)))
