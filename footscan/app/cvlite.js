@@ -570,6 +570,28 @@ const CVL = (() => {
   }
 
   /* ── 다각형 채우기 (마스크 만들기) ─────────────────────────────── */
+  /* 볼록 껍질 — 점들을 감싸는 가장 작은 볼록 다각형.
+     발이나 다리가 종이 모서리를 가려 윤곽이 파였을 때, 그 파인 곳을 메웁니다.
+     (Andrew's monotone chain) */
+  function convexHull(pts) {
+    if (pts.length < 4) return pts.slice();
+    const p = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const lower = [];
+    for (const q of p) {
+      while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], q) <= 0) lower.pop();
+      lower.push(q);
+    }
+    const upper = [];
+    for (let i = p.length - 1; i >= 0; i--) {
+      const q = p[i];
+      while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], q) <= 0) upper.pop();
+      upper.push(q);
+    }
+    lower.pop(); upper.pop();
+    return lower.concat(upper);
+  }
+
   function fillPoly(m, pts, val = 255) {
     if (pts.length < 3) return m;
     let minY = 1e9, maxY = -1e9;
@@ -661,7 +683,7 @@ const CVL = (() => {
     contourArea, arcLength, isConvex, approxPolyDP,
     getPerspectiveTransform, invert3, warpPerspective,
     rotateAbout, flipH, rotate180, rotate90,
-    fillPoly, fillHoles, kmeans,
+    convexHull, fillPoly, fillHoles, kmeans,
     histogram, median, percentile, otsu, meanStd, laplacianVar,
     countNonZero, threshold, adaptiveThresholdInv,
   };

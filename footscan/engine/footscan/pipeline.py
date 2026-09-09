@@ -40,7 +40,7 @@ def scan_foot(
     # ---------- 파이프라인 A : 상면 ----------
     img = load_bgr(top_path)
     img, _ = resize_long_edge(img)
-    quad, w1 = detect_paper(img, dbg)
+    quad, w1, paper_quality = detect_paper(img, dbg)
     warnings += w1
     warped, _ = warp_to_a4(img, quad, dbg)
     mask, w2 = segment_foot(warped, dbg)
@@ -48,11 +48,10 @@ def scan_foot(
     top_meas, _, w3 = measure_top(mask, warped, dbg)
     warnings += w3
 
-    confidence = 1.0
+    # A4 를 얼마나 잘 찾았는지가 모든 치수의 기준이므로 신뢰도에 그대로 반영합니다
+    confidence = paper_quality
     if any("종이" in w and "밖으로" in w for w in warnings):
         confidence = min(confidence, 0.6)
-    if any("휘어" in w for w in warnings):
-        confidence = min(confidence, 0.85)
 
     # ---------- 파이프라인 B : 측면 (선택) ----------
     side_meas = None

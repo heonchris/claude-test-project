@@ -266,7 +266,9 @@ function camCheck() {
     //   정상 173 · 어두움 27  vs  흔들림 2 · 종이없음 0  (측정값)
     const sharp = CVL.laplacianVar(gray);
     let paper = false;
-    try { paper = !!detectPaper(m).quad; } catch (e) { paper = false; }
+    // 실시간 표시용이라 빠른 방법(경계선)만 씁니다.
+    // 여기서 '안 보임'이어도 실제 측정에서는 색으로 한 번 더 찾습니다.
+    try { paper = !!detectPaper(m, { fast: true }).quad; } catch (e) { paper = false; }
     camLast = { mean, sharp, paper };
     drawCamChips(camLast);
     drawCamGuide(paper);

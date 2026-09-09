@@ -32,8 +32,27 @@ const CFG = {
   PAPER_STRAIGHTNESS_SAMPLE_RANGE: [0.2, 0.8],
   CONTOUR_TOP_N: 10,
   APPROX_EPS_RATIO: 0.02,
-  PAPER_MIN_AREA_RATIO: 0.15,
+  // 종이가 화면에서 차지해야 하는 최소 넓이. 파이썬 config.py 와 같은 값입니다
+  PAPER_MIN_AREA_RATIO: 0.05,
   PAPER_ASPECT_TOLERANCE: 0.25,
+  // 이보다 작게 찍히면 "더 가까이서 찍으세요" 경고를 붙입니다
+  PAPER_SMALL_AREA_WARN: 0.12,
+  // 꼭짓점 단순화 강도를 이 순서대로 올려 가며 사각형을 찾습니다
+  //   (발·다리가 종이 모서리를 가리면 한 가지 강도로는 못 찾습니다)
+  APPROX_EPS_LADDER: [0.02, 0.03, 0.045, 0.06, 0.08],
+  // --- 종이 색으로 찾는 보조 방법 ---
+  PAPER_MAX_CHROMA: 22.0,            // 색기가 이보다 옅어야 종이 후보
+  PAPER_BRIGHT_PERCENTILES: [55, 70, 80, 88, 93],  // 밝기 기준을 바꿔가며 시도
+  PAPER_MASK_CLOSE_R: 4,             // 후보 영역의 구멍(발)을 메우는 두께
+  PAPER_ILLUM_SMALL_RATIO: 0.05,     // 조명 얼룩을 구할 때 줄이는 비율
+  // ★ 오검출을 막는 핵심: 안쪽이 바깥 테두리보다 밝기가 이만큼은 높아야 합니다
+  PAPER_MIN_EDGE_STEP: 12.0,
+  PAPER_RING_INNER: 0.86,
+  PAPER_RING_OUTER: 1.16,
+  // 네 모서리가 화면 테두리에서 이만큼은 떨어져 있어야 합니다
+  PAPER_BORDER_MARGIN_RATIO: 0.004,
+  // 색으로 찾을 때 먼저 훑어보는 크기 (폰에서 빠르게 돌리기 위함)
+  PAPER_SEARCH_LONG_PX: 640,
   PAPER_STRAIGHTNESS_TOLERANCE: 0.03,
 
   // ── 상면: 발 분할 ──
@@ -316,43 +335,238 @@ function straightnessError(cpts, quad) {
   }
   return worst;
 }
-function detectPaper(m) {
+/* 윤곽 하나에서 사각형 꼭짓점 4개를 뽑습니다.
+   발이나 다리가 종이 모서리를 가리면 윤곽이 사각형이 아니게 됩니다.
+   그래서 먼저 볼록 껍질을 씌워 파인 곳을 메운 뒤, 단순화 강도를 조금씩
+   올려 가며 꼭짓점 4개가 나오는 지점을 찾습니다.
+   끝내 안 되면 껍질의 네 극단점을 씁니다. */
+/* 마지막으로 사각형을 어떻게 구했는지: exact(가장 정확) / hull / extremes(가장 거침) */
+let lastQuadKind = 'exact';
+function quadFromContour(pts) {
+  lastQuadKind = 'extremes';
+  // 먼저 원래 윤곽 그대로 시도합니다. 이쪽이 꼭짓점이 가장 정확합니다.
+  // (껍질을 씌우면 파인 곳은 메워지지만 모서리가 조금 밀립니다)
+  const peri0 = CVL.arcLength(pts, true);
+  if (peri0 > 1e-6) {
+    const ap0 = CVL.approxPolyDP(pts, CFG.APPROX_EPS_RATIO * peri0, true);
+    if (ap0.length === 4 && CVL.isConvex(ap0)) { lastQuadKind = 'exact'; return orderCorners(ap0); }
+  }
+  const hull = CVL.convexHull(pts);
+  const peri = CVL.arcLength(hull, true);
+  if (peri < 1e-6) return null;
+  for (const r of CFG.APPROX_EPS_LADDER) {
+    const ap = CVL.approxPolyDP(hull, r * peri, true);
+    if (ap.length === 4 && CVL.isConvex(ap)) { lastQuadKind = 'hull'; return orderCorners(ap); }
+  }
+  if (hull.length < 4) return null;
+  let tl = hull[0], tr = hull[0], br = hull[0], bl = hull[0];
+  let sMin = 1e18, sMax = -1e18, dMin = 1e18, dMax = -1e18;
+  for (const [x, y] of hull) {
+    const su = x + y, di = y - x;
+    if (su < sMin) { sMin = su; tl = [x, y]; }
+    if (su > sMax) { sMax = su; br = [x, y]; }
+    if (di < dMin) { dMin = di; tr = [x, y]; }
+    if (di > dMax) { dMax = di; bl = [x, y]; }
+  }
+  lastQuadKind = 'extremes';
+  return orderCorners([tl, tr, br, bl]);
+}
+
+/* 아주 큰 흐림 — 조명 얼룩(그림자)을 구하는 용도.
+   큰 커널로 직접 흐리면 너무 느려서, 작게 줄였다 다시 키웁니다. */
+function bigBlur(gray) {
+  const sw = Math.max(8, Math.round(gray.w * CFG.PAPER_ILLUM_SMALL_RATIO));
+  const sh = Math.max(8, Math.round(gray.h * CFG.PAPER_ILLUM_SMALL_RATIO));
+  return CVL.resize(CVL.blur(CVL.resize(gray, sw, sh), 5), gray.w, gray.h);
+}
+
+/* 사진에서 밝기(L)와 색기(chroma)를 뽑습니다. */
+function labFields(m) {
+  const lab = CVL.rgb2lab(m), n = m.w * m.h;
+  const L = new Float32Array(n), chroma = new Float32Array(n);
+  for (let i = 0, j = 0; i < n; i++, j += 3) {
+    L[i] = lab.data[j];
+    chroma[i] = Math.hypot(lab.data[j + 1] - 128, lab.data[j + 2] - 128);
+  }
+  return { L, chroma };
+}
+
+/* '색기가 옅다' 판정과, 조명 얼룩을 지운 밝기를 함께 만들어 둡니다. */
+function paperFields(m, L, chroma) {
+  const n = m.w * m.h;
+  const pale = new Uint8Array(n);
+  let paleN = 0;
+  for (let i = 0; i < n; i++) { if (chroma[i] < CFG.PAPER_MAX_CHROMA) { pale[i] = 1; paleN++; } }
+  if (paleN < 0.02 * n) {
+    paleN = 0;
+    for (let i = 0; i < n; i++) { pale[i] = chroma[i] < CFG.PAPER_MAX_CHROMA * 2 ? 1 : 0; paleN += pale[i]; }
+  }
+  const gl = CVL.img(m.w, m.h, 1);
+  for (let i = 0; i < n; i++) gl.data[i] = L[i];
+  const base = bigBlur(gl);
+  const Ln = new Float32Array(n);
+  for (let i = 0; i < n; i++) Ln[i] = Math.min(255, L[i] / Math.max(1, base.data[i]) * 128);
+  return { pale, paleN, srcs: [L, Ln] };
+}
+
+/* 밝기 기준 하나로 종이 후보 영역을 만듭니다. */
+function paperMaskOne(m, f, srcIdx, q) {
+  const n = m.w * m.h, src = f.srcs[srcIdx];
+  const vals = new Float32Array(f.paleN);
+  let k = 0;
+  for (let i = 0; i < n; i++) if (f.pale[i]) vals[k++] = src[i];
+  const sorted = vals.subarray(0, k).slice().sort();
+  const thr = sorted[Math.min(k - 1, Math.max(0, Math.round(k * q / 100)))];
+  const mask = CVL.img(m.w, m.h, 1);
+  for (let i = 0; i < n; i++) mask.data[i] = (f.pale[i] && src[i] >= thr) ? 255 : 0;
+  return CVL.morphClose(mask, CFG.PAPER_MASK_CLOSE_R);
+}
+
+/* 사각형 안쪽과 바로 바깥 테두리를 비교합니다.
+   종이라면 안쪽이 뚜렷하게 밝고 색기가 옅어야 합니다.
+   전체 밝기 기준을 쓰지 않고 바로 옆끼리만 비교하므로,
+   그늘이 져 있어도 바닥이 밝아도 같은 기준으로 판정할 수 있습니다. */
+function ringTest(quad, w, h, L, chroma) {
+  const cx = (quad[0][0] + quad[1][0] + quad[2][0] + quad[3][0]) / 4;
+  const cy = (quad[0][1] + quad[1][1] + quad[2][1] + quad[3][1]) / 4;
+  const scale = (k) => quad.map(([x, y]) => [cx + (x - cx) * k, cy + (y - cy) * k]);
+  const mIn = CVL.fillPoly(CVL.img(w, h, 1), scale(CFG.PAPER_RING_INNER), 255);
+  const mOut = CVL.fillPoly(CVL.img(w, h, 1), scale(CFG.PAPER_RING_OUTER), 255);
+  CVL.fillPoly(mOut, scale(1.02), 0);
+  const inL = [], outL = [], inC = [];
+  for (let i = 0; i < w * h; i++) {
+    if (mIn.data[i]) { inL.push(L[i]); inC.push(chroma[i]); }
+    else if (mOut.data[i]) outL.push(L[i]);
+  }
+  if (inL.length < 50 || outL.length < 50) return null;
+  const med = (a) => { a.sort((x, y) => x - y); return a[a.length >> 1]; };
+  const step = med(inL) - med(outL);
+  const cIn = med(inC);
+  if (step < CFG.PAPER_MIN_EDGE_STEP || cIn > CFG.PAPER_MAX_CHROMA) return null;
+  return { step, chroma: cIn };
+}
+
+function scoreQuad(quad, w, h, L, chroma) {
+  const imgArea = w * h;
+  const a = CVL.contourArea(quad);
+  if (a < CFG.PAPER_MIN_AREA_RATIO * imgArea) return null;
+  // 네 모서리가 모두 화면 안에 보여야 종이입니다 (화면 전체를 종이로 착각 방지)
+  const mg = CFG.PAPER_BORDER_MARGIN_RATIO * Math.max(w, h);
+  for (const [x, y] of quad) {
+    if (x < mg || y < mg || x > w - 1 - mg || y > h - 1 - mg) return null;
+  }
+  const [ew, eh] = edgeLengths(quad);
+  if (Math.min(ew, eh) < 1e-6) return null;
+  const aspect = Math.max(ew, eh) / Math.min(ew, eh);
+  const target = CFG.A4_LONG_MM / CFG.A4_SHORT_MM;
+  const aspectErr = Math.abs(aspect - target) / target;
+  if (aspectErr > CFG.PAPER_ASPECT_TOLERANCE) return null;
+  const ring = ringTest(quad, w, h, L, chroma);
+  if (!ring) return null;
+  return {
+    score: Math.min(ring.step, 60) / 60 - aspectErr * 2 + Math.min(a / imgArea, 0.6),
+    aspect, aspectErr, areaRatio: a / imgArea, ...ring,
+  };
+}
+
+/* 찾아낸 종이를 얼마나 믿을 수 있는지 0~1 로. 비율이 A4 에서 멀거나,
+   네 변이 휘었거나, 너무 작게 찍혔으면 낮아집니다. */
+function paperQuality(aspectErr, bend, areaRatio) {
+  const lerp = (x, x0, x1, y0, y1) => {
+    const t = x1 === x0 ? 0 : Math.min(1, Math.max(0, (x - x0) / (x1 - x0)));
+    return y0 + (y1 - y0) * t;
+  };
+  return Math.round(100 * Math.min(
+    lerp(aspectErr, 0.03, CFG.PAPER_ASPECT_TOLERANCE, 1, 0.5),
+    lerp(bend, CFG.PAPER_STRAIGHTNESS_TOLERANCE, 0.20, 1, 0.4),
+    lerp(areaRatio, CFG.PAPER_SMALL_AREA_WARN, CFG.PAPER_MIN_AREA_RATIO, 1, 0.7),
+  )) / 100;
+}
+
+/* A4 용지의 네 꼭짓점을 찾습니다.
+   ① 경계선(Canny)  — 대비가 뚜렷할 때 가장 정확하고 빠릅니다
+   ② 종이 색        — 바닥이 밝거나 다리가 종이를 가릴 때도 찾아냅니다
+   ①로 찾히면 ②는 건너뜁니다. */
+function detectPaper(m, opts) {
+  const fast = !!(opts && opts.fast);   // 촬영 화면 실시간 표시용 — 빠른 방법만 씁니다
   const warnings = [];
   const area = m.w * m.h;
+  const { L, chroma } = labFields(m);
+
+  const pick = (list) => {
+    let best = null, top = -1e18;
+    for (const pts of list) {
+      const quad = quadFromContour(pts);
+      const kind = lastQuadKind;
+      if (!quad) continue;
+      const sc = scoreQuad(quad, m.w, m.h, L, chroma);
+      if (sc && sc.score > top) { top = sc.score; best = { quad, cpts: pts, info: sc, kind }; }
+    }
+    return best;
+  };
+
   const gray = CVL.blur(CVL.toGray(m), CFG.BLUR_KERNEL);
   let edges = autoCanny(gray);
   edges = CVL.dilate(edges, CFG.PAPER_EDGE_DILATE_R);
+  const minA = CFG.PAPER_MIN_AREA_RATIO * area * 0.5;
+  const edgeCnts = CVL.findContours(edges, minA)
+    .map(c => ({ pts: c.pts, a: CVL.contourArea(c.pts) }))
+    .sort((x, y) => y.a - x.a).slice(0, CFG.CONTOUR_TOP_N).map(c => c.pts);
 
-  // 종이는 사진의 15% 이상을 차지해야 하므로, 그보다 작은 조각은 볼 필요가 없습니다
-  const cnts = CVL.findContours(edges, CFG.PAPER_MIN_AREA_RATIO * area * 0.7)
-    .map(c => ({ ...c, a: CVL.contourArea(c.pts) }))
-    .sort((x, y) => y.a - x.a)
-    .slice(0, CFG.CONTOUR_TOP_N);
+  let best = pick(edgeCnts);
+  // 네 극단점으로 대충 잡은 결과라면 믿지 말고 색으로도 찾아 봅니다
+  const edgeBest = best;
+  if (best && best.kind === 'extremes') best = null;
 
-  let best = null, bestErr = Infinity;
-  const target = CFG.A4_LONG_MM / CFG.A4_SHORT_MM;
-  for (const c of cnts) {
-    const peri = CVL.arcLength(c.pts, true);
-    const ap = CVL.approxPolyDP(c.pts, CFG.APPROX_EPS_RATIO * peri, true);
-    if (ap.length !== 4) continue;
-    if (!CVL.isConvex(ap)) continue;
-    const a = CVL.contourArea(ap);
-    if (a < CFG.PAPER_MIN_AREA_RATIO * area) continue;
-    const quad = orderCorners(ap);
-    const [ew, eh] = edgeLengths(quad);
-    if (Math.min(ew, eh) < 1e-6) continue;
-    const aspect = Math.max(ew, eh) / Math.min(ew, eh);
-    const err = Math.abs(aspect - target) / target;
-    if (err > CFG.PAPER_ASPECT_TOLERANCE) continue;
-    if (err < bestErr) { bestErr = err; best = { quad, cpts: c.pts, aspect }; }
+  if (!best && !fast) {
+    // 색으로 찾기. 기준을 10가지나 시도해야 해서 폰에서는 느립니다.
+    // 그래서 작게 줄인 사진으로 '어느 기준이 맞는지'만 빠르게 고른 뒤,
+    // 그 기준 하나만 원본 크기로 다시 계산해 꼭짓점을 정확히 잡습니다.
+    const scale = Math.min(1, CFG.PAPER_SEARCH_LONG_PX / Math.max(m.w, m.h));
+    const sm = scale < 1 ? CVL.resize(m, Math.round(m.w * scale), Math.round(m.h * scale)) : m;
+    const smF = labFields(sm);
+    const f = paperFields(sm, smF.L, smF.chroma);
+    const minAs = CFG.PAPER_MIN_AREA_RATIO * sm.w * sm.h * 0.5;
+    let win = null, winScore = -1e18, winQuad = null;
+    for (let si = 0; si < 2; si++) {
+      for (const q of CFG.PAPER_BRIGHT_PERCENTILES) {
+        const mask = paperMaskOne(sm, f, si, q);
+        for (const c of CVL.findContours(mask, minAs)) {
+          const quad = quadFromContour(c.pts);
+          if (!quad) continue;
+          const sc = scoreQuad(quad, sm.w, sm.h, smF.L, smF.chroma);
+          if (sc && sc.score > winScore) { winScore = sc.score; win = { si, q }; winQuad = quad; }
+        }
+      }
+    }
+    if (win) {
+      // 이긴 기준과 그 양옆만 원본 크기로 다시 — 꼭짓점을 정확하게
+      const full = paperFields(m, L, chroma);
+      const mask = paperMaskOne(m, full, win.si, win.q);
+      best = pick(CVL.findContours(mask, minA)
+        .map(c => ({ pts: c.pts, a: CVL.contourArea(c.pts) }))
+        .sort((x, y) => y.a - x.a).slice(0, CFG.CONTOUR_TOP_N).map(c => c.pts));
+      if (!best) {
+        // 원본에서 다시 못 잡으면 줄인 사진의 결과를 그대로 키워 씁니다
+        const quad = winQuad.map(([x, y]) => [x / scale, y / scale]);
+        const sc = scoreQuad(quad, m.w, m.h, L, chroma);
+        if (sc) best = { quad, cpts: quad, info: sc };
+      }
+    }
   }
+  // 색으로도 못 찾았으면, 거칠게라도 잡았던 결과를 씁니다
+  if (!best) best = edgeBest;
   if (!best) throw ERR.paperNotFound();
 
+  if (best.info.areaRatio < CFG.PAPER_SMALL_AREA_WARN) {
+    warnings.push(`종이가 사진에서 너무 작습니다(화면의 ${(best.info.areaRatio * 100).toFixed(0)}%). 더 가까이서 찍으면 훨씬 정확합니다.`);
+  }
   const bend = straightnessError(best.cpts, best.quad);
   if (bend > CFG.PAPER_STRAIGHTNESS_TOLERANCE) {
     warnings.push(`종이가 휘어 있는 것 같습니다(휘어짐 ${(bend * 100).toFixed(1)}%). 단단하고 평평한 바닥에서 다시 찍으면 더 정확합니다.`);
   }
-  return { quad: best.quad, aspect: best.aspect, bend, warnings };
+  return { quad: best.quad, aspect: best.info.aspect, bend, warnings,
+           quality: paperQuality(best.info.aspectErr, bend, best.info.areaRatio) };
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1097,8 +1311,9 @@ async function scanFoot(topFile, sideFile, footSide, onProgress) {
   warnings.push(...top.warnings);
   debugImages.top = drawTopOverlay(top.overlay, top.measurement);
 
+  // A4 를 얼마나 잘 찾았는지가 모든 치수의 기준이므로 신뢰도에 그대로 반영합니다
+  confidence = Math.min(confidence, paper.quality);
   if (warnings.some(w => w.includes('종이') && w.includes('밖으로'))) confidence = Math.min(confidence, 0.6);
-  if (warnings.some(w => w.includes('휘어'))) confidence = Math.min(confidence, 0.85);
 
   let sideMeasurement = null;
   if (sideFile) {
