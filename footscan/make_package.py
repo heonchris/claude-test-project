@@ -21,7 +21,8 @@ HERE = pathlib.Path(__file__).parent
 OUT_DIR = HERE.parent / "dist"
 PKG = "발스캔_전달패키지"
 
-SKIP_DIRS = {"__pycache__", ".pytest_cache", "results"}
+# samples_hard 는 검출기를 시험하려고 만든 개발자용 사진이라 넣지 않습니다
+SKIP_DIRS = {"__pycache__", ".pytest_cache", "results", "samples_hard"}
 
 
 def copy_tree(src: pathlib.Path, dst: pathlib.Path) -> None:
