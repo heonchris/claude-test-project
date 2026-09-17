@@ -254,21 +254,148 @@ function fitLineLS(pts) {
 /* ══════════════════════════════════════════════════════════════════
    1. 사진 읽기
    ══════════════════════════════════════════════════════════════════ */
+/* 사진 파일에서 '찍을 때의 방향'(EXIF Orientation)과 원본 크기를 직접 읽습니다.
+
+   아이폰은 세로로 찍어도 파일 안에는 가로로 저장하고
+   "오른쪽으로 90도 돌려서 보라"는 표시만 붙입니다.
+   이 표시를 브라우저가 알아서 적용하기도, 안 하기도 해서 기기마다 결과가
+   달라집니다. 그래서 값을 직접 읽어 두고, 브라우저가 이미 적용했는지까지
+   확인한 뒤 필요할 때만 우리가 돌립니다.
+
+   돌려주는 값: { orientation: 1~8, width, height }  (못 읽으면 orientation 1) */
+async function readJpegInfo(file) {
+  const info = { orientation: 1, width: 0, height: 0 };
+  try {
+    const head = new DataView(await file.slice(0, 256 * 1024).arrayBuffer());
+    if (head.byteLength < 4 || head.getUint16(0) !== 0xFFD8) return info;   // JPEG 아님
+    let off = 2;
+    while (off + 4 <= head.byteLength) {
+      const marker = head.getUint16(off);
+      if ((marker & 0xFF00) !== 0xFF00) break;
+      if (marker === 0xFFD8 || marker === 0xFF01 || (marker >= 0xFFD0 && marker <= 0xFFD7)) { off += 2; continue; }
+      const size = head.getUint16(off + 2);
+      if (size < 2) break;
+      // SOFn = 사진의 '파일에 저장된 그대로'의 크기
+      if ((marker >= 0xFFC0 && marker <= 0xFFCF) && marker !== 0xFFC4 && marker !== 0xFFC8 && marker !== 0xFFCC) {
+        info.height = head.getUint16(off + 5);
+        info.width = head.getUint16(off + 7);
+      }
+      if (marker === 0xFFE1 && head.getUint32(off + 4) === 0x45786966) {    // APP1 "Exif"
+        const tiff = off + 10;
+        const little = head.getUint16(tiff) === 0x4949;
+        const g16 = (q) => head.getUint16(q, little);
+        const g32 = (q) => head.getUint32(q, little);
+        if (g16(tiff + 2) === 0x002A) {
+          const ifd = tiff + g32(tiff + 4);
+          const n = g16(ifd);
+          for (let i = 0; i < n; i++) {
+            const e = ifd + 2 + i * 12;
+            if (e + 12 > head.byteLength) break;
+            if (g16(e) === 0x0112) {
+              const v = g16(e + 8);
+              if (v >= 1 && v <= 8) info.orientation = v;
+              break;
+            }
+          }
+        }
+      }
+      if (marker === 0xFFDA) break;                    // 이미지 데이터 시작
+      off += 2 + size;
+    }
+  } catch (e) { /* 못 읽으면 기본값 */ }
+  return info;
+}
+
+/* 이 브라우저가 EXIF 방향을 알아서 적용하는지 한 번만 확인해 둡니다.
+
+   왼쪽 빨강 / 오른쪽 파랑인 작은 그림에 '좌우반전' 표시를 붙여 두었습니다.
+   디코딩 결과의 왼쪽이 파랑이면 브라우저가 적용한 것입니다.
+   (크롬은 적용하고 imageOrientation:'none' 도 무시합니다. 사파리는 다를 수 있어
+    추측하지 않고 실제로 재 봅니다) */
+const EXIF_PROBE_JPEG = '/9j/4AAQSkZJRgABAQAAAQABAAD/4QAiRXhpZgAATU0AKgAAAAgAAQESAAMAAAABAAIAAAAAAAD/2wBDAAIBAQEBAQIBAQECAgICAgQDAgICAgUEBAMEBgUGBgYFBgYGBwkIBgcJBwYGCAsICQoKCgoKBggLDAsKDAkKCgr/2wBDAQICAgICAgUDAwUKBwYHCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgr/wAARCAAgAEADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD4vooor+Uz/fwKKKKAPkOiiiv+qg/5rwooooA+vKKKK/5Vz/pQCiiigD5Dooor/qoP+a8KKKKAP//Z';
+let _exifAppliedPromise = null;
+function browserAppliesExif() {
+  if (_exifAppliedPromise) return _exifAppliedPromise;
+  _exifAppliedPromise = (async () => {
+    try {
+      const bin = atob(EXIF_PROBE_JPEG);
+      const buf = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+      const bmp = await createImageBitmap(new Blob([buf], { type: 'image/jpeg' }));
+      const c = document.createElement('canvas');
+      c.width = bmp.width; c.height = bmp.height;
+      const cx = c.getContext('2d', { willReadFrequently: true });
+      cx.drawImage(bmp, 0, 0);
+      bmp.close?.();
+      const px = cx.getImageData(2, Math.floor(c.height / 2), 1, 1).data;
+      return px[2] > px[0];          // 왼쪽이 파랑이면 브라우저가 돌려 준 것
+    } catch (e) { return true; }     // 확인 실패 시엔 '적용한다'고 보고 건드리지 않습니다
+  })();
+  return _exifAppliedPromise;
+}
+
+/* EXIF 방향값에 맞춰 캔버스를 돌리거나 뒤집습니다.
+   w, h 는 '돌리기 전' 원본 크기입니다. 5~8 번은 가로·세로가 바뀌므로
+   캔버스 자체는 (h, w) 크기로 만들어 두고 이 변환을 겁니다. */
+function applyOrientation(ctx, o, w, h) {
+  switch (o) {
+    case 2: ctx.transform(-1, 0, 0, 1, w, 0); break;   // 좌우 반전
+    case 3: ctx.transform(-1, 0, 0, -1, w, h); break;  // 180도
+    case 4: ctx.transform(1, 0, 0, -1, 0, h); break;   // 상하 반전
+    case 5: ctx.transform(0, 1, 1, 0, 0, 0); break;    // 전치
+    case 6: ctx.transform(0, 1, -1, 0, h, 0); break;   // 시계 90도 (아이폰 세로 사진)
+    case 7: ctx.transform(0, -1, -1, 0, h, w); break;  // 전치 + 180도
+    case 8: ctx.transform(0, -1, 1, 0, 0, w); break;   // 반시계 90도
+    default: break;
+  }
+}
+
 async function loadImageMat(file) {
+  const info = await readJpegInfo(file);
+  const ori = info.orientation;
   let bmp;
-  try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
-  catch (e) { try { bmp = await createImageBitmap(file); } catch (e2) { throw ERR.imageReadFailed(); } }
-  const long = Math.max(bmp.width, bmp.height);
+  try { bmp = await createImageBitmap(file); }
+  catch (e) { throw ERR.imageReadFailed(); }
+
+  // 브라우저가 이미 돌려 놨는지 확인합니다.
+  // 90도 회전(5~8)이면 가로·세로가 바뀌므로 크기만 봐도 확실히 알 수 있고,
+  // 그 외(2·3·4)는 미리 재 둔 브라우저 성질로 판단합니다.
+  let applied;
+  if (ori >= 5 && ori <= 8 && info.width && info.height) {
+    applied = (bmp.width === info.height && bmp.height === info.width);
+  } else if (ori === 1) {
+    applied = true;                                  // 돌릴 것이 없습니다
+  } else {
+    applied = await browserAppliesExif();
+  }
+  const need = !applied && ori !== 1;
+
+  const swap = need && ori >= 5 && ori <= 8;
+  const srcW = swap ? bmp.height : bmp.width;
+  const srcH = swap ? bmp.width : bmp.height;
+  const long = Math.max(srcW, srcH);
   const s = long > CFG.RESIZE_LONG_EDGE_PX ? CFG.RESIZE_LONG_EDGE_PX / long : 1;
-  const w = Math.max(1, Math.round(bmp.width * s)), h = Math.max(1, Math.round(bmp.height * s));
+  const w = Math.max(1, Math.round(srcW * s)), h = Math.max(1, Math.round(srcH * s));
+
   const cvs = document.createElement('canvas');
   cvs.width = w; cvs.height = h;
   const ctx = cvs.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(bmp, 0, 0, w, h);
+  if (need) {
+    const dw = swap ? h : w, dh = swap ? w : h;      // 돌리기 전 기준의 그릴 크기
+    ctx.save();
+    applyOrientation(ctx, ori, dw, dh);
+    ctx.drawImage(bmp, 0, 0, dw, dh);
+    ctx.restore();
+  } else {
+    ctx.drawImage(bmp, 0, 0, w, h);
+  }
   bmp.close?.();
+
   const id = ctx.getImageData(0, 0, w, h);
   const out = CVL.img(w, h, 3), d = out.data, sd = id.data;
   for (let p = 0, i = 0, j = 0; p < w * h; p++, i += 4, j += 3) { d[j] = sd[i]; d[j + 1] = sd[i + 1]; d[j + 2] = sd[i + 2]; }
+  out.exifOrientation = ori;
+  out.exifHandledByBrowser = applied;
   return out;
 }
 

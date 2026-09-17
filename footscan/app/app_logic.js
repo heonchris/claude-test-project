@@ -22,6 +22,7 @@ const SCREENS = {
   result: { title: '측정 결과', back: true, hist: true },
   error: { title: '측정 실패', back: true, hist: false },
   history: { title: '측정 이력', back: true, hist: false },
+  diag: { title: '기기 진단', back: true, hist: false },
 };
 let current = 'boot';
 
@@ -375,6 +376,134 @@ $('#cam-torch').addEventListener('click', async () => {
     $('#cam-torch').dataset.on = on ? '1' : '0';
     $('#cam-torch').textContent = on ? '손전등 끄기' : '손전등';
   } catch (e) { $('#cam-torch').hidden = true; }
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   기기 진단 — 아이폰 같은 실기기에는 개발자 콘솔이 없습니다.
+   그래서 "이 폰에서 무엇이 되고 무엇이 안 되는지"를 화면에 직접 보여 주고,
+   그 내용을 통째로 복사할 수 있게 만들었습니다.
+   ══════════════════════════════════════════════════════════════════ */
+$('#go-diag').addEventListener('click', () => { renderDiag(); show('diag'); });
+
+const diagData = {};
+
+function row(label, ok, text) {
+  const cls = ok === true ? 'good' : ok === false ? 'bad' : 'warn';
+  const mark = ok === true ? '✓' : ok === false ? '✕' : '·';
+  return `<div class="note ${cls}" style="margin:6px 0"><b>${mark} ${esc(label)}</b><br>${esc(text)}</div>`;
+}
+
+function renderDiag() {
+  const ua = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const secure = window.isSecureContext;
+  const camApi = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  const mem = navigator.deviceMemory;
+  let store = false;
+  try { localStorage.setItem('__t', '1'); localStorage.removeItem('__t'); store = true; } catch (e) { }
+
+  Object.assign(diagData, {
+    기기: isIOS ? '아이폰/아이패드' : (/Android/.test(ua) ? '안드로이드' : 'PC 또는 기타'),
+    화면: `${innerWidth}x${innerHeight} (실제 화소 배율 ${devicePixelRatio})`,
+    주소방식: location.protocol,
+    보안연결: secure,
+    카메라API: camApi,
+    저장공간: store,
+    코어수: navigator.hardwareConcurrency || '알 수 없음',
+    메모리GB: mem || '알 수 없음',
+    UA: ua,
+  });
+
+  const box = $('#diag-env');
+  box.innerHTML =
+    row('화면 크기', true, `${innerWidth} x ${innerHeight}, 배율 ${devicePixelRatio}` +
+        (innerWidth > 700 ? ' — 폰 화면 크기로 안 잡히고 있습니다' : '')) +
+    row('측정 엔진', typeof scan === 'function' && typeof CVL !== 'undefined', 
+        typeof scan === 'function' ? '정상적으로 올라왔습니다' : '엔진을 불러오지 못했습니다') +
+    row('카메라 사용 가능', secure && camApi,
+        !camApi ? '이 브라우저는 카메라 API 가 없습니다'
+        : !secure ? `지금은 ${location.protocol} 로 열려 있어 카메라가 잠깁니다. https 주소나 앱으로 여시면 켜집니다 (측정은 사진첩으로 그대로 됩니다)`
+        : '카메라를 열 수 있습니다') +
+    row('측정 이력 저장', store, store ? '이 기기에 저장됩니다' : '저장이 막혀 있습니다(시크릿 모드 등). 측정은 됩니다') +
+    row('기기 성능', true, `코어 ${navigator.hardwareConcurrency || '?'}개` + (mem ? `, 메모리 약 ${mem}GB` : ''));
+
+  updateDiagRaw();
+}
+
+function updateDiagRaw() {
+  $('#diag-raw').textContent = Object.entries(diagData)
+    .map(([k, v]) => `${k}: ${v}`).join('\n');
+}
+
+$('#diag-run').addEventListener('click', async () => {
+  const btn = $('#diag-run'), out = $('#diag-result');
+  btn.disabled = true; btn.textContent = '재는 중…';
+  out.innerHTML = '<div class="note">측정 중입니다. 10초쯤 걸릴 수 있습니다…</div>';
+  const t0 = performance.now();
+  try {
+    const top = window.samplePhotoFile && window.samplePhotoFile('right_top');
+    const side = window.samplePhotoFile && window.samplePhotoFile('right_side');
+    if (!top) throw new Error('예시 사진이 없습니다');
+    const mat = await loadImageMat(top);
+    const r = await scan({ rightTop: top, rightSide: side });
+    const ms = Math.round(performance.now() - t0);
+    const len = r.right.top.foot_length_mm;
+    const ok = Math.abs(len - 249.4) < 3;
+    Object.assign(diagData, {
+      자체시험: ok ? '통과' : '값이 다름',
+      길이mm: len.toFixed(1),
+      발볼mm: r.right.top.ball_width_mm.toFixed(1),
+      아치mm: r.right.lateral ? r.right.lateral.arch_clearance_mm.toFixed(1) : '없음',
+      신뢰도: r.right.confidence,
+      걸린시간ms: ms,
+      사진방향처리: mat.exifHandledByBrowser ? '브라우저가 처리' : '앱이 직접 처리',
+    });
+    out.innerHTML = row(ok ? '이 폰에서 계산이 정상입니다' : '값이 예상과 다릅니다', ok,
+      `발 길이 ${len.toFixed(1)}mm (예상 249.4mm) · 발볼 ${r.right.top.ball_width_mm.toFixed(1)}mm · ` +
+      `신뢰도 ${r.right.confidence} · ${(ms / 1000).toFixed(1)}초 걸림`);
+  } catch (e) {
+    Object.assign(diagData, { 자체시험: '실패', 오류: e.code || String(e.message || e) });
+    out.innerHTML = row('자체 시험이 실패했습니다', false, e.code || String(e.message || e));
+  }
+  updateDiagRaw();
+  btn.disabled = false; btn.textContent = '자체 시험 다시 실행';
+});
+
+$('#diag-cam').addEventListener('click', async () => {
+  const out = $('#diag-cam-result');
+  if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) {
+    diagData.카메라시험 = '이 브라우저에 카메라 API 없음';
+    out.innerHTML = row('카메라를 쓸 수 없습니다', false, '이 브라우저에는 카메라 기능이 없습니다');
+    updateDiagRaw(); return;
+  }
+  out.innerHTML = '<div class="note">카메라를 여는 중…</div>';
+  try {
+    const st = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } });
+    const tr = st.getVideoTracks()[0];
+    const s = tr.getSettings ? tr.getSettings() : {};
+    diagData.카메라시험 = `열림 ${s.width || '?'}x${s.height || '?'}`;
+    out.innerHTML = row('카메라가 열렸습니다', true,
+      `해상도 ${s.width || '?'} x ${s.height || '?'}` +
+      ((s.width || 0) < 1600 && (s.height || 0) < 1600 ? ' — 해상도가 낮아 사진첩 사용을 권합니다' : ''));
+    st.getTracks().forEach(t => t.stop());
+  } catch (e) {
+    diagData.카메라시험 = '실패 ' + (e.name || e);
+    out.innerHTML = row('카메라를 열지 못했습니다', false,
+      e.name === 'NotAllowedError' ? '권한이 거부되었습니다. 설정에서 카메라 권한을 켜 주세요'
+      : `${e.name || e} — 사진첩으로는 그대로 측정할 수 있습니다`);
+  }
+  updateDiagRaw();
+});
+
+$('#diag-copy').addEventListener('click', async () => {
+  const text = '[발 스캔 기기 진단]\n' + $('#diag-raw').textContent;
+  try {
+    await navigator.clipboard.writeText(text);
+    $('#diag-copy').textContent = '복사했습니다 ✓';
+  } catch (e) {
+    $('#diag-copy').textContent = '복사 실패 — 아래 글을 길게 눌러 복사해 주세요';
+  }
+  setTimeout(() => { $('#diag-copy').textContent = '진단 결과 복사하기'; }, 2500);
 });
 
 /* ── 측정 ── */

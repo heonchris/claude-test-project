@@ -1,0 +1,241 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		5D573BF907353EBDFC093898 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF0E885C4BCF3F93E395D25 /* AppDelegate.swift */; };
+		4025082330C75A1E723EE350 /* WebViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F4628DF7F152B9B8B740159 /* WebViewController.swift */; };
+		D9289A2EE81CA79FE7754CAE /* LocalServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 610ABD328C21E6848064A68F /* LocalServer.swift */; };
+		ADA60A4C8FBE5C5E021B20A3 /* Resources in Resources */ = {isa = PBXBuildFile; fileRef = 6DAEF60CA9FEBE97FDB60B2D /* Resources */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		38A007151ABE87CC01A5B6E9 /* FootScan.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FootScan.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0CF0E885C4BCF3F93E395D25 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		1F4628DF7F152B9B8B740159 /* WebViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewController.swift; sourceTree = "<group>"; };
+		610ABD328C21E6848064A68F /* LocalServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalServer.swift; sourceTree = "<group>"; };
+		1B578D4D9C036F5F6929AF6F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		6DAEF60CA9FEBE97FDB60B2D /* Resources */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		FE7006A0F8A8753331FC7CCD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		AB48CFA305015276AB5620D4 = {
+			isa = PBXGroup;
+			children = (
+				C8A1E76B6CA46DDC89E29CCD /* FootScan */,
+				692092DE1C1C8624E142B71D /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		C8A1E76B6CA46DDC89E29CCD /* FootScan */ = {
+			isa = PBXGroup;
+			children = (
+				0CF0E885C4BCF3F93E395D25 /* AppDelegate.swift */,
+				1F4628DF7F152B9B8B740159 /* WebViewController.swift */,
+				610ABD328C21E6848064A68F /* LocalServer.swift */,
+				1B578D4D9C036F5F6929AF6F /* Info.plist */,
+				6DAEF60CA9FEBE97FDB60B2D /* Resources */,
+			);
+			path = FootScan;
+			sourceTree = "<group>";
+		};
+		692092DE1C1C8624E142B71D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				38A007151ABE87CC01A5B6E9 /* FootScan.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0E8A3AD980EC179856012B7E /* FootScan */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5CAC0042D2E010857C637498 /* Build configuration list for PBXNativeTarget "FootScan" */;
+			buildPhases = (
+				9E199EDCB17B4C967EDEA5CE /* Sources */,
+				FE7006A0F8A8753331FC7CCD /* Frameworks */,
+				AB2660E5E1235C14F8623B10 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FootScan;
+			productName = FootScan;
+			productReference = 38A007151ABE87CC01A5B6E9 /* FootScan.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		98F54143AB4E86B28C3AFEE0 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					0E8A3AD980EC179856012B7E = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = 140F60A95A5C44064E97481E /* Build configuration list for PBXProject "FootScan" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = ko;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				ko,
+				Base,
+			);
+			mainGroup = AB48CFA305015276AB5620D4;
+			productRefGroup = 692092DE1C1C8624E142B71D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				0E8A3AD980EC179856012B7E /* FootScan */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AB2660E5E1235C14F8623B10 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				ADA60A4C8FBE5C5E021B20A3 /* Resources in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		9E199EDCB17B4C967EDEA5CE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5D573BF907353EBDFC093898 /* AppDelegate.swift in Sources */,
+				4025082330C75A1E723EE350 /* WebViewController.swift in Sources */,
+				D9289A2EE81CA79FE7754CAE /* LocalServer.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		E8A664B426DCB939B812EAF0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		EE021C88C2F80797F2C6EAC5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		1E0D549F0915174FF8BD83EB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FootScan/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.footscan;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		9DDA0FC41D82F4AB4C32F490 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FootScan/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.footscan;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		140F60A95A5C44064E97481E /* Build configuration list for PBXProject "FootScan" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E8A664B426DCB939B812EAF0 /* Debug */,
+				EE021C88C2F80797F2C6EAC5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5CAC0042D2E010857C637498 /* Build configuration list for PBXNativeTarget "FootScan" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1E0D549F0915174FF8BD83EB /* Debug */,
+				9DDA0FC41D82F4AB4C32F490 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 98F54143AB4E86B28C3AFEE0 /* Project object */;
+}

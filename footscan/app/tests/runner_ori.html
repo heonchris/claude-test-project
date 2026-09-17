@@ -1,0 +1,17 @@
+<!doctype html><meta charset="utf-8"><title>사진 방향 시험</title>
+<script src="cvlite.js"></script><script src="engine2.js"></script>
+<script>
+window.__ready = true;
+async function f(n){const r=await fetch(n);const b=await r.blob();return new File([b],n,{type:'image/jpeg'});}
+window.__ori = async (o) => {
+  const top = await f('ori'+o+'_top.jpg'), side = await f('ori'+o+'_side.jpg');
+  const m = await loadImageMat(top);
+  try {
+    const r = await scan({rightTop: top, rightSide: side});
+    return {o, exif:m.exifOrientation, w:m.w, h:m.h,
+            len:+r.right.top.foot_length_mm.toFixed(1), ball:+r.right.top.ball_width_mm.toFixed(1),
+            toe:r.right.top.toe_type, hv:+r.right.top.hallux_valgus_angle_deg.toFixed(1),
+            arch:r.right.lateral? +r.right.lateral.arch_clearance_mm.toFixed(1):null, conf:r.right.confidence};
+  } catch(e){ return {o, exif:m.exifOrientation, w:m.w, h:m.h, err:e.code||String(e.message||e)}; }
+};
+</script>

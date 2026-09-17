@@ -24,6 +24,10 @@ python3 -m http.server 8777 -d ..      # 앱을 웹으로 띄웁니다
 | `sampletest.js` | 「예시 사진으로 해보기」로 처음부터 끝까지 |
 | `cspfull.js` | **엄격한 보안정책**(unsafe-eval 금지) 아래서도 도는지 |
 | `encodingtest.js` | 압축 패키지를 푼 뒤 `file://` 로 열어 **한글이 깨지지 않는지** |
+| `orientation.js` | 같은 사진의 **EXIF 방향 8가지**가 모두 같은 치수를 내는지 (아이폰 필수) |
+| `bigphoto.js` | **아이폰 12MP 사진**(4032x3024 + EXIF 6)이 제대로 처리되는지 |
+| `diagnostics.js` | 앱 안 **「기기 진단」** 화면이 제대로 도는지 |
+| `hardcases.js` | 어려운 조건 사진 10장에서 **A4 를 찾는지** |
 | `newshots.js` | 보고서에 넣을 화면 사진 캡처 |
 
 ## 카메라 검사용 가짜 영상 만들기
@@ -71,3 +75,20 @@ mkdir -p /tmp/zipcheck && cd /tmp/zipcheck
 python3 -c "import zipfile;zipfile.ZipFile('.../dist/발스캔_전달패키지.zip').extractall('.')"
 node encodingtest.js
 ```
+
+## 아이폰 관련 검사
+
+`orientation.js` 는 `runner_ori.html` 과 시험 사진이 필요합니다:
+
+```sh
+python3 ../../engine/tests/make_orientations.py <검사폴더>
+cp runner_ori.html <검사폴더>/
+node orientation.js
+```
+
+**왜 중요한가:** 아이폰은 세로로 찍어도 파일 안에는 가로로 저장하고
+"돌려서 보라"는 표시(EXIF Orientation)만 붙입니다. 브라우저마다 이 표시를
+알아서 적용하기도, 안 하기도 해서 **기기에 따라 결과가 달라질 수 있습니다.**
+실제로 크롬은 `imageOrientation:'none'` 을 무시하고 항상 적용합니다.
+그래서 앱은 값을 직접 읽고, 브라우저가 이미 적용했는지까지 확인한 뒤
+필요할 때만 스스로 돌립니다. 8방향 모두 **0.0mm 차이**로 같은 값이 나와야 합니다.
