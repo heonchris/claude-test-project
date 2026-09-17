@@ -22,7 +22,7 @@ OUT_DIR = HERE.parent / "dist"
 PKG = "발스캔_전달패키지"
 
 # samples_hard 는 검출기를 시험하려고 만든 개발자용 사진이라 넣지 않습니다
-SKIP_DIRS = {"__pycache__", ".pytest_cache", "results", "samples_hard"}
+SKIP_DIRS = {"__pycache__", ".pytest_cache", "results", "samples_hard", "build", ".cert"}
 
 
 def copy_tree(src: pathlib.Path, dst: pathlib.Path) -> None:
@@ -78,9 +78,13 @@ def main() -> None:
             encoding="utf-8",
         )
 
-    # 3. 원본 파이썬 엔진
-    copy_tree(HERE / "engine", root / "3_원본엔진_파이썬")
-    shutil.copy2(HERE / "SPEC.md", root / "3_원본엔진_파이썬" / "개발명세서_SPEC.md")
+    # 3. 아이폰 앱 (Xcode 프로젝트)
+    copy_tree(HERE / "ios", root / "3_아이폰앱")
+    shutil.rmtree(root / "3_아이폰앱" / "build", ignore_errors=True)
+
+    # 4. 원본 파이썬 엔진
+    copy_tree(HERE / "engine", root / "4_원본엔진_파이썬")
+    shutil.copy2(HERE / "SPEC.md", root / "4_원본엔진_파이썬" / "개발명세서_SPEC.md")
 
     # 압축
     zip_path = OUT_DIR / f"{PKG}.zip"
