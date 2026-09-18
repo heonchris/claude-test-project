@@ -2,46 +2,30 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleDevelopmentRegion</key>
-	<string>ko</string>
+	<!--
+	  Xcode 가 자동으로 넣어 주는 항목(CFBundleIdentifier, CFBundleExecutable,
+	  CFBundleName, CFBundleVersion, 화면 방향, 런치스크린 …)은 여기 적지 않습니다.
+	  GENERATE_INFOPLIST_FILE = YES 로 두고, Xcode 가 만든 것에 이 파일을 합칩니다.
+
+	  예전에는 여기에 $(PRODUCT_BUNDLE_IDENTIFIER) 라고 적어 두었는데,
+	  그 치환이 빈 값이 되면 "Missing bundle ID" 로 설치가 실패합니다.
+	  Xcode 가 직접 넣게 하면 그 문제가 아예 생기지 않습니다.
+	-->
 	<key>CFBundleDisplayName</key>
 	<string>발 스캔</string>
-	<key>CFBundleExecutable</key>
-	<string>$(EXECUTABLE_NAME)</string>
-	<key>CFBundleIdentifier</key>
-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
-	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-	<key>CFBundleShortVersionString</key>
-	<string>0.1</string>
-	<key>CFBundleVersion</key>
-	<string>1</string>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>A4 용지 위의 발을 찍어 크기를 재기 위해 카메라를 사용합니다. 사진은 이 휴대폰 안에서만 처리되며 어디로도 전송되지 않습니다.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>이미 찍어 둔 발 사진을 골라 크기를 재기 위해 사용합니다. 사진은 이 휴대폰 안에서만 처리됩니다.</string>
+	<!--
+	  앱 안의 작은 서버(127.0.0.1)에 붙기 위해 필요합니다.
+	  브라우저가 카메라를 열어 주려면 '안전한 주소'여야 하는데,
+	  127.0.0.1 은 어디서나 안전한 주소로 인정되기 때문입니다.
+	-->
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
-	<key>UILaunchScreen</key>
-	<dict/>
-	<key>UIRequiredDeviceCapabilities</key>
-	<array>
-		<string>arm64</string>
-	</array>
-	<key>UISupportedInterfaceOrientations</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-	</array>
-	<key>UIUserInterfaceStyle</key>
-	<string>Automatic</string>
 </dict>
 </plist>

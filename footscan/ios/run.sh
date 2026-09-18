@@ -22,6 +22,22 @@ PROJ=$APP.xcodeproj
 BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" FootScan/Info.plist 2>/dev/null || echo "com.example.footscan")
 [ "$BUNDLE_ID" = '$(PRODUCT_BUNDLE_IDENTIFIER)' ] && BUNDLE_ID=com.example.footscan
 
+# 만들어진 앱에 Bundle ID 가 실제로 들어갔는지 확인합니다.
+# 비어 있으면 설치할 때 «Missing bundle ID» 로 실패합니다.
+check_bundle_id() {
+  bid=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$1/Info.plist" 2>/dev/null)
+  if [ -z "$bid" ]; then
+    echo "" >&2
+    echo "✕ 만들어진 앱에 Bundle ID 가 없습니다 — 이대로는 설치가 안 됩니다." >&2
+    echo "  Xcode > TARGETS > FootScan > Signing & Capabilities 에서" >&2
+    echo "  Bundle Identifier 칸이 비어 있지 않은지 확인해 주세요." >&2
+    echo "  자세히 보려면: sh doctor.sh" >&2
+    return 1
+  fi
+  echo "Bundle ID: $bid"
+  return 0
+}
+
 need_xcode() {
   command -v xcodebuild >/dev/null 2>&1 || {
     echo "xcodebuild 가 없습니다. 맥에서 Xcode 를 설치한 뒤 다시 시도하세요." >&2
@@ -62,6 +78,7 @@ case "${1:-sim}" in
 
     APP_PATH="build/Build/Products/Debug-iphonesimulator/$APP.app"
     [ -d "$APP_PATH" ] || { echo "빌드 결과를 찾지 못했습니다: $APP_PATH" >&2; exit 1; }
+    check_bundle_id "$APP_PATH" || exit 1
 
     xcrun simctl boot "$DEVICE" 2>/dev/null || true
     open -a Simulator
@@ -89,6 +106,7 @@ case "${1:-sim}" in
 
     APP_PATH="build/Build/Products/Debug-iphoneos/$APP.app"
     [ -d "$APP_PATH" ] || { echo "빌드 결과를 찾지 못했습니다: $APP_PATH" >&2; exit 1; }
+    check_bundle_id "$APP_PATH" || exit 1
 
     UDID=$(xcrun xctrace list devices 2>/dev/null \
       | grep -v Simulator | grep -oE '\(([0-9A-Fa-f-]{25,})\)' | head -1 | tr -d '()')

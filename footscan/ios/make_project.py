@@ -203,8 +203,13 @@ def build() -> str:
     target_common = [
         "CODE_SIGN_STYLE = Automatic;",
         "CURRENT_PROJECT_VERSION = 1;",
-        "GENERATE_INFOPLIST_FILE = NO;",
+        # Xcode 가 Info.plist 를 만들고, 아래 INFOPLIST_FILE 을 거기에 합칩니다.
+        # CFBundleIdentifier 를 Xcode 가 직접 넣어 주므로
+        # "Missing bundle ID" 로 설치가 실패하는 일이 없습니다.
+        "GENERATE_INFOPLIST_FILE = YES;",
         f"INFOPLIST_FILE = {APP_NAME}/Info.plist;",
+        "INFOPLIST_KEY_UILaunchScreen_Generation = YES;",
+        "INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;",
         "LD_RUNPATH_SEARCH_PATHS = (\n\t\t\t\t\t\"$(inherited)\",\n\t\t\t\t\t\"@executable_path/Frameworks\",\n\t\t\t\t);",
         "MARKETING_VERSION = 0.1;",
         f"PRODUCT_BUNDLE_IDENTIFIER = {BUNDLE_ID};",

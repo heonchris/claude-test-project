@@ -62,6 +62,40 @@ sh serve.sh https    # https — 카메라까지 되지만 인증서를 신뢰�
 맨 아래 **「진단 결과 복사하기」** 를 누르면 내용이 통째로 복사됩니다.
 문제가 있으면 그 내용을 그대로 보내 주세요.
 
+## 막혔을 때 — `sh doctor.sh`
+
+빌드나 설치가 안 되면 이것부터 돌려 주세요. 환경·설정·빌드·만들어진 앱까지
+차례로 확인하고, 어디서 틀어졌는지 알려 줍니다. 결과를 그대로 보내 주시면 됩니다.
+
+```sh
+cd footscan/ios
+sh doctor.sh
+```
+
+### 자주 나오는 오류
+
+**`Simulator device failed to install the application. Missing bundle ID.`**
+
+빌드는 됐는데 만들어진 앱 안에 Bundle ID 가 비어 있다는 뜻입니다.
+
+1. Xcode 에서 **TARGETS > FootScan > Signing & Capabilities** 를 열고
+   **Bundle Identifier** 칸이 **비어 있지 않은지** 확인하세요.
+   비었으면 `com.본인이름.footscan` 처럼 채워 주세요.
+2. 그래도 안 되면 **Product > Clean Build Folder** (⇧⌘K) 후 다시 실행.
+3. `sh doctor.sh` 로 확인.
+
+> 이 프로젝트는 Xcode 가 Info.plist 를 직접 만들도록(`GENERATE_INFOPLIST_FILE = YES`)
+> 되어 있어 Bundle ID 가 비는 일이 없어야 합니다. 예전 방식(Info.plist 안에
+> `$(PRODUCT_BUNDLE_IDENTIFIER)` 라고 적어 두는 방식)에서 이 오류가 났습니다.
+
+**`Signing for "FootScan" requires a development team.`**
+
+Signing & Capabilities 에서 **Team** 을 본인 Apple ID 로 고르세요.
+
+**`Unable to install ... The provisioning profile ... bundle identifier is not available.`**
+
+Bundle Identifier 가 남이 쓰고 있는 이름입니다. `com.본인이름.footscan` 처럼 바꾸세요.
+
 ## 구조
 
 | 파일 | 하는 일 |
@@ -72,6 +106,7 @@ sh serve.sh https    # https — 카메라까지 되지만 인증서를 신뢰�
 | `FootScan/Info.plist` | 카메라·사진 사용 이유(애플 심사 필수), 세로 고정 |
 | `FootScan/Resources/index.html` | `../app/app.html` 복사본 (`sync_web.sh` 가 만듭니다) |
 | `make_project.py` | `FootScan.xcodeproj` 를 만들어 내는 스크립트 |
+| `doctor.sh` | 빌드가 안 될 때 원인을 찾아 주는 점검 스크립트 |
 
 ### 왜 앱 안에 서버를 띄우나
 
