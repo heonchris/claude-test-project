@@ -379,6 +379,82 @@ $('#cam-torch').addEventListener('click', async () => {
 });
 
 /* ══════════════════════════════════════════════════════════════════
+   경고 정리 — 사진이 나쁘면 프로그램이 경고를 5~6개씩 쏟아냅니다.
+   전부 "사진을 다시 찍어라" 는 한 가지 얘기의 다른 표현이라,
+   사용자에게는 무엇을 바꿔야 하는지만 짧게 보여 주고
+   원문은 접어 둡니다.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* 할 일 목록 — 여러 경고가 같은 할 일을 가리키면 한 번만 보여 줍니다 */
+const FIX = {
+  bright: '불을 켜고 <b>그림자가 지지 않게</b> 해주세요.',
+  flat:   '<b>단단하고 평평한 바닥</b>에 종이를 놓으세요. (카펫 ✕)',
+  inside: '<b>발 전체가 종이 안에</b> 들어오게, 가장자리에서 2~3cm 안쪽에 서세요.',
+  closer: '종이가 <b>화면에 크게</b> 들어오도록 조금 더 가까이서 찍어 주세요.',
+  stand:  '<b>체중을 실어 똑바로</b> 서 주세요.',
+  bare:   '<b>맨발이나 어두운 양말</b>로 찍어 주세요. (흰 양말은 종이와 구분이 안 됩니다)',
+  steady: '폰을 두 손으로 잡거나 무언가에 기대어 <b>흔들리지 않게</b> 찍어 주세요.',
+  softer: '직사광선이나 센 조명은 피해 주세요. 종이가 하얗게 날아갑니다.',
+  sideLow: '옆면은 <b>폰을 바닥 가까이(10~15cm)</b> 낮추고, 지면과 <b>수직</b>으로 세워 찍어 주세요.',
+  sideWide: '옆면은 발을 종이 <b>긴 변의 가운데</b>에 딛어, <b>종이 양 끝이 보이게</b> 찍어 주세요.',
+};
+
+/* 경고 문구 → (어느 사진 / 무엇을 바꿔야 하는지)
+   engine2.js 가 내보내는 문구와 짝이 맞아야 합니다.
+   tests/warnings.js 가 빠진 짝이 없는지 검사합니다. */
+const WARN_RULES = [
+  ['종이가 사진에서 너무 작습니다', 'top',  ['closer']],
+  ['종이가 휘어',                   'top',  ['flat']],
+  ['발이 종이',                     'top',  ['inside']],
+  ['발가락을',                      'top',  ['bright', 'bare']],
+  ['일반 방식으로 발을 찾지 못해',   'top',  ['bright', 'bare']],
+  ['휴대폰이',                      'side', ['sideLow']],
+  ['발바닥이 바닥에 닿은 부분이',    'side', ['bright', 'stand']],
+  ['뒤꿈치가 바닥에 닿은 부분이',    'side', ['stand', 'sideLow']],
+  ['바닥에 닿은 부분이 발 길이의',   'side', ['stand', 'sideLow']],
+  ['발바닥이 거의 전부',            'side', ['stand']],
+  ['바닥에 닿은 부분을 찾지 못했',   'side', ['stand', 'sideLow']],
+  ['자동 임계값으로',               'side', ['bright']],
+  ['위/옆 사진의 발 길이가',        'side', ['sideLow', 'sideWide']],
+  // 촬영 품질 검사에서 올라오는 것들 (어느 사진인지와 무관)
+  ['사진이 어둡습니다',             'photo', ['bright']],
+  ['사진이 너무 밝아',              'photo', ['softer']],
+  ['사진이 흔들렸습니다',           'photo', ['steady']],
+  ['노이즈가 많습니다',             'photo', ['bright']],
+];
+
+function classifyWarnings(warnings) {
+  const where = new Set();
+  const fixes = [];
+  const unknown = [];
+  for (const w of warnings) {
+    const rule = WARN_RULES.find(r => w.includes(r[0]));
+    if (!rule) { unknown.push(w); continue; }
+    where.add(rule[1]);
+    for (const f of rule[2]) if (!fixes.includes(f)) fixes.push(f);
+  }
+  return { where, fixes, unknown };
+}
+
+/* 여러 경고를 '한 줄 진단 + 할 일 3가지' 로 줄입니다 */
+function summarizeWarnings(warnings) {
+  const { where, fixes, unknown } = classifyWarnings(warnings);
+  const top = where.has('top'), side = where.has('side');
+  const headline =
+    top && side ? '사진에서 발과 종이를 제대로 못 잡았습니다.'
+    : side       ? '<b>옆에서 찍은 사진</b>에서 발바닥을 제대로 못 잡았습니다.'
+    : top        ? '<b>위에서 찍은 사진</b>에서 발이나 종이를 제대로 못 잡았습니다.'
+    : where.has('photo') ? '사진이 어둡거나 흔들렸습니다.'
+    :              '사진을 다시 찍으면 더 정확해집니다.';
+  return {
+    headline,
+    fixes: fixes.slice(0, 3).map(k => FIX[k]),
+    sideOnly: side && !top,
+    unknown,
+  };
+}
+
+/* ══════════════════════════════════════════════════════════════════
    기기 진단 — 아이폰 같은 실기기에는 개발자 콘솔이 없습니다.
    그래서 "이 폰에서 무엇이 되고 무엇이 안 되는지"를 화면에 직접 보여 주고,
    그 내용을 통째로 복사할 수 있게 만들었습니다.
@@ -621,13 +697,29 @@ function renderResult(d) {
   let h = '';
 
   if (minConf < 0.7) {
-    h += `<div class="note bad"><b>측정 신뢰도가 낮습니다 (${minConf.toFixed(2)})</b><br>
-          이 숫자는 <b>믿으시면 안 됩니다.</b> 사진에서 발이나 종이를 제대로 못 잡았습니다.<br>
-          아래 <b>「측정 과정 사진」</b>을 열어 두었습니다 &mdash;
-          프로그램이 무엇을 발로 봤는지 보시면 원인이 바로 보입니다.</div>`;
+    h += `<div class="note bad"><b style="font-size:16.5px">다시 찍어 주세요</b><br>
+          아래 숫자는 <b>믿으시면 안 됩니다.</b>
+          <span style="color:var(--muted)">(신뢰도 ${minConf.toFixed(2)})</span></div>`;
   }
   const warns = [...new Set(feet.flatMap(f => f.warnings))].filter(w => !w.startsWith('[LOW_CONFIDENCE]'));
-  warns.forEach(w => { h += `<div class="note warn">${esc(w)}</div>`; });
+  if (warns.length >= 2) {
+    // 경고가 여러 개면 한 줄로 요약하고 원문은 접어 둡니다
+    const sum = summarizeWarnings(warns);
+    h += `<div class="card" style="margin-top:12px">
+            <h2 style="margin-bottom:6px">이렇게 바꿔 보세요</h2>
+            <p class="sub" style="margin-bottom:12px">${sum.headline}</p>
+            <ol class="guide">${sum.fixes.map(t => `<li>${t}</li>`).join('')}</ol>`;
+    if (sum.sideOnly) {
+      h += `<div class="note info" style="margin:12px 0 0">
+              옆면이 어려우시면 <b>옆면 사진을 빼고 위에서 찍은 1장만</b> 넣어 보세요.
+              길이·발볼·발가락은 그대로 나오고 아치만 빠집니다.</div>`;
+    }
+    h += `<details style="margin-top:12px"><summary>프로그램이 알려 온 내용 ${warns.length}가지</summary>
+            ${warns.map(w => `<div class="note warn" style="margin:8px 0">${esc(w)}</div>`).join('')}
+          </details></div>`;
+  } else {
+    warns.forEach(w => { h += `<div class="note warn">${esc(w)}</div>`; });
+  }
 
   h += feet.map(f => footCard(f, minConf < 0.7)).join('');
 
