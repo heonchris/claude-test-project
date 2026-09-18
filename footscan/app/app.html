@@ -3228,7 +3228,7 @@ $('#measure').addEventListener('click', async () => {
 /* ── 결과 그리기 ── */
 let lastResult = null;
 
-function footCard(f) {
+function footCard(f, forceOpen) {
   if (!f) return '';
   const t = f.top, s = f.lateral;
   const name = f.side === 'right' ? '오른발' : '왼발';
@@ -3251,7 +3251,13 @@ function footCard(f) {
   }
   const imgs = f.debug_images || {};
   if (imgs.top || imgs.side) {
-    h += `<details><summary>측정 과정 사진 보기 — 값이 이상할 때 확인용</summary>`;
+    h += `<details${forceOpen ? ' open' : ''}><summary>측정 과정 사진 보기 — 값이 이상할 때 확인용</summary>`;
+    if (forceOpen) {
+      h += `<div class="note warn" style="margin:8px 0">
+        <b>프로그램이 무엇을 &lsquo;발&rsquo;과 &lsquo;종이&rsquo;로 봤는지 아래 그림으로 확인해 주세요.</b><br>
+        초록 선이 발 모양을 제대로 따라가지 않았다면 사진 문제입니다.
+        그림을 길게 눌러(맥은 마우스 오른쪽 클릭) 저장한 뒤 보내 주시면 원인을 찾아드립니다.</div>`;
+    }
     if (imgs.top) h += `<figure style="margin:0"><img src="${imgs.top}" alt="위에서 잰 과정"><figcaption>초록=발 윤곽, 파랑=측정선, 점=찾아낸 발가락(빨강이 엄지)</figcaption></figure>`;
     if (imgs.side) h += `<figure style="margin:12px 0 0"><img src="${imgs.side}" alt="옆에서 잰 과정"><figcaption>빨강=바닥선, 분홍=바닥에 닿은 구간, 노랑=아치 최고점, 파랑=발등 높이</figcaption></figure>`;
     h += `</details>`;
@@ -3297,12 +3303,14 @@ function renderResult(d) {
 
   if (minConf < 0.7) {
     h += `<div class="note bad"><b>측정 신뢰도가 낮습니다 (${minConf.toFixed(2)})</b><br>
-          아래 값은 참고만 하시고, 안내에 맞춰 다시 찍어 주세요.</div>`;
+          이 숫자는 <b>믿으시면 안 됩니다.</b> 사진에서 발이나 종이를 제대로 못 잡았습니다.<br>
+          아래 <b>「측정 과정 사진」</b>을 열어 두었습니다 &mdash;
+          프로그램이 무엇을 발로 봤는지 보시면 원인이 바로 보입니다.</div>`;
   }
   const warns = [...new Set(feet.flatMap(f => f.warnings))].filter(w => !w.startsWith('[LOW_CONFIDENCE]'));
   warns.forEach(w => { h += `<div class="note warn">${esc(w)}</div>`; });
 
-  h += feet.map(footCard).join('');
+  h += feet.map(f => footCard(f, minConf < 0.7)).join('');
 
   if (d.asymmetry_mm != null) {
     h += `<div class="card"><h2>좌우 비교</h2>
