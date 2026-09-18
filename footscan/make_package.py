@@ -58,8 +58,11 @@ def main() -> None:
     (root / "1_앱" / "원본코드").mkdir(parents=True)
     (root / "2_보고서").mkdir(parents=True)
 
-    # 0. 안내문
+    # 0. 안내문 + 맥용 실행기
     shutil.copy2(HERE / "package_readme.html", root / "0_먼저_읽어주세요.html")
+    launcher = root / "맥에서_시작.command"
+    shutil.copy2(HERE / "mac_start.command", launcher)
+    launcher.chmod(0o755)
 
     # 1. 완성된 앱 (이 파일 하나면 앱이 돕니다)
     shutil.copy2(HERE / "app" / "app.html", root / "1_앱" / "발스캔_앱.html")
@@ -85,6 +88,15 @@ def main() -> None:
     # 4. 원본 파이썬 엔진
     copy_tree(HERE / "engine", root / "4_원본엔진_파이썬")
     shutil.copy2(HERE / "SPEC.md", root / "4_원본엔진_파이썬" / "개발명세서_SPEC.md")
+
+    # 패키지 안에서는 폴더 이름이 다르므로 실행기의 경로를 맞춰 줍니다
+    text = launcher.read_text(encoding="utf-8")
+    text = (text
+            .replace("APP_HTML=app/app.html", "APP_HTML=1_앱/발스캔_앱.html")
+            .replace("SRC_DIR=app  ", "SRC_DIR=1_앱/원본코드")
+            .replace("IOS_DIR=ios  ", "IOS_DIR=3_아이폰앱")
+            .replace("ENGINE_DIR=engine  ", "ENGINE_DIR=4_원본엔진_파이썬"))
+    launcher.write_text(text, encoding="utf-8")
 
     # 압축
     zip_path = OUT_DIR / f"{PKG}.zip"
