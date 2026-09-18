@@ -6,6 +6,14 @@
 > **아직 실기기에서 돌려 본 적이 없습니다.** 이 폴더는 초안이며, 처음 빌드할 때
 > 서명 설정 등에서 걸릴 수 있습니다. 막히는 지점을 알려 주시면 고치겠습니다.
 
+## 잠깐 — 그냥 아이폰에서 써 보는 게 목적이라면
+
+**Xcode 는 필요 없습니다.** 체험판 링크를 아이폰 사파리에서 열면 카메라까지
+그대로 됩니다. 홈 화면에 추가하면 아이콘도 생기고 주소창 없이 앱처럼 열립니다.
+
+이 폴더(Xcode 프로젝트)는 **"앱스토어에 올릴 형태로 만들었을 때도 되는지"** 를
+확인하기 위한 것입니다. 당장 발을 재 보시는 게 목적이라면 건너뛰셔도 됩니다.
+
 ## 가장 빠른 길 — Xcode 로 열기
 
 ```sh
@@ -121,7 +129,7 @@ Bundle Identifier 가 남이 쓰고 있는 이름입니다. `com.본인이름.fo
 | `FootScan/LocalServer.swift` | 127.0.0.1 에만 붙는 아주 작은 웹 서버 |
 | `FootScan/WebViewController.swift` | 화면 전체를 채우는 웹뷰 + 카메라 권한 처리 |
 | `FootScan/Info.plist` | 카메라·사진 사용 이유(애플 심사 필수), 세로 고정 |
-| `FootScan/Resources/index.html` | `../app/app.html` 복사본 (`sync_web.sh` 가 만듭니다) |
+|  `FootScan/web/index.html` | `../app/app.html` 복사본 (`sync_web.sh` 가 만듭니다) |
 | `make_project.py` | `FootScan.xcodeproj` 를 만들어 내는 스크립트 |
 | `doctor.sh` | 빌드가 안 될 때 원인을 찾아 주는 점검 스크립트 |
 | `PlanB/` | 이 프로젝트가 안 되면 쓰는 대안 — Xcode 로 새로 만들어 붙이기 |
@@ -144,10 +152,10 @@ iOS 15 부터입니다. 그 아래에서는 카메라가 열리지 않고 사진
 
 ```sh
 sh ../app/build.sh   # 조각 파일 → app.html
-sh sync_web.sh       # app.html → FootScan/Resources/index.html
+sh sync_web.sh       # app.html → FootScan/web/index.html
 ```
 
-그다음 Xcode 에서 다시 Run 하면 됩니다. `Resources` 는 폴더째로 번들에 들어가므로
+그다음 Xcode 에서 다시 Run 하면 됩니다. `web` 은 폴더째로 번들에 들어가므로
 파일을 추가해도 프로젝트 설정을 건드릴 필요가 없습니다.
 
 ## 프로젝트 파일을 다시 만들려면

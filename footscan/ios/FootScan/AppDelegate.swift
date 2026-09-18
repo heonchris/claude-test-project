@@ -10,7 +10,7 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
 
         // 앱 안에 넣어 둔 웹 파일이 있는 폴더
-        let root = Bundle.main.url(forResource: "Resources", withExtension: nil)
+        let root = Bundle.main.url(forResource: "web", withExtension: nil)
             ?? Bundle.main.bundleURL
 
         let server = LocalServer(root: root)

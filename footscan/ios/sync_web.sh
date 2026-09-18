@@ -9,6 +9,6 @@ if [ ! -f ../app/app.html ]; then
   exit 1
 fi
 
-mkdir -p FootScan/Resources
-cp ../app/app.html FootScan/Resources/index.html
-echo "복사 완료: FootScan/Resources/index.html ($(wc -c < FootScan/Resources/index.html | tr -d ' ') 바이트)"
+mkdir -p FootScan/web
+cp ../app/app.html FootScan/web/index.html
+echo "복사 완료: FootScan/web/index.html ($(wc -c < FootScan/web/index.html | tr -d ' ') 바이트)"

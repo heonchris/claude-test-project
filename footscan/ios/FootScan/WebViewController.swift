@@ -66,7 +66,7 @@ final class WebViewController: UIViewController, WKUIDelegate, WKNavigationDeleg
         // 예비 경로: 서버가 안 뜨면 파일을 직접 엽니다.
         // 측정은 되지만 기기에 따라 카메라가 잠길 수 있습니다.
         guard let file = Bundle.main.url(forResource: "index", withExtension: "html",
-                                         subdirectory: "Resources")
+                                         subdirectory: "web")
                 ?? Bundle.main.url(forResource: "index", withExtension: "html") else {
             show(error: "앱 안에서 index.html 을 찾지 못했습니다.\n빌드 설정의 Copy Bundle Resources 를 확인해 주세요.")
             return

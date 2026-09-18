@@ -19,7 +19,7 @@
 		1F4628DF7F152B9B8B740159 /* WebViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewController.swift; sourceTree = "<group>"; };
 		610ABD328C21E6848064A68F /* LocalServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalServer.swift; sourceTree = "<group>"; };
 		1B578D4D9C036F5F6929AF6F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		6DAEF60CA9FEBE97FDB60B2D /* Resources */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources; sourceTree = "<group>"; };
+		6DAEF60CA9FEBE97FDB60B2D /* web */ = {isa = PBXFileReference; lastKnownFileType = folder; path = web; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -48,7 +48,7 @@
 				1F4628DF7F152B9B8B740159 /* WebViewController.swift */,
 				610ABD328C21E6848064A68F /* LocalServer.swift */,
 				1B578D4D9C036F5F6929AF6F /* Info.plist */,
-				6DAEF60CA9FEBE97FDB60B2D /* Resources */,
+				6DAEF60CA9FEBE97FDB60B2D /* web */,
 			);
 			path = FootScan;
 			sourceTree = "<group>";
@@ -118,7 +118,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				ADA60A4C8FBE5C5E021B20A3 /* Resources in Resources */,
+				ADA60A4C8FBE5C5E021B20A3 /* web in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -32,7 +32,7 @@ Xcode → **File > New > Project…**
 
 ## 3. 웹 화면 넣기 ★ 중요
 
-이 프로젝트의 **`FootScan/Resources` 폴더**(안에 `index.html` 이 있는 폴더)를
+이 프로젝트의 **`FootScan/web` 폴더**(안에 `index.html` 이 있는 폴더)를
 왼쪽 파일 목록으로 **끌어다 놓습니다.**
 
 대화상자에서 반드시:
@@ -42,7 +42,7 @@ Xcode → **File > New > Project…**
   («Create groups» 를 고르면 폴더 구조가 사라져 앱이 화면을 못 찾습니다)
 - «Add to targets: FootScan» **체크**
 
-제대로 되면 왼쪽에 **파란색 폴더** 로 `Resources` 가 보입니다.
+제대로 되면 왼쪽에 **파란색 폴더** 로 `web` 이 보입니다.
 (노란색이면 잘못된 것 — 지우고 다시 «Create folder references» 로)
 
 ## 4. 카메라 권한 문구 넣기
@@ -79,9 +79,9 @@ Xcode → **File > New > Project…**
 ## 웹 화면을 새로 받았을 때
 
 `footscan/app/app.html` 이 바뀌면, 그 파일을 프로젝트의
-`Resources/index.html` 로 덮어쓰기만 하면 됩니다. 폴더 참조라서
+`web/index.html` 로 덮어쓰기만 하면 됩니다. 폴더 참조라서
 Xcode 설정은 건드릴 필요가 없습니다.
 
 ```sh
-cp footscan/app/app.html <새프로젝트>/FootScan/Resources/index.html
+cp footscan/app/app.html <새프로젝트>/FootScan/web/index.html
 ```

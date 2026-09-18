@@ -32,8 +32,8 @@ xcodebuild -project "$PROJ" -target "$APP" -configuration Debug -showBuildSettin
 echo
 
 echo "── 앱 안에 넣을 웹 파일 ──────────────────────────────"
-if [ -f FootScan/Resources/index.html ]; then
-  echo "있음  $(wc -c < FootScan/Resources/index.html | tr -d ' ') 바이트"
+if [ -f FootScan/web/index.html ]; then
+  echo "있음  $(wc -c < FootScan/web/index.html | tr -d ' ') 바이트"
 else
   echo "없음 — 'sh sync_web.sh' 를 먼저 돌리세요"
 fi
@@ -77,6 +77,6 @@ if [ -z "$BID" ]; then
 fi
 echo "✓ Bundle ID     $BID"
 echo "✓ 실행 파일      $EXE  $([ -f "$A/$EXE" ] && echo '(있음)' || echo '(없음!)')"
-echo "✓ 화면 파일      $([ -f "$A/Resources/index.html" ] && echo '있음' || echo '없음! — sync_web.sh 를 돌리세요')"
+echo "✓ 화면 파일      $([ -f "$A/web/index.html" ] && echo '있음' || echo '없음! — sync_web.sh 를 돌리세요')"
 echo
 echo "여기까지 다 ✓ 면 Xcode 에서 ▶︎ 를 눌러도 됩니다."

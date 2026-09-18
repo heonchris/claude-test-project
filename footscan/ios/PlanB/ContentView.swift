@@ -12,7 +12,7 @@ struct ContentView: View {
     }
 }
 
-/// 화면 전체를 채우는 웹뷰. 안에서 도는 것은 Resources/index.html 입니다.
+/// 화면 전체를 채우는 웹뷰. 안에서 도는 것은 web/index.html 입니다.
 struct FootScanWebView: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> WebHost { WebHost() }
     func updateUIViewController(_ vc: WebHost, context: Context) {}
@@ -64,7 +64,7 @@ final class WebHost: UIViewController, WKUIDelegate, WKNavigationDelegate {
 
     private func load() {
         // 카메라는 '안전한 주소'에서만 열립니다. 127.0.0.1 은 어디서나 안전한 주소입니다.
-        let root = Bundle.main.url(forResource: "Resources", withExtension: nil) ?? Bundle.main.bundleURL
+        let root = Bundle.main.url(forResource: "web", withExtension: nil) ?? Bundle.main.bundleURL
         let srv = LocalServer(root: root)
         if let port = srv.start(), let url = URL(string: "http://127.0.0.1:\(port)/index.html") {
             server = srv
@@ -72,9 +72,9 @@ final class WebHost: UIViewController, WKUIDelegate, WKNavigationDelegate {
             return
         }
         // 예비: 파일을 직접 엽니다 (측정은 되고 카메라만 잠깁니다)
-        guard let file = Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "Resources")
+        guard let file = Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "web")
                 ?? Bundle.main.url(forResource: "index", withExtension: "html") else {
-            errorLabel.text = "앱 안에서 index.html 을 찾지 못했습니다.\nResources 폴더를 «Create folder references» 로 넣었는지 확인해 주세요."
+            errorLabel.text = "앱 안에서 index.html 을 찾지 못했습니다.\nweb 폴더를 «Create folder references» 로 넣었는지 확인해 주세요."
             errorLabel.isHidden = false
             webView.isHidden = true
             return

@@ -71,9 +71,10 @@ def build() -> str:
             f"lastKnownFileType = sourcecode.swift; path = {f}; sourceTree = \"<group>\"; }};")
     add(f"\t\t{ids['file.info']} /* Info.plist */ = {{isa = PBXFileReference; "
         f"lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = \"<group>\"; }};")
-    # 폴더 통째로 넣기 — 번들 안에서도 Resources/index.html 구조가 유지됩니다
-    add(f"\t\t{ids['file.resources']} /* Resources */ = {{isa = PBXFileReference; "
-        f"lastKnownFileType = folder; path = Resources; sourceTree = \"<group>\"; }};")
+    # 폴더 통째로 넣기 — 번들 안에서도 web/index.html 구조가 유지됩니다
+    # ('Resources' 라는 이름은 앱 번들 패키징이 쓰는 이름이라 피했습니다)
+    add(f"\t\t{ids['file.resources']} /* web */ = {{isa = PBXFileReference; "
+        f"lastKnownFileType = folder; path = web; sourceTree = \"<group>\"; }};")
     add("/* End PBXFileReference section */")
 
     # ---- PBXFrameworksBuildPhase ----
@@ -102,7 +103,7 @@ def build() -> str:
     for f in SWIFT_FILES:
         add(f"\t\t\t\t{ids[f'file.{f}']} /* {f} */,")
     add(f"\t\t\t\t{ids['file.info']} /* Info.plist */,")
-    add(f"\t\t\t\t{ids['file.resources']} /* Resources */,")
+    add(f"\t\t\t\t{ids['file.resources']} /* web */,")
     add("\t\t\t);")
     add(f"\t\t\tpath = {APP_NAME};")
     add("\t\t\tsourceTree = \"<group>\";")
@@ -170,7 +171,7 @@ def build() -> str:
     add("\t\t\tisa = PBXResourcesBuildPhase;")
     add("\t\t\tbuildActionMask = 2147483647;")
     add("\t\t\tfiles = (")
-    add(f"\t\t\t\t{ids['build.resources']} /* Resources in Resources */,")
+    add(f"\t\t\t\t{ids['build.resources']} /* web in Resources */,")
     add("\t\t\t);")
     add("\t\t\trunOnlyForDeploymentPostprocessing = 0;")
     add("\t\t};")
