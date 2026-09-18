@@ -22,7 +22,8 @@ OUT_DIR = HERE.parent / "dist"
 PKG = "발스캔_전달패키지"
 
 # samples_hard 는 검출기를 시험하려고 만든 개발자용 사진이라 넣지 않습니다
-SKIP_DIRS = {"__pycache__", ".pytest_cache", "results", "samples_hard", "build", ".cert"}
+SKIP_DIRS = {"__pycache__", ".pytest_cache", "results", "samples_hard", "build",
+             ".cert", ".gradle", ".kotlin"}
 
 
 def copy_tree(src: pathlib.Path, dst: pathlib.Path) -> None:
@@ -84,6 +85,15 @@ def main() -> None:
     # 3. 아이폰 앱 (Xcode 프로젝트)
     copy_tree(HERE / "ios", root / "3_아이폰앱")
     shutil.rmtree(root / "3_아이폰앱" / "build", ignore_errors=True)
+
+    # 3-b. 안드로이드 — 바로 설치할 수 있는 APK 는 맨 위에 둡니다
+    apk = HERE / "android" / "발스캔.apk"
+    if apk.exists():
+        shutil.copy2(apk, root / "발스캔_안드로이드.apk")
+    copy_tree(HERE / "android", root / "3_안드로이드앱")
+    for junk in (".gradle", "local.properties"):
+        t = root / "3_안드로이드앱" / junk
+        shutil.rmtree(t, ignore_errors=True) if t.is_dir() else t.unlink(missing_ok=True)
 
     # 4. 원본 파이썬 엔진
     copy_tree(HERE / "engine", root / "4_원본엔진_파이썬")
