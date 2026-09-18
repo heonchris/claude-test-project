@@ -76,13 +76,30 @@ sh doctor.sh
 
 **`Simulator device failed to install the application. Missing bundle ID.`**
 
-빌드는 됐는데 만들어진 앱 안에 Bundle ID 가 비어 있다는 뜻입니다.
+빌드는 됐는데, 만들어진 앱 안에 Info.plist 나 Bundle ID 가 없다는 뜻입니다.
 
-1. Xcode 에서 **TARGETS > FootScan > Signing & Capabilities** 를 열고
-   **Bundle Identifier** 칸이 **비어 있지 않은지** 확인하세요.
-   비었으면 `com.본인이름.footscan` 처럼 채워 주세요.
-2. 그래도 안 되면 **Product > Clean Build Folder** (⇧⌘K) 후 다시 실행.
-3. `sh doctor.sh` 로 확인.
+```sh
+# 만들어진 앱 안을 직접 들여다봅니다
+plutil -p ~/Library/Developer/Xcode/DerivedData/FootScan-*/Build/Products/Debug-iphonesimulator/FootScan.app/Info.plist
+```
+
+- **`No such file`** → 앱 안에 Info.plist 가 아예 없습니다 (프로젝트 설정 문제)
+- **떴는데 `CFBundleIdentifier` 가 없거나 빈 문자열** → 치환이 실패한 것
+
+차례로 시도해 보세요.
+
+1. `sh doctor.sh` — 어디서 틀어졌는지 알려 줍니다
+2. 프로젝트 파일이 예전 것일 수 있습니다:
+   `python3 make_project.py` 로 다시 만든 뒤,
+   Xcode 를 완전히 닫았다가 다시 여세요
+3. DerivedData 를 지우고 다시:
+   ```sh
+   rm -rf ~/Library/Developer/Xcode/DerivedData/FootScan-*
+   ```
+   Xcode 에서 **Product > Clean Build Folder** (⇧⌘K) 후 실행
+4. 그래도 안 되면 **[플랜 B](PlanB/README.md)** — Xcode 가 직접 만든
+   프로젝트에 파일만 옮겨 붙입니다. 10분이면 되고, 프로젝트 파일을
+   Xcode 가 만들기 때문에 이 오류가 생길 수 없습니다.
 
 > 이 프로젝트는 Xcode 가 Info.plist 를 직접 만들도록(`GENERATE_INFOPLIST_FILE = YES`)
 > 되어 있어 Bundle ID 가 비는 일이 없어야 합니다. 예전 방식(Info.plist 안에
@@ -107,6 +124,7 @@ Bundle Identifier 가 남이 쓰고 있는 이름입니다. `com.본인이름.fo
 | `FootScan/Resources/index.html` | `../app/app.html` 복사본 (`sync_web.sh` 가 만듭니다) |
 | `make_project.py` | `FootScan.xcodeproj` 를 만들어 내는 스크립트 |
 | `doctor.sh` | 빌드가 안 될 때 원인을 찾아 주는 점검 스크립트 |
+| `PlanB/` | 이 프로젝트가 안 되면 쓰는 대안 — Xcode 로 새로 만들어 붙이기 |
 
 ### 왜 앱 안에 서버를 띄우나
 

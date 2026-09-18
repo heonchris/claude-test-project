@@ -13,6 +13,18 @@ echo "Xcode   $(xcodebuild -version 2>/dev/null | head -1)"
 echo "SDK     $(xcodebuild -showsdks 2>/dev/null | grep iphonesimulator | tail -1 | sed 's/.*-sdk //')"
 echo
 
+echo "── 지금 쓰고 있는 프로젝트가 새 것인지 ───────────────"
+if grep -q "GENERATE_INFOPLIST_FILE = YES" "$PROJ/project.pbxproj" 2>/dev/null; then
+  echo "✓ 새 프로젝트 파일입니다 (Xcode 가 Info.plist 를 직접 만듭니다)"
+elif grep -q "GENERATE_INFOPLIST_FILE = NO" "$PROJ/project.pbxproj" 2>/dev/null; then
+  echo "✕ 예전 프로젝트 파일입니다 — 이것이 «Missing bundle ID» 의 원인입니다."
+  echo "   새 패키지의 3_아이폰앱 폴더로 통째로 바꾸거나,"
+  echo "   python3 make_project.py 를 돌려 프로젝트를 다시 만들어 주세요."
+else
+  echo "? 프로젝트 파일을 읽지 못했습니다"
+fi
+echo
+
 echo "── 프로젝트 설정 ─────────────────────────────────────"
 xcodebuild -project "$PROJ" -target "$APP" -configuration Debug -showBuildSettings 2>/dev/null \
   | grep -E "^ *(PRODUCT_BUNDLE_IDENTIFIER|PRODUCT_NAME|GENERATE_INFOPLIST_FILE|INFOPLIST_FILE|INFOPLIST_PATH|DEVELOPMENT_TEAM|CODE_SIGN_STYLE|IPHONEOS_DEPLOYMENT_TARGET) =" \
@@ -50,6 +62,11 @@ if [ ! -f "$A/Info.plist" ]; then
   echo "✕ Info.plist 가 앱 안에 없습니다  ← 이것이 «Missing bundle ID» 의 원인입니다"
   exit 1
 fi
+echo
+echo "── 만들어진 앱의 Info.plist 내용 ─────────────────────"
+plutil -p "$A/Info.plist" 2>/dev/null | head -40
+echo
+
 BID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$A/Info.plist" 2>/dev/null)
 EXE=$(/usr/libexec/PlistBuddy -c "Print :CFBundleExecutable" "$A/Info.plist" 2>/dev/null)
 if [ -z "$BID" ]; then
