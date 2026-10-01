@@ -133,10 +133,20 @@ INSOLE.ble = (function () {
 
     var all = PROFILES.map(function (p) { return p.service; });
 
-    /* 어느 모듈인지 미리 알 수 없으므로 아는 서비스를 전부 걸어 둡니다.
-     * 선택 창에는 그중 하나라도 가진 기기만 나옵니다. */
+    /* 선택 창에 띄울 조건입니다. 여러 개를 주면 OR 로 걸립니다.
+     *
+     * 서비스로만 거르면, 광고 패킷에 서비스 UUID 를 싣지 않는 일부
+     * 짝퉁 모듈이 목록에 아예 안 나옵니다. 흔한 공장 기본 이름도
+     * 함께 걸어 두면 그런 경우에도 보입니다.
+     *   HMSoft = HM-10 기본 이름 · BT05 · AT-09 · JDY-08
+     */
+    var filters = all.map(function (u) { return { services: [u] }; });
+    ["HMSoft", "HM-", "BT05", "AT-", "JDY"].forEach(function (n) {
+      filters.push({ namePrefix: n });
+    });
+
     return navigator.bluetooth.requestDevice({
-      filters: all.map(function (u) { return { services: [u] }; }),
+      filters: filters,
       optionalServices: all
     }).then(function (d) {
       device = d;
