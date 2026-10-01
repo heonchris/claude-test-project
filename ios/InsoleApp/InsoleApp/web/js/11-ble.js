@@ -16,11 +16,26 @@ INSOLE.ble = (function () {
   "use strict";
   var C = INSOLE.config;
 
-  /* DATA_CONTRACT.md 의 값. 펌웨어가 확정되면 여기만 바꾸면 됩니다. */
-  var SERVICE_UUID = "0000fff0-0000-1000-8000-00805f9b34fb";
-  var NOTIFY_UUID  = "0000fff1-0000-1000-8000-00805f9b34fb";
+  /* 쓰는 모듈마다 UUID 가 다릅니다. 위에서부터 차례로 시도합니다.
+   *
+   * HM-10 · AT-09 · BT05 (CC2541) 은 공장 기본값이 FFE0/FFE1 입니다.
+   * DATA_CONTRACT.md 의 FFF0/FFF1 은 자체 펌웨어를 만들 때 쓸 임시값이라,
+   * 시중 모듈을 그냥 꽂으면 FFE0 쪽으로 잡힙니다.
+   * 펌웨어가 확정되면 그 UUID 하나만 남기면 됩니다.
+   */
+  var PROFILES = [
+    { name: "HM-10 / AT-09 계열",
+      service: "0000ffe0-0000-1000-8000-00805f9b34fb",
+      notify:  "0000ffe1-0000-1000-8000-00805f9b34fb" },
+    { name: "자체 펌웨어 (DATA_CONTRACT)",
+      service: "0000fff0-0000-1000-8000-00805f9b34fb",
+      notify:  "0000fff1-0000-1000-8000-00805f9b34fb" }
+  ];
+  var SERVICE_UUID = PROFILES[0].service;   /* 하위 호환용 참고값 */
+  var NOTIFY_UUID  = PROFILES[0].notify;
   var PACKET_BYTES = 2 + C.CHANNELS * 2 * 2;   /* 헤더1 + 순번1 + 16채널×2바이트 = 34 */
   var HEADER = 0xA5;
+  var profile = null;   /* 실제로 잡힌 프로필 */
 
   var device = null, characteristic = null;
   var listeners = [];
@@ -55,18 +70,42 @@ INSOLE.ble = (function () {
     return !!(device && device.gatt && device.gatt.connected);
   }
 
-  /* ── 패킷 해석 ────────────────────────────────────────────
-   * 34바이트를 받아 채널값으로 풉니다. 형식이 어긋나면 버립니다.
-   * 잘못된 패킷을 그냥 쓰면 화면이 튀고 원인을 찾기 어려워집니다.
+  /* ── 조각 모으기 ──────────────────────────────────────────
+   * BLE 는 한 번에 20바이트까지만 보냅니다. 34바이트 패킷은 20 + 14 로
+   * 쪼개져 도착하므로, 받은 조각을 이어 붙였다가 헤더(0xA5)를 찾아
+   * 34바이트가 모이면 한 패킷으로 넘깁니다.
+   *
+   * 한계: 데이터 안에 우연히 0xA5 가 있으면 한 번 어긋날 수 있습니다.
+   * 그 경우 다음 패킷에서 순번이 튀므로 아래에서 자동으로 다시 맞춥니다.
    */
-  function handlePacket(dv) {
-    if (dv.byteLength !== PACKET_BYTES || dv.getUint8(0) !== HEADER) {
-      stats.bad++;
-      return;
+  var buf = [];
+  var MAX_BUF = PACKET_BYTES * 4;   /* 쓰레기가 쌓이지 않게 상한을 둔다 */
+
+  function feed(dv) {
+    var i;
+    for (i = 0; i < dv.byteLength; i++) buf.push(dv.getUint8(i));
+
+    for (;;) {
+      /* 맨 앞이 헤더가 아니면 헤더가 나올 때까지 버린다 */
+      while (buf.length && buf[0] !== HEADER) { buf.shift(); stats.bad++; }
+      if (buf.length < PACKET_BYTES) break;
+
+      var frame = buf.slice(0, PACKET_BYTES);
+      buf = buf.slice(PACKET_BYTES);
+      handlePacket(frame);
     }
 
+    if (buf.length > MAX_BUF) buf = buf.slice(buf.length - MAX_BUF);
+  }
+
+  /* ── 패킷 해석 ────────────────────────────────────────────
+   * 34바이트 배열을 받아 채널값으로 풉니다.
+   */
+  function handlePacket(bytes) {
+    function u16(off) { return bytes[off] | (bytes[off + 1] << 8); }   /* little-endian */
+
     /* 순번으로 유실을 셉니다. 무선이 불안정한지 판단하는 근거가 됩니다. */
-    var seq = dv.getUint8(1);
+    var seq = bytes[1];
     if (stats.lastSeq >= 0) {
       var gap = (seq - stats.lastSeq + 256) % 256;
       if (gap > 1) stats.dropped += gap - 1;
@@ -76,8 +115,8 @@ INSOLE.ble = (function () {
 
     var v = INSOLE.sensor.values;
     for (var i = 0; i < C.CHANNELS; i++) {
-      v.L[i] = dv.getUint16(2 + i * 2, true);                          /* ch1~8  */
-      v.R[i] = dv.getUint16(2 + (i + C.CHANNELS) * 2, true);           /* ch9~16 */
+      v.L[i] = u16(2 + i * 2);                          /* ch1~8  */
+      v.R[i] = u16(2 + (i + C.CHANNELS) * 2);           /* ch9~16 */
     }
     /* 오류값 정리와 수신 시각 기록은 health 가 담당합니다. */
     INSOLE.health.sanitize(v);
@@ -92,9 +131,13 @@ INSOLE.ble = (function () {
   function connect() {
     if (!supported()) return Promise.reject(new Error(unsupportedReason()));
 
+    var all = PROFILES.map(function (p) { return p.service; });
+
+    /* 어느 모듈인지 미리 알 수 없으므로 아는 서비스를 전부 걸어 둡니다.
+     * 선택 창에는 그중 하나라도 가진 기기만 나옵니다. */
     return navigator.bluetooth.requestDevice({
-      filters: [{ services: [SERVICE_UUID] }],
-      optionalServices: [SERVICE_UUID]
+      filters: all.map(function (u) { return { services: [u] }; }),
+      optionalServices: all
     }).then(function (d) {
       device = d;
       device.addEventListener("gattserverdisconnected", function () {
@@ -105,17 +148,31 @@ INSOLE.ble = (function () {
       emit("connecting", { name: d.name });
       return d.gatt.connect();
     }).then(function (server) {
-      return server.getPrimaryService(SERVICE_UUID);
-    }).then(function (service) {
-      return service.getCharacteristic(NOTIFY_UUID);
+      /* 아는 프로필을 위에서부터 시도합니다. 먼저 잡히는 것을 씁니다. */
+      var i = 0;
+      function tryNext() {
+        if (i >= PROFILES.length) {
+          throw new Error(
+            "이 기기에서 아는 블루투스 서비스를 찾지 못했습니다. " +
+            "모듈이 HM-10 · AT-09 계열인지 확인하세요. " +
+            "HC-05 · HC-06 은 방식이 달라 브라우저에서 연결할 수 없습니다.");
+        }
+        var p = PROFILES[i++];
+        return server.getPrimaryService(p.service)
+          .then(function (svc) { return svc.getCharacteristic(p.notify); })
+          .then(function (ch) { profile = p; return ch; })
+          .catch(tryNext);
+      }
+      return tryNext();
     }).then(function (ch) {
       characteristic = ch;
       ch.addEventListener("characteristicvaluechanged", function (e) {
-        handlePacket(e.target.value);
+        feed(e.target.value);
       });
       return ch.startNotifications();
     }).then(function () {
       stats = { packets: 0, dropped: 0, bad: 0, lastSeq: -1 };
+      buf = [];
       /* 이제 시뮬레이터 대신 실제 값이 들어옵니다. */
       INSOLE.sensor.setSource("ble");
       emit("connected", { name: device.name || "인솔" });
@@ -139,12 +196,16 @@ INSOLE.ble = (function () {
   }
 
   function deviceName() { return device && device.name ? device.name : null; }
+  function profileName() { return profile ? profile.name : null; }
   function getStats() { return stats; }
 
   return {
     supported: supported, unsupportedReason: unsupportedReason,
     connect: connect, disconnect: disconnect, isConnected: isConnected,
-    deviceName: deviceName, stats: getStats, onChange: onChange,
-    SERVICE_UUID: SERVICE_UUID, NOTIFY_UUID: NOTIFY_UUID, PACKET_BYTES: PACKET_BYTES
+    deviceName: deviceName, profileName: profileName,
+    stats: getStats, onChange: onChange,
+    PROFILES: PROFILES, PACKET_BYTES: PACKET_BYTES,
+    SERVICE_UUID: SERVICE_UUID, NOTIFY_UUID: NOTIFY_UUID,
+    _feed: feed   /* 테스트용 */
   };
 })();
