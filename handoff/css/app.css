@@ -407,3 +407,11 @@
     font-size:.78rem;line-height:1.5;padding:.6rem .8rem;
     word-break:break-all;
   }
+
+  /* 수신 바이트 16진수 */
+  .hexbox{
+    margin:.2rem 0 0;padding:.5rem .6rem;border-radius:8px;
+    background:var(--sunk);color:var(--ink-2);
+    font-family:"IBM Plex Mono",monospace;font-size:.7rem;line-height:1.6;
+    white-space:pre-wrap;word-break:break-all;
+  }

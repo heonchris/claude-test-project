@@ -143,6 +143,19 @@
       </div>
 
       <div class="card">
+        <div class="card-t"><h2>무선으로 들어온 것</h2><span class="n">해석 전 날것</span></div>
+        <p class="hintline">화면이 조용할 때 <b>여기부터</b> 보세요. 받은 바이트가 0 이면 모듈이 아무것도 안 보내는 것이고,
+          숫자는 오르는데 <b>해석된 패킷</b>이 0 이면 내용이 깨진 것입니다.</p>
+        <div class="dgrid">
+          <div class="d"><span class="l">받은 바이트</span><span class="v" id="rxBytes">0</span></div>
+          <div class="d"><span class="l">수신 횟수</span><span class="v" id="rxCnt">0</span></div>
+        </div>
+        <p class="hintline" style="margin-top:.5rem">마지막으로 들어온 바이트 (16진수)</p>
+        <pre id="rxHex" class="hexbox">–</pre>
+        <p class="hintline" id="rxVerdict">–</p>
+      </div>
+
+      <div class="card">
         <div class="card-t"><h2>영점 보정</h2><span class="n" id="zeroState">설정 안 됨</span></div>
         <p class="hintline">인솔에 <b>발을 올리지 않은 상태</b>에서 누르세요. 센서마다 다른 무부하 값을 기준으로 잡아 좌우 비교를 정확하게 만듭니다.</p>
         <div class="exp-btns">
@@ -237,7 +250,7 @@
 
 <!-- 로드 순서가 중요합니다. 번호 순서대로 읽어주세요.
      ES 모듈이 아닌 일반 스크립트라 file:// 로 그냥 열어도 동작합니다. -->
-<meta name="app-version" content="v9">
+<meta name="app-version" content="v10">
 <script src="js/01-config.js"></script>
 <script src="js/02-sensor.js"></script>
 <script src="js/03-metrics.js"></script>

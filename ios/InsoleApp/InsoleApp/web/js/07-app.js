@@ -311,6 +311,35 @@
     }
   }
 
+  /* 해석 전 수신 바이트. 무선이 조용할 때 원인을 가르는 유일한 근거입니다. */
+  function renderRx() {
+    var r = INSOLE.ble.rx(), st = INSOLE.ble.stats();
+    setText("rxBytes", String(r.bytes));
+    setText("rxCnt", String(r.notifies));
+
+    var hex = r.last.length
+      ? r.last.map(function (b) {
+          return (b < 16 ? "0" : "") + b.toString(16).toUpperCase();
+        }).join(" ")
+      : "–";
+    setText("rxHex", hex);
+
+    var v;
+    if (INSOLE.sensor.getSource() !== "ble") {
+      v = "인솔에 연결되어 있지 않습니다.";
+    } else if (r.bytes === 0) {
+      v = "연결은 됐는데 바이트가 하나도 안 옵니다 → 아두이노가 모듈로 보내지 못하는 중입니다. " +
+          "아두이노 3번 핀이 모듈 RXD 에 꽂혔는지, 블루투스로 보내는 스케치가 올라가 있는지 확인하세요.";
+    } else if (st.packets === 0) {
+      v = "바이트는 오는데 해석이 안 됩니다 → 내용이 깨졌습니다. " +
+          "모듈 통신 속도(기본 9600)와 스케치의 bt.begin() 숫자가 다를 때 이렇게 됩니다. " +
+          "위 16진수에 A5 가 보이면 속도는 맞는 것입니다.";
+    } else {
+      v = "정상입니다. 해석된 패킷 " + st.packets + "개.";
+    }
+    setText("rxVerdict", v);
+  }
+
   /* 앱바의 연결 표시와 진단 탭의 연결 카드를 한 곳에서 갱신합니다. */
   function renderConnection() {
     var onBle = INSOLE.sensor.getSource() === "ble";
@@ -540,8 +569,10 @@
     /* 설정 탭을 보고 있을 때만 값을 새로 씁니다. 측정 루프와 무관하게
      * 돌아야 연결만 해둔 상태에서도 어느 센서가 눌리는지 보입니다. */
     setInterval(function () {
-      if (!$("sc-set").classList.contains("on")) return;
-      updateMapValues();
+      if ($("sc-set").classList.contains("on")) updateMapValues();
+      /* 진단 탭은 측정 중이 아니어도 갱신돼야 합니다. 연결만 해둔 채
+       * 무선이 오는지 확인하는 것이 이 화면의 목적이기 때문입니다. */
+      if ($("sc-diag").classList.contains("on")) renderRx();
     }, 200);
 
     shown = S.read();

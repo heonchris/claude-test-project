@@ -39,6 +39,13 @@ INSOLE.ble = (function () {
 
   var device = null, characteristic = null;
   var lastRaw = null;   /* 매핑 전 원래 채널 순서. 설정 화면이 씁니다. */
+
+  /* 들어온 바이트를 해석 전에 그대로 보관합니다.
+   *
+   * 해석에 실패하면 화면은 그냥 조용합니다. 그러면 모듈이 아무것도
+   * 안 보내는 것인지, 보내는데 내용이 깨진 것인지 구분할 수가 없어
+   * 원인을 하드웨어에서 찾게 됩니다. 날것을 보여 주면 한 번에 갈립니다. */
+  var rx = { bytes: 0, notifies: 0, last: [], at: 0 };
   var listeners = [];
   var stats = { packets: 0, dropped: 0, bad: 0, lastSeq: -1 };
 
@@ -83,8 +90,18 @@ INSOLE.ble = (function () {
   var MAX_BUF = PACKET_BYTES * 4;   /* 쓰레기가 쌓이지 않게 상한을 둔다 */
 
   function feed(dv) {
-    var i;
-    for (i = 0; i < dv.byteLength; i++) buf.push(dv.getUint8(i));
+    var i, b;
+
+    /* 해석하기 전에 먼저 기록합니다. */
+    rx.notifies++;
+    rx.bytes += dv.byteLength;
+    rx.at = Date.now();
+    for (i = 0; i < dv.byteLength; i++) {
+      b = dv.getUint8(i);
+      rx.last.push(b);
+      buf.push(b);
+    }
+    if (rx.last.length > 24) rx.last = rx.last.slice(rx.last.length - 24);
 
     for (;;) {
       /* 맨 앞이 헤더가 아니면 헤더가 나올 때까지 버린다 */
@@ -192,6 +209,7 @@ INSOLE.ble = (function () {
     }).then(function () {
       stats = { packets: 0, dropped: 0, bad: 0, lastSeq: -1 };
       buf = [];
+      rx = { bytes: 0, notifies: 0, last: [], at: 0 };
       /* 이제 시뮬레이터 대신 실제 값이 들어옵니다. */
       INSOLE.sensor.setSource("ble");
       emit("connected", { name: device.name || "인솔" });
@@ -223,6 +241,7 @@ INSOLE.ble = (function () {
     connect: connect, disconnect: disconnect, isConnected: isConnected,
     deviceName: deviceName, profileName: profileName,
     lastRaw: function () { return lastRaw; },
+    rx: function () { return rx; },
     stats: getStats, onChange: onChange,
     PROFILES: PROFILES, PACKET_BYTES: PACKET_BYTES,
     SERVICE_UUID: SERVICE_UUID, NOTIFY_UUID: NOTIFY_UUID,
