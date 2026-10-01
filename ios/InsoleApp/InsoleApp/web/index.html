@@ -153,6 +153,12 @@
         <p class="hintline" style="margin-top:.5rem">마지막으로 들어온 바이트 (16진수)</p>
         <pre id="rxHex" class="hexbox">–</pre>
         <p class="hintline" id="rxVerdict">–</p>
+        <p class="hintline" style="margin-top:.6rem"><b>반대 방향 시험</b> — 앱에서 모듈로 글자를 보냅니다.
+          아두이노에 메아리 스케치를 올린 뒤 누르면, 시리얼 모니터에 <code>HELLO</code> 가 찍혀야 합니다.</p>
+        <div class="exp-btns">
+          <button class="mini ghost" id="bleSend" type="button">모듈로 HELLO 보내기</button>
+        </div>
+        <p class="hintline" id="sendState">–</p>
       </div>
 
       <div class="card">
@@ -250,7 +256,7 @@
 
 <!-- 로드 순서가 중요합니다. 번호 순서대로 읽어주세요.
      ES 모듈이 아닌 일반 스크립트라 file:// 로 그냥 열어도 동작합니다. -->
-<meta name="app-version" content="v10">
+<meta name="app-version" content="v11">
 <script src="js/01-config.js"></script>
 <script src="js/02-sensor.js"></script>
 <script src="js/03-metrics.js"></script>

@@ -232,6 +232,21 @@ INSOLE.ble = (function () {
     emit("disconnected", {});
   }
 
+  /* 앱 -> 모듈 -> 아두이노 방향 시험용.
+   *
+   * 지금까지는 아두이노가 모듈로 보내는 쪽만 확인했습니다. 반대로
+   * 보내 보면 모듈의 어느 쪽이 죽었는지 가려집니다. HM-10 계열은
+   * 같은 특성(FFE1)으로 읽고 쓰기를 모두 합니다. */
+  function send(text) {
+    if (!characteristic) return Promise.reject(new Error("연결되어 있지 않습니다."));
+    var bytes = new TextEncoder().encode(text);
+    if (characteristic.writeValueWithoutResponse) {
+      return characteristic.writeValueWithoutResponse(bytes)
+        .catch(function () { return characteristic.writeValue(bytes); });
+    }
+    return characteristic.writeValue(bytes);
+  }
+
   function deviceName() { return device && device.name ? device.name : null; }
   function profileName() { return profile ? profile.name : null; }
   function getStats() { return stats; }
@@ -241,6 +256,7 @@ INSOLE.ble = (function () {
     connect: connect, disconnect: disconnect, isConnected: isConnected,
     deviceName: deviceName, profileName: profileName,
     lastRaw: function () { return lastRaw; },
+    send: send,
     rx: function () { return rx; },
     stats: getStats, onChange: onChange,
     PROFILES: PROFILES, PACKET_BYTES: PACKET_BYTES,

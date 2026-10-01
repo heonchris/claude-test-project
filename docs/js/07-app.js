@@ -453,6 +453,18 @@
       renderMapTable();
     });
 
+    if (document.getElementById("bleSend"))
+    $("bleSend").addEventListener("click", function () {
+      var btn = this;
+      btn.disabled = true;
+      setText("sendState", "보내는 중…");
+      INSOLE.ble.send("HELLO\n").then(function () {
+        setText("sendState", "보냈습니다. 아두이노 시리얼 모니터를 확인하세요.");
+      }).catch(function (e) {
+        setText("sendState", "보내기 실패: " + ((e && e.message) || String(e)));
+      }).then(function () { btn.disabled = false; });
+    });
+
     wireConnect("bleConnect", "인솔 연결", null);
     wireConnect("bleAny", "모든 기기 보기", { any: true });
     $("bleDisconnect").addEventListener("click", function () {
