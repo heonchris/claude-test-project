@@ -20,6 +20,7 @@
 | 1채널 센서 테스트 펌웨어 | **있음** | `hardware/step1_fsr_test` |
 | 블루투스 모듈 테스트 펌웨어 | **있음** | `hardware/step2_bluetooth_test` (자가진단 포함) |
 | 규격 패킷 송신 펌웨어 | **있음** | `hardware/step3_packet_stream` (1채널) |
+| 다채널 펌웨어 | **있음** | `hardware/step4_multi_channel` (핀 배열만 수정) |
 | 8채널 펌웨어 | **없음** | 미착수 |
 | 실제 센서로 검증 | **1채널 성공** | 센서→아두이노→BLE→앱 전 구간 확인 (2025-10) |
 | 백엔드·DB | **없음** | 미착수 |
@@ -98,9 +99,10 @@ app/         ← 초기 단일 파일 프로토타입 (보관용. handoff/ 가 �
 1. **`hardware/step1_fsr_test`** — 센서 1개 포화 테스트. 여기서 막히면 다음이 무의미
 2. **`hardware/step2_bluetooth_test`** — 블루투스 모듈 종류 확인 및 무선 전송 확인
 3. **`hardware/step3_packet_stream`** — 규격 패킷으로 앱 히트맵 띄우기
-4. 8채널 펌웨어 — 우노는 아날로그 핀이 6개뿐이라 나노(A0~A7) 또는 멀티플렉서 필요
-5. 실측값으로 `handoff/js/01-config.js` 의 판정 임계값 재보정
-6. 백엔드·DB 설계 (`DATA_CONTRACT.md` 5절 초안 참조)
+4. **`hardware/step4_multi_channel`** — 센서 여러 개 (`PINS` 한 줄만 고치면 됨)
+5. 8채널 펌웨어 — 나노(A0~A7)로 — 우노는 아날로그 핀이 6개뿐이라 나노(A0~A7) 또는 멀티플렉서 필요
+6. 실측값으로 `handoff/js/01-config.js` 의 판정 임계값 재보정
+7. 백엔드·DB 설계 (`DATA_CONTRACT.md` 5절 초안 참조)
 
 ---
 
