@@ -268,6 +268,7 @@
 
     $("bleMode").textContent = onBle ? "실제 인솔" : "시뮬레이션";
     $("bleConnect").hidden = onBle;
+    $("bleAny").hidden = onBle;
     $("bleDisconnect").hidden = !onBle;
 
     var hint = $("bleHint");
@@ -341,14 +342,25 @@
     });
 
     /* 기기 선택 창은 사용자가 버튼을 눌러야만 열 수 있습니다. */
-    $("bleConnect").addEventListener("click", function () {
-      var btn = this;
-      btn.disabled = true; btn.textContent = "연결 중…";
-      INSOLE.ble.connect().catch(function () {}).then(function () {
-        btn.disabled = false; btn.textContent = "인솔 연결";
-        renderConnection();
+    function wireConnect(id, label, opts) {
+      $(id).addEventListener("click", function () {
+        var btn = this;
+        btn.disabled = true; btn.textContent = "연결 중…";
+        INSOLE.ble.connect(opts).catch(function (err) {
+          /* 조용히 삼키면 왜 안 되는지 알 수 없습니다. 화면에 띄웁니다. */
+          var m = (err && err.message) || String(err);
+          if (err && err.name === "NotFoundError") m =
+            "기기를 고르지 않았거나, 목록에 아무것도 나오지 않았습니다. " +
+            "위치(GPS)가 켜져 있는지, 모듈 LED 가 깜빡이는지 확인하세요.";
+          $("bleHint").textContent = m;
+        }).then(function () {
+          btn.disabled = false; btn.textContent = label;
+          renderConnection();
+        });
       });
-    });
+    }
+    wireConnect("bleConnect", "인솔 연결", null);
+    wireConnect("bleAny", "모든 기기 보기", { any: true });
     $("bleDisconnect").addEventListener("click", function () {
       INSOLE.ble.disconnect();
       renderConnection();

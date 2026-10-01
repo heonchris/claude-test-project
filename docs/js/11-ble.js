@@ -128,9 +128,10 @@ INSOLE.ble = (function () {
    * 반드시 사용자가 버튼을 눌러 호출해야 합니다 —
    * 브라우저가 기기 선택 창을 띄우려면 사용자 동작이 필요합니다.
    */
-  function connect() {
+  function connect(opts) {
     if (!supported()) return Promise.reject(new Error(unsupportedReason()));
 
+    var anyDevice = !!(opts && opts.any);
     var all = PROFILES.map(function (p) { return p.service; });
 
     /* 선택 창에 띄울 조건입니다. 여러 개를 주면 OR 로 걸립니다.
@@ -145,10 +146,14 @@ INSOLE.ble = (function () {
       filters.push({ namePrefix: n });
     });
 
-    return navigator.bluetooth.requestDevice({
-      filters: filters,
-      optionalServices: all
-    }).then(function (d) {
+    /* anyDevice: 조건을 전부 빼고 주변의 모든 기기를 보여 줍니다.
+     * 모듈이 조건에 안 걸려 목록이 비는 것인지, 아예 신호를 안 내보내는
+     * 것인지 구분하는 용도입니다. 목록이 지저분해지므로 진단 전용입니다. */
+    var req = anyDevice
+      ? { acceptAllDevices: true, optionalServices: all }
+      : { filters: filters, optionalServices: all };
+
+    return navigator.bluetooth.requestDevice(req).then(function (d) {
       device = d;
       device.addEventListener("gattserverdisconnected", function () {
         characteristic = null;
