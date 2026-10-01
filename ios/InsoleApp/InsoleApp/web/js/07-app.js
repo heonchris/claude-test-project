@@ -266,6 +266,15 @@
    */
   var MAP_PRESS = 80;   /* 이 값을 넘으면 '지금 눌리는 중'으로 봅니다 */
 
+  /* 서비스워커 때문에 index.html 과 js 의 버전이 어긋나 뜰 수 있습니다.
+   * 그때 요소 하나가 없다고 뒤 코드가 전부 멈추면, 화면은 멀쩡해 보이는데
+   * 기능만 조용히 빠져 있어 원인을 찾기가 매우 어렵습니다. */
+  function setText(id, text) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = text;
+    return !!el;
+  }
+
   function renderMapTable() {
     var M = INSOLE.mapping, html = "", ch, slot, opts;
     for (ch = 0; ch < M.N; ch++) {
@@ -281,13 +290,18 @@
                 '<td><select class="mapsel" data-ch="' + ch + '">' + opts + '</select></td>' +
               '</tr>';
     }
-    $("mapTable").querySelector("tbody").innerHTML = html;
-    $("mapState").textContent = M.isDefault() ? "기본값" : "직접 설정함";
+    var tb = document.getElementById("mapTable");
+    if (!tb) return false;
+    tb.querySelector("tbody").innerHTML = html;
+    setText("mapState", M.isDefault() ? "기본값" : "직접 설정함");
+    return true;
   }
 
   function updateMapValues() {
+    var tb = document.getElementById("mapTable");
+    if (!tb) return;
     var raw = INSOLE.ble.lastRaw();
-    var rows = $("mapTable").querySelectorAll("tr");
+    var rows = tb.querySelectorAll("tr");
     for (var i = 0; i < rows.length; i++) {
       var cell = rows[i].querySelector("[data-v]");
       if (!raw) { cell.textContent = "–"; rows[i].classList.remove("hot"); continue; }
@@ -397,12 +411,14 @@
         });
       });
     }
+    if (document.getElementById("mapTable"))
     $("mapTable").addEventListener("change", function (e) {
       var sel = e.target;
       if (!sel.classList.contains("mapsel")) return;
       INSOLE.mapping.assign(parseInt(sel.dataset.ch, 10), parseInt(sel.value, 10));
       renderMapTable();   /* 자리를 맞바꿨으므로 다른 줄도 바뀝니다 */
     });
+    if (document.getElementById("mapReset"))
     $("mapReset").addEventListener("click", function () {
       INSOLE.mapping.reset();
       renderMapTable();
@@ -516,8 +532,11 @@
     tickClock();
     setInterval(tickClock, 20000);
 
-    $("appVer").textContent = C.APP_VERSION;
-    renderMapTable();
+    /* 표를 먼저 그립니다. 뒤 줄이 실패해도 설정은 쓸 수 있어야 합니다. */
+    if (!renderMapTable()) {
+      banner("화면 파일이 예전 것입니다. 잠시 후 자동으로 새로 받습니다…");
+    }
+    setText("appVer", C.APP_VERSION);
     /* 설정 탭을 보고 있을 때만 값을 새로 씁니다. 측정 루프와 무관하게
      * 돌아야 연결만 해둔 상태에서도 어느 센서가 눌리는지 보입니다. */
     setInterval(function () {
@@ -558,6 +577,30 @@
     }, 140);
   });
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
-  else boot();
+  /* 콘솔을 열 수 없는 환경에서 쓰는 앱입니다. 오류를 화면에 보여 주지
+   * 않으면 "그냥 안 돼요" 외에 전할 수 있는 정보가 없습니다. */
+  function banner(msg) {
+    var el = document.getElementById("errBar");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "errBar";
+      el.setAttribute("role", "status");
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.hidden = false;
+  }
+
+  window.addEventListener("error", function (e) {
+    banner("오류: " + (e.message || "알 수 없음") +
+           " (" + String(e.filename || "").split("/").pop() + ":" + e.lineno + ")");
+  });
+
+  function safeBoot() {
+    try { boot(); }
+    catch (err) { banner("시작 실패: " + ((err && err.message) || String(err))); }
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", safeBoot);
+  else safeBoot();
 })();
