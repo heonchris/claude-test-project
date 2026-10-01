@@ -61,7 +61,16 @@ INSOLE.health = (function () {
    * 채널 하나의 상태.
    * @returns {"ok"|"dead"|"sat"|"unknown"}
    */
+  /* 2점 구성에서는 나머지 자리가 추정값이므로 고장 판정을 하지 않습니다.
+   * 하지 않으면 멀쩡한 기기가 '문제 채널 14개' 로 보입니다. */
+  function isActive(i) {
+    var slots = INSOLE.expand && INSOLE.expand.activeSlots();
+    return !slots || slots.indexOf(i) >= 0;
+  }
+
   function channelState(side, i) {
+    if (!isActive(i)) return "off";
+
     /* 데이터가 안 들어오는 중이면 상태를 단정하면 안 됩니다.
      * 이 처리가 없으면 측정을 멈춘 뒤에도 마지막 상태가 그대로 굳어서
      * "포화" 경고가 영영 남아 있게 됩니다. */
@@ -82,11 +91,12 @@ INSOLE.health = (function () {
 
   /** 전체 요약. { ok, dead, sat, unknown, problems: [{side,ch,state}] } */
   function summary() {
-    var out = { ok: 0, dead: 0, sat: 0, unknown: 0, problems: [] };
+    var out = { ok: 0, dead: 0, sat: 0, unknown: 0, off: 0, total: 0, problems: [] };
     ["L", "R"].forEach(function (side) {
       for (var i = 0; i < C.CHANNELS; i++) {
         var st = channelState(side, i);
         out[st]++;
+        if (st !== "off") out.total++;        /* 쓰지 않는 자리는 분모에서 뺀다 */
         if (st === "dead" || st === "sat") out.problems.push({ side: side, ch: i, state: st });
       }
     });
@@ -200,7 +210,7 @@ INSOLE.health = (function () {
   function reset() { init(); stamps = []; lastStamp = 0; }
 
   return {
-    push: push, sanitize: sanitize,
+    push: push, sanitize: sanitize, isActive: isActive,
     channelState: channelState, summary: summary,
     markFrame: markFrame, actualHz: actualHz, isLive: isLive, sinceLast: sinceLast,
     captureZero: captureZero, clearZero: clearZero, hasZero: hasZero, loadZero: loadZero,

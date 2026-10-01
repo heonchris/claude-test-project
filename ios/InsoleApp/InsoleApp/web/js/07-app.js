@@ -196,7 +196,7 @@
   }
 
   /* ── 진단 화면 ────────────────────────────────────────────*/
-  var STATE_LABEL = { ok: "정상", dead: "끊김", sat: "포화", unknown: "확인 중" };
+  var STATE_LABEL = { ok: "정상", dead: "끊김", sat: "포화", unknown: "확인 중", off: "미사용" };
 
   function renderHealth() {
     var sum = INSOLE.health.summary();
@@ -228,7 +228,7 @@
     dEl.textContent = st;
     dEl.className = "v " + (st === "끊김" ? "bad" : st === "수신 중" ? "good" : "");
     $("dHz").innerHTML = (hz ? hz.toFixed(1) : "–") + '<small>Hz</small>';
-    $("dOk").innerHTML = sum.ok + '<small>/' + (C.CHANNELS * 2) + '</small>';
+    $("dOk").innerHTML = sum.ok + '<small>/' + (sum.total || C.CHANNELS * 2) + '</small>';
     var bad = $("dBad");
     bad.textContent = sum.problems.length ? String(sum.problems.length) : "0";
     bad.className = "v " + (sum.problems.length ? "bad" : "good");
@@ -248,7 +248,8 @@
         var n = side === "L" ? i + 1 : i + 1 + C.CHANNELS;
         var val = shown[side][i];
         var st = INSOLE.health.channelState(side, i);
-        html += '<tr><td class="n">ch' + n + '</td><td>' +
+        html += '<tr' + (st === "off" ? ' class="dim"' : '') +
+                '><td class="n">ch' + n + '</td><td>' +
                 (side === "L" ? "왼" : "오른") + '·' + C.SENSORS[i].name + '</td>' +
                 '<td class="n">' + val + '</td>' +
                 '<td style="width:26%"><span class="bar' + (side === "R" ? " r" : "") +
@@ -309,6 +310,37 @@
       cell.textContent = String(val);
       rows[i].classList.toggle("hot", val >= MAP_PRESS);
     }
+  }
+
+  /* ── 센서 구성 ────────────────────────────────────────────
+   * 실제로 단 센서가 몇 개인지에 따라 화면과 진단이 달라집니다.
+   * 2점 구성이면 나머지 자리를 추정으로 채워 히트맵을 완성하되,
+   * 추정이라는 사실을 화면에 적어 둡니다.
+   */
+  var MODES = [
+    { key: "full", label: "8채널 전부 실측",
+      desc: "발마다 센서 8개를 모두 단 구성" },
+    { key: "pair", label: "앞·뒤 2점 (추정 표시)",
+      desc: "발마다 센서 2개. 나머지 자리는 두 값에서 추정해 그립니다" }
+  ];
+
+  function renderModes() {
+    if (!document.getElementById("modeList")) return;
+    var cur = INSOLE.expand.getMode();
+    $("modeList").innerHTML = MODES.map(function (m) {
+      return '<button class="opt" type="button" data-m="' + m.key + '">' +
+             '<span class="ob">' + m.label + '<span class="od">' + m.desc + '</span></span>' +
+             '<span class="ck">' + (m.key === cur ? "✓" : "") + '</span></button>';
+    }).join("");
+    setText("modeState", cur === "pair" ? "2점 추정" : "8채널");
+    setText("modeHint", cur === "pair"
+      ? "센서는 " + INSOLE.expand.slotName(INSOLE.expand.FORE_SLOT) + " 와 " +
+        INSOLE.expand.slotName(INSOLE.expand.HEEL_SLOT) + " 두 곳에 답니다. " +
+        "히트맵의 나머지 부분은 이 두 값에서 계산한 추정입니다 — 측정값이 아닙니다. " +
+        "좌우·전후 비율은 실측 두 값이 정하므로 그대로 믿으셔도 됩니다."
+      : "모든 자리를 실제 센서가 측정합니다.");
+    var note = document.getElementById("estNote");
+    if (note) note.hidden = (cur !== "pair");
   }
 
   /* 해석 전 수신 바이트. 무선이 조용할 때 원인을 가르는 유일한 근거입니다. */
@@ -440,6 +472,15 @@
         });
       });
     }
+    if (document.getElementById("modeList"))
+    $("modeList").addEventListener("click", function (e) {
+      var b = e.target.closest ? e.target.closest("[data-m]") : null;
+      if (!b) return;
+      INSOLE.expand.setMode(b.dataset.m);
+      renderModes();
+      renderMapTable();
+    });
+
     if (document.getElementById("mapTable"))
     $("mapTable").addEventListener("change", function (e) {
       var sel = e.target;
@@ -577,6 +618,7 @@
     if (!renderMapTable()) {
       banner("화면 파일이 예전 것입니다. 잠시 후 자동으로 새로 받습니다…");
     }
+    renderModes();
     setText("appVer", C.APP_VERSION);
     /* 설정 탭을 보고 있을 때만 값을 새로 씁니다. 측정 루프와 무관하게
      * 돌아야 연결만 해둔 상태에서도 어느 센서가 눌리는지 보입니다. */

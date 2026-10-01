@@ -415,3 +415,11 @@
     font-family:"IBM Plex Mono",monospace;font-size:.7rem;line-height:1.6;
     white-space:pre-wrap;word-break:break-all;
   }
+
+  /* 2점 구성 — 추정 표시 */
+  .estnote{
+    margin:.1rem 0 .35rem;text-align:center;
+    font-size:.68rem;letter-spacing:.01em;color:var(--faint);
+  }
+  table.ch tr.dim td{opacity:.42}
+  .st-off{background:var(--sunk);color:var(--faint)}

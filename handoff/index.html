@@ -61,6 +61,7 @@
           <span class="ramp"><span class="ramp-t">약함</span><span class="ramp-b" id="rampBar"></span><span class="ramp-t">강함</span></span>
           <span class="foot-l"><span class="dot r"></span>오른발 <b id="pctR">–</b></span>
         </div>
+        <p class="estnote" id="estNote" hidden>앞·뒤 2점 실측 · 나머지는 추정 분포</p>
         <div class="feet">
           <div class="foot"><canvas class="fc" id="footL" width="264" height="686" aria-label="왼발 압력 히트맵"></canvas></div>
           <div class="foot"><canvas class="fc" id="footR" width="264" height="686" aria-label="오른발 압력 히트맵"></canvas></div>
@@ -185,6 +186,13 @@
         <div id="scenList"></div>
       </div>
       <div class="card">
+        <div class="card-t"><h2>센서 구성</h2><span class="n" id="modeState">–</span></div>
+        <p class="hintline">실제로 단 센서가 몇 개인지 알려주면, 화면과 진단이 거기에 맞춰집니다.</p>
+        <div id="modeList"></div>
+        <p class="hintline" id="modeHint" style="margin-top:.5rem">–</p>
+      </div>
+
+      <div class="card">
         <div class="card-t"><h2>센서 위치 설정</h2><span class="n" id="mapState">기본값</span></div>
         <p class="hintline">아두이노의 <b>A0 에 꽂은 센서가 발의 어디에 깔려 있는지</b> 정합니다.
           센서를 꾹 누르면 그 채널이 <b>초록색</b>으로 표시되니, 그 줄의 자리를 바꾸세요.</p>
@@ -256,7 +264,7 @@
 
 <!-- 로드 순서가 중요합니다. 번호 순서대로 읽어주세요.
      ES 모듈이 아닌 일반 스크립트라 file:// 로 그냥 열어도 동작합니다. -->
-<meta name="app-version" content="v11">
+<meta name="app-version" content="v12">
 <script src="js/01-config.js"></script>
 <script src="js/02-sensor.js"></script>
 <script src="js/03-metrics.js"></script>
@@ -268,6 +276,7 @@
 <script src="js/10-wakelock.js"></script>
 <script src="js/11-ble.js"></script>
 <script src="js/12-mapping.js"></script>
+<script src="js/13-expand.js"></script>
 <script src="js/07-app.js"></script>
 <script>
 /* 화면 파일(index.html)과 코드 파일(js)의 버전이 어긋나면 스스로 고칩니다.

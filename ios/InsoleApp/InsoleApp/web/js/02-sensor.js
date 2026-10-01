@@ -91,6 +91,8 @@ INSOLE.sensor = (function () {
     /* 새 데이터가 들어온 시점을 기록합니다.
      * 실제 BLE 를 붙일 때도 패킷 수신 핸들러에서 이 줄을 호출하세요.
      * 화면 갱신 루프에서 부르면 데이터가 끊겨도 정상으로 보입니다. */
+    /* 2점 구성이면 시연에서도 실물과 같은 화면이 나와야 합니다. */
+    if (INSOLE.expand) INSOLE.expand.apply(values);
     if (INSOLE.health) INSOLE.health.markFrame();
   }
 

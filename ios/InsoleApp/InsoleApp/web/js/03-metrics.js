@@ -43,6 +43,12 @@ INSOLE.metrics = (function () {
    * 반환값: 1에 가까울수록 앞쪽, 0에 가까울수록 뒤꿈치.
    */
   function foreAftRatio(values, side) {
+    /* 2점 구성에서는 추정으로 채운 자리가 섞여 있으므로, 무게중심이
+     * 아니라 실측한 두 값에서 직접 구합니다. 그러지 않으면 앞쪽에
+     * 채운 자리가 많아 똑바로 서 있어도 앞으로 쏠린 것으로 나옵니다. */
+    if (INSOLE.expand && INSOLE.expand.isPair()) {
+      return INSOLE.expand.foreAft(values, side);
+    }
     var cop = centerOfPressure(values, side);
     if (cop.total < 1) return 0.5;
     var r = (C.HEEL_Y - cop.y) / (C.HEEL_Y - C.FORE_Y);
@@ -51,7 +57,17 @@ INSOLE.metrics = (function () {
 
   /** 좌우 비율. 1에 가까울수록 왼발에 쏠린 것. */
   function leftRightRatio(values) {
-    var l = sum(values.L), r = sum(values.R), t = l + r;
+    var l, r;
+    /* 2점 구성에서는 실측 두 값의 합만 씁니다. 추정값을 포함하면,
+     * 한 발은 앞쪽에 한 발은 뒤쪽에 실렸을 때 앞쪽 자리가 더 많은
+     * 쪽이 무겁게 계산되어 없는 좌우 쏠림이 만들어집니다. */
+    if (INSOLE.expand && INSOLE.expand.isPair()) {
+      l = INSOLE.expand.footLoad(values, "L");
+      r = INSOLE.expand.footLoad(values, "R");
+    } else {
+      l = sum(values.L); r = sum(values.R);
+    }
+    var t = l + r;
     return t < 1 ? 0.5 : l / t;
   }
 

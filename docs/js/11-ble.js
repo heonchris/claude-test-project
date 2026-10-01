@@ -138,7 +138,11 @@ INSOLE.ble = (function () {
 
     var v = INSOLE.sensor.values;
     INSOLE.mapping.apply(raw, v);
-    lastRaw = raw;
+    lastRaw = raw;          /* 매핑 전 원본. 진단·기록은 이것만 쓴다 */
+
+    /* 센서가 앞뒤 2점뿐이면 나머지 자리를 추정으로 채웁니다.
+     * 실측값은 그대로 두므로 지표는 왜곡되지 않습니다. */
+    INSOLE.expand.apply(v);
     /* 오류값 정리와 수신 시각 기록은 health 가 담당합니다. */
     INSOLE.health.sanitize(v);
     INSOLE.health.markFrame();
