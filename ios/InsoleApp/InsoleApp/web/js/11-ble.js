@@ -38,6 +38,7 @@ INSOLE.ble = (function () {
   var profile = null;   /* 실제로 잡힌 프로필 */
 
   var device = null, characteristic = null;
+  var lastRaw = null;   /* 매핑 전 원래 채널 순서. 설정 화면이 씁니다. */
   var listeners = [];
   var stats = { packets: 0, dropped: 0, bad: 0, lastSeq: -1 };
 
@@ -113,11 +114,14 @@ INSOLE.ble = (function () {
     stats.lastSeq = seq;
     stats.packets++;
 
+    /* 채널 순서대로 먼저 읽고, 사용자가 정한 자리로 옮겨 담습니다.
+     * 어느 센서가 발의 어디에 깔려 있는지는 12-mapping.js 가 압니다. */
+    var raw = [];
+    for (var i = 0; i < C.CHANNELS * 2; i++) raw.push(u16(2 + i * 2));
+
     var v = INSOLE.sensor.values;
-    for (var i = 0; i < C.CHANNELS; i++) {
-      v.L[i] = u16(2 + i * 2);                          /* ch1~8  */
-      v.R[i] = u16(2 + (i + C.CHANNELS) * 2);           /* ch9~16 */
-    }
+    INSOLE.mapping.apply(raw, v);
+    lastRaw = raw;
     /* 오류값 정리와 수신 시각 기록은 health 가 담당합니다. */
     INSOLE.health.sanitize(v);
     INSOLE.health.markFrame();
@@ -218,6 +222,7 @@ INSOLE.ble = (function () {
     supported: supported, unsupportedReason: unsupportedReason,
     connect: connect, disconnect: disconnect, isConnected: isConnected,
     deviceName: deviceName, profileName: profileName,
+    lastRaw: function () { return lastRaw; },
     stats: getStats, onChange: onChange,
     PROFILES: PROFILES, PACKET_BYTES: PACKET_BYTES,
     SERVICE_UUID: SERVICE_UUID, NOTIFY_UUID: NOTIFY_UUID,

@@ -259,6 +259,44 @@
     $("diagTable").querySelector("tbody").innerHTML = html;
   }
 
+  /* ── 센서 위치 설정 ───────────────────────────────────────
+   * 어느 채널이 발의 어디에 깔려 있는지 사용자가 직접 정합니다.
+   * 표를 통째로 다시 그리면 열어 둔 드롭다운이 닫혀 버리므로,
+   * 틀을 만드는 일과 값을 새로 쓰는 일을 나눠 두었습니다.
+   */
+  var MAP_PRESS = 80;   /* 이 값을 넘으면 '지금 눌리는 중'으로 봅니다 */
+
+  function renderMapTable() {
+    var M = INSOLE.mapping, html = "", ch, slot, opts;
+    for (ch = 0; ch < M.N; ch++) {
+      opts = "";
+      for (slot = 0; slot < M.N; slot++) {
+        opts += '<option value="' + slot + '"' +
+                (M.slotOf(ch) === slot ? " selected" : "") + ">" +
+                M.slotName(slot) + "</option>";
+      }
+      html += '<tr data-ch="' + ch + '">' +
+                '<td class="n">ch' + (ch + 1) + '</td>' +
+                '<td class="n" data-v>–</td>' +
+                '<td><select class="mapsel" data-ch="' + ch + '">' + opts + '</select></td>' +
+              '</tr>';
+    }
+    $("mapTable").querySelector("tbody").innerHTML = html;
+    $("mapState").textContent = M.isDefault() ? "기본값" : "직접 설정함";
+  }
+
+  function updateMapValues() {
+    var raw = INSOLE.ble.lastRaw();
+    var rows = $("mapTable").querySelectorAll("tr");
+    for (var i = 0; i < rows.length; i++) {
+      var cell = rows[i].querySelector("[data-v]");
+      if (!raw) { cell.textContent = "–"; rows[i].classList.remove("hot"); continue; }
+      var val = raw[i] || 0;
+      cell.textContent = String(val);
+      rows[i].classList.toggle("hot", val >= MAP_PRESS);
+    }
+  }
+
   /* 앱바의 연결 표시와 진단 탭의 연결 카드를 한 곳에서 갱신합니다. */
   function renderConnection() {
     var onBle = INSOLE.sensor.getSource() === "ble";
@@ -359,6 +397,17 @@
         });
       });
     }
+    $("mapTable").addEventListener("change", function (e) {
+      var sel = e.target;
+      if (!sel.classList.contains("mapsel")) return;
+      INSOLE.mapping.assign(parseInt(sel.dataset.ch, 10), parseInt(sel.value, 10));
+      renderMapTable();   /* 자리를 맞바꿨으므로 다른 줄도 바뀝니다 */
+    });
+    $("mapReset").addEventListener("click", function () {
+      INSOLE.mapping.reset();
+      renderMapTable();
+    });
+
     wireConnect("bleConnect", "인솔 연결", null);
     wireConnect("bleAny", "모든 기기 보기", { any: true });
     $("bleDisconnect").addEventListener("click", function () {
@@ -466,6 +515,14 @@
     renderHistory();
     tickClock();
     setInterval(tickClock, 20000);
+
+    renderMapTable();
+    /* 설정 탭을 보고 있을 때만 값을 새로 씁니다. 측정 루프와 무관하게
+     * 돌아야 연결만 해둔 상태에서도 어느 센서가 눌리는지 보입니다. */
+    setInterval(function () {
+      if (!$("sc-set").classList.contains("on")) return;
+      updateMapValues();
+    }, 200);
 
     shown = S.read();
     INSOLE.heatmap.draw($("footL"), "L", shown);

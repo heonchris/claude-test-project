@@ -15,6 +15,7 @@
 | 히트맵·무게중심·판정 알고리즘 | **완성** | 그대로 이식 가능 |
 | 데이터 규격 (BLE 패킷) | **초안 확정** | `handoff/DATA_CONTRACT.md` |
 | 안드로이드 블루투스 연결 | **구현됨** | `handoff/js/11-ble.js` |
+| 채널↔발 위치 매핑 설정 | **구현됨** | 앱 [설정] 탭에서 변경. `js/12-mapping.js` |
 | 아이폰 블루투스 연결 | **미구현** | Swift 작업 필요 (아래 참조) |
 | 1채널 센서 테스트 펌웨어 | **있음** | `hardware/step1_fsr_test` |
 | 블루투스 모듈 테스트 펌웨어 | **있음** | `hardware/step2_bluetooth_test` |
