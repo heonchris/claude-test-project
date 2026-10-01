@@ -25,6 +25,10 @@ INSOLE.config = (function () {
    * 실제 인솔의 센서 위치가 확정되면 이 좌표만 고치면
    * 히트맵·무게중심·전후 비율이 전부 따라 바뀝니다.
    */
+  /* 화면에 띄우는 버전. 기기가 옛 코드를 쓰고 있는지 눈으로 확인하는 용도입니다.
+   * sw.js 의 VERSION 과 함께 올립니다. */
+  var APP_VERSION = "v8";
+
   var SENSORS = [
     { x: 30, y: 30,  name: "엄지",          group: "fore" },
     { x: 62, y: 38,  name: "2–3지",         group: "fore" },
@@ -109,6 +113,7 @@ INSOLE.config = (function () {
 
   return {
     FOOT_W: FOOT_W, FOOT_H: FOOT_H,
+    APP_VERSION: APP_VERSION,
     SENSORS: SENSORS,
     MAX_RAW: MAX_RAW, CHANNELS: CHANNELS, SAMPLE_HZ: SAMPLE_HZ,
     FORE_Y: FORE_Y, HEEL_Y: HEEL_Y,

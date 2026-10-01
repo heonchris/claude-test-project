@@ -516,6 +516,7 @@
     tickClock();
     setInterval(tickClock, 20000);
 
+    $("appVer").textContent = C.APP_VERSION;
     renderMapTable();
     /* 설정 탭을 보고 있을 때만 값을 새로 씁니다. 측정 루프와 무관하게
      * 돌아야 연결만 해둔 상태에서도 어느 센서가 눌리는지 보입니다. */

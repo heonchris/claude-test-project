@@ -7,7 +7,7 @@
  * 주의: 파일을 고친 뒤에는 아래 VERSION 을 반드시 올리세요.
  * 올리지 않으면 사용자 기기에 옛날 파일이 계속 남습니다.
  * ============================================================ */
-var VERSION = "insole-v7";
+var VERSION = "insole-v8";
 
 var SHELL = [
   "./",
@@ -24,6 +24,7 @@ var SHELL = [
   "./js/09-storage.js",
   "./js/10-wakelock.js",
   "./js/11-ble.js",
+  "./js/12-mapping.js",
   "./icon-512.png",
   "./manifest.webmanifest"
 ];
@@ -49,6 +50,16 @@ self.addEventListener("activate", function (e) {
   );
 });
 
+/* 네트워크 우선 — 연결돼 있으면 항상 최신 파일을 씁니다.
+ *
+ * 전에는 캐시를 먼저 주고 뒤에서 갱신했습니다(stale-while-revalidate).
+ * 오프라인에는 강하지만, 고친 코드가 **다음 번 실행**에야 적용됩니다.
+ * 브링업 중에는 이게 치명적입니다 — 고쳤는데도 그대로인 것처럼 보이고,
+ * 원인을 하드웨어에서 찾게 됩니다. 실제로 그런 일이 있었습니다.
+ *
+ * 그래서 온라인이면 네트워크를 먼저 쓰고, 실패할 때만 캐시로 돌아갑니다.
+ * 지하 헬스장 같은 오프라인 상황은 캐시 대체로 그대로 지원됩니다.
+ */
 self.addEventListener("fetch", function (e) {
   var req = e.request;
   if (req.method !== "GET") return;
@@ -58,15 +69,16 @@ self.addEventListener("fetch", function (e) {
   if (new URL(req.url).origin !== self.location.origin) return;
 
   e.respondWith(
-    caches.match(req).then(function (hit) {
-      if (hit) {
-        /* 캐시를 먼저 주고, 뒤에서 조용히 갱신합니다. */
-        fetch(req).then(function (res) {
-          if (res && res.ok) caches.open(VERSION).then(function (c) { c.put(req, res.clone()); });
-        }).catch(function () {});
-        return hit;
+    fetch(req).then(function (res) {
+      if (res && res.ok) {
+        var copy = res.clone();
+        caches.open(VERSION).then(function (c) { c.put(req, copy); });
       }
-      return fetch(req).catch(function () { return caches.match("./index.html"); });
+      return res;
+    }).catch(function () {
+      return caches.match(req).then(function (hit) {
+        return hit || caches.match("./index.html");
+      });
     })
   );
 });
