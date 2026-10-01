@@ -8,6 +8,10 @@
   "use strict";
   var C = INSOLE.config, S = INSOLE.sensor, M = INSOLE.metrics;
 
+  /* 화면 파일과 이 파일의 버전이 어긋나면 자가복구가 잡아냅니다.
+   * 서비스워커가 둘을 다른 시점의 것으로 섞어 주는 일이 실제로 있었습니다. */
+  INSOLE.APP_JS_VERSION = "v13";
+
   var running = false, rafId = null, t0 = 0, lastFrame = 0, elapsed = 0;
   var history = [], session = null, records = [], nextId = 1;
   /* 화면에 쓰는 값. 원시값에서 영점을 빼고 떨림을 완화한 결과입니다. */
@@ -317,30 +321,155 @@
    * 2점 구성이면 나머지 자리를 추정으로 채워 히트맵을 완성하되,
    * 추정이라는 사실을 화면에 적어 둡니다.
    */
-  var MODES = [
-    { key: "full", label: "8채널 전부 실측",
-      desc: "발마다 센서 8개를 모두 단 구성" },
-    { key: "pair", label: "앞·뒤 2점 (추정 표시)",
-      desc: "발마다 센서 2개. 나머지 자리는 두 값에서 추정해 그립니다" }
-  ];
+  /* ── 센서 개수 ────────────────────────────────────────────
+   * 발마다 실제로 단 센서가 몇 개인지. 고르면 중요한 자리부터
+   * 자동으로 채워지고, 세부 위치는 아래 배치 편집기에서 손본다.
+   */
+  function renderCount() {
+    var row = document.getElementById("cntRow");
+    if (!row) return;
+    var E = INSOLE.expand, cur = E.count(), html = "";
+    for (var n = 1; n <= E.N; n++) {
+      html += '<button type="button" data-n="' + n + '"' +
+              (n === cur ? ' class="on"' : '') + ">" + n + "</button>";
+    }
+    row.innerHTML = html;
 
-  function renderModes() {
-    if (!document.getElementById("modeList")) return;
-    var cur = INSOLE.expand.getMode();
-    $("modeList").innerHTML = MODES.map(function (m) {
-      return '<button class="opt" type="button" data-m="' + m.key + '">' +
-             '<span class="ob">' + m.label + '<span class="od">' + m.desc + '</span></span>' +
-             '<span class="ck">' + (m.key === cur ? "✓" : "") + '</span></button>';
-    }).join("");
-    setText("modeState", cur === "pair" ? "2점 추정" : "8채널");
-    setText("modeHint", cur === "pair"
-      ? "센서는 " + INSOLE.expand.slotName(INSOLE.expand.FORE_SLOT) + " 와 " +
-        INSOLE.expand.slotName(INSOLE.expand.HEEL_SLOT) + " 두 곳에 답니다. " +
-        "히트맵의 나머지 부분은 이 두 값에서 계산한 추정입니다 — 측정값이 아닙니다. " +
-        "좌우·전후 비율은 실측 두 값이 정하므로 그대로 믿으셔도 됩니다."
-      : "모든 자리를 실제 센서가 측정합니다.");
+    setText("modeState", cur === E.N ? "8채널 전부 실측" : ("실측 " + cur + "개"));
+    var names = [];
+    for (var i = 0; i < E.N; i++) if (E.isActive(i)) names.push(E.slotName(i));
+    setText("modeHint", cur === E.N
+      ? "모든 자리를 실제 센서가 측정합니다."
+      : "센서를 다는 곳: " + names.join(" · ") + ". " +
+        "히트맵의 나머지 부분은 이 값들에서 계산한 추정이며 측정값이 아닙니다. " +
+        (E.canForeAft()
+          ? "좌우·전후 비율은 실측 채널만 보고 계산하므로 그대로 믿으셔도 됩니다."
+          : "센서가 하나뿐이라 앞뒤는 가릴 수 없습니다. 2개 이상 다세요."));
     var note = document.getElementById("estNote");
-    if (note) note.hidden = (cur !== "pair");
+    if (note) {
+      note.hidden = (cur === E.N);
+      note.textContent = "실측 " + cur + "점 · 나머지는 추정 분포";
+    }
+  }
+
+  /* ── 센서 배치 편집기 ─────────────────────────────────────
+   * 점을 끌면 위치가, 톡 누르면 쓰고 안 쓰고가 바뀐다.
+   * 히트맵과 지표가 같은 좌표를 보므로 옮기면 바로 반영된다.
+   */
+  var layDrag = null, laySelected = -1;
+
+  function layDraw() {
+    var cv = document.getElementById("layCanvas");
+    if (!cv || !INSOLE.layout) return;
+    var ctx = cv.getContext("2d");
+    var W = cv.width, H = cv.height;
+    var sx = W / C.FOOT_W, sy = H / C.FOOT_H;
+    var css = getComputedStyle(document.documentElement);
+    var ink = css.getPropertyValue("--ink").trim() || "#111";
+    var faint = css.getPropertyValue("--faint").trim() || "#888";
+    var s1 = css.getPropertyValue("--s1").trim() || "#2a78d6";
+
+    ctx.clearRect(0, 0, W, H);
+
+    /* 발 윤곽 */
+    ctx.save();
+    ctx.scale(sx, sy);
+    ctx.lineWidth = 1.4 / Math.min(sx, sy);
+    ctx.strokeStyle = faint;
+    ctx.stroke(INSOLE.heatmap.footPath(false));
+    ctx.restore();
+
+    for (var i = 0; i < INSOLE.layout.N; i++) {
+      var p = INSOLE.layout.get(i);
+      var x = p.x * sx, y = p.y * sy;
+      var on = INSOLE.expand.isActive(i);
+
+      ctx.beginPath();
+      ctx.arc(x, y, i === laySelected ? 17 : 14, 0, Math.PI * 2);
+      ctx.fillStyle = on ? s1 : "transparent";
+      ctx.strokeStyle = on ? s1 : faint;
+      ctx.lineWidth = on ? 2 : 2;
+      if (on) ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = on ? "#fff" : faint;
+      ctx.font = "600 15px ui-monospace, monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(i + 1), x, y + 0.5);
+    }
+
+    setText("layState", INSOLE.layout.isDefault() ? "기본값" : "직접 옮김");
+  }
+
+  function layHit(cv, e) {
+    var r = cv.getBoundingClientRect();
+    var t = e.touches ? e.touches[0] : e;
+    var fx = (t.clientX - r.left) / r.width * C.FOOT_W;
+    var fy = (t.clientY - r.top) / r.height * C.FOOT_H;
+    var best = -1, bd = 1e9;
+    for (var i = 0; i < INSOLE.layout.N; i++) {
+      var p = INSOLE.layout.get(i);
+      var d = (p.x - fx) * (p.x - fx) + (p.y - fy) * (p.y - fy);
+      if (d < bd) { bd = d; best = i; }
+    }
+    /* 손가락으로도 집을 수 있게 넉넉히 */
+    return { i: bd <= 18 * 18 ? best : -1, x: fx, y: fy };
+  }
+
+  function wireLayout() {
+    var cv = document.getElementById("layCanvas");
+    if (!cv) return;
+
+    function down(e) {
+      var h = layHit(cv, e);
+      if (h.i < 0) return;
+      e.preventDefault();
+      layDrag = { i: h.i, moved: false, x0: h.x, y0: h.y };
+      laySelected = h.i;
+      setText("laySel", (h.i + 1) + "번 — " + INSOLE.expand.slotName(h.i) +
+              (INSOLE.expand.isActive(h.i) ? " (실측)" : " (미사용)"));
+      layDraw();
+    }
+    function move(e) {
+      if (!layDrag) return;
+      e.preventDefault();
+      var h = layHit(cv, e);
+      if (Math.abs(h.x - layDrag.x0) > 2 || Math.abs(h.y - layDrag.y0) > 2) layDrag.moved = true;
+      INSOLE.layout.setPos(layDrag.i, h.x, h.y);
+      layDraw();
+    }
+    function up() {
+      if (!layDrag) return;
+      /* 끌지 않고 톡 눌렀으면 켜고 끄기 */
+      if (!layDrag.moved) {
+        if (!INSOLE.expand.toggle(layDrag.i)) {
+          setText("laySel", "마지막 한 개는 끌 수 없습니다. 적어도 하나는 실측이어야 합니다.");
+        } else {
+          setText("laySel", (layDrag.i + 1) + "번 — " + INSOLE.expand.slotName(layDrag.i) +
+                  (INSOLE.expand.isActive(layDrag.i) ? " (실측으로 바꿈)" : " (미사용으로 바꿈)"));
+        }
+        renderCount();
+        renderMapTable();
+      }
+      layDrag = null;
+      layDraw();
+    }
+
+    cv.addEventListener("pointerdown", down);
+    cv.addEventListener("pointermove", move);
+    cv.addEventListener("pointerup", up);
+    cv.addEventListener("pointercancel", up);
+    cv.addEventListener("pointerleave", up);
+
+    if (document.getElementById("layReset")) {
+      $("layReset").addEventListener("click", function () {
+        INSOLE.layout.reset();
+        laySelected = -1;
+        setText("laySel", "기본 위치로 되돌렸습니다.");
+        layDraw();
+      });
+    }
   }
 
   /* 해석 전 수신 바이트. 무선이 조용할 때 원인을 가르는 유일한 근거입니다. */
@@ -472,14 +601,16 @@
         });
       });
     }
-    if (document.getElementById("modeList"))
-    $("modeList").addEventListener("click", function (e) {
-      var b = e.target.closest ? e.target.closest("[data-m]") : null;
+    if (document.getElementById("cntRow"))
+    $("cntRow").addEventListener("click", function (e) {
+      var b = e.target.closest ? e.target.closest("[data-n]") : null;
       if (!b) return;
-      INSOLE.expand.setMode(b.dataset.m);
-      renderModes();
+      INSOLE.expand.setCount(parseInt(b.dataset.n, 10));
+      renderCount();
       renderMapTable();
+      layDraw();
     });
+    wireLayout();
 
     if (document.getElementById("mapTable"))
     $("mapTable").addEventListener("change", function (e) {
@@ -618,7 +749,8 @@
     if (!renderMapTable()) {
       banner("화면 파일이 예전 것입니다. 잠시 후 자동으로 새로 받습니다…");
     }
-    renderModes();
+    renderCount();
+    layDraw();
     setText("appVer", C.APP_VERSION);
     /* 설정 탭을 보고 있을 때만 값을 새로 씁니다. 측정 루프와 무관하게
      * 돌아야 연결만 해둔 상태에서도 어느 센서가 눌리는지 보입니다. */

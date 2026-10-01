@@ -187,9 +187,23 @@
       </div>
       <div class="card">
         <div class="card-t"><h2>센서 구성</h2><span class="n" id="modeState">–</span></div>
-        <p class="hintline">실제로 단 센서가 몇 개인지 알려주면, 화면과 진단이 거기에 맞춰집니다.</p>
-        <div id="modeList"></div>
+        <p class="hintline">발마다 실제로 단 센서가 <b>몇 개</b>인지 고르세요. 화면과 진단이 거기에 맞춰집니다.</p>
+        <div class="cnt" id="cntRow"></div>
         <p class="hintline" id="modeHint" style="margin-top:.5rem">–</p>
+      </div>
+
+      <div class="card">
+        <div class="card-t"><h2>센서 배치</h2><span class="n" id="layState">기본값</span></div>
+        <p class="hintline"><b>점을 끌어서</b> 센서를 실제로 붙인 자리로 옮기세요.
+          <b>점을 톡 누르면</b> 그 자리를 쓰고 안 쓰고가 바뀝니다.
+          히트맵과 좌우·전후 비율이 이 위치를 따라갑니다.</p>
+        <div class="laywrap">
+          <canvas id="layCanvas" width="300" height="600" aria-label="센서 배치 편집기"></canvas>
+        </div>
+        <p class="hintline" id="laySel">–</p>
+        <div class="exp-btns">
+          <button class="mini ghost" id="layReset" type="button">배치 초기화</button>
+        </div>
       </div>
 
       <div class="card">
@@ -264,7 +278,7 @@
 
 <!-- 로드 순서가 중요합니다. 번호 순서대로 읽어주세요.
      ES 모듈이 아닌 일반 스크립트라 file:// 로 그냥 열어도 동작합니다. -->
-<meta name="app-version" content="v12">
+<meta name="app-version" content="v13">
 <script src="js/01-config.js"></script>
 <script src="js/02-sensor.js"></script>
 <script src="js/03-metrics.js"></script>
@@ -276,6 +290,7 @@
 <script src="js/10-wakelock.js"></script>
 <script src="js/11-ble.js"></script>
 <script src="js/12-mapping.js"></script>
+<script src="js/14-layout.js"></script>
 <script src="js/13-expand.js"></script>
 <script src="js/07-app.js"></script>
 <script>
@@ -290,7 +305,10 @@
   var meta = document.querySelector('meta[name="app-version"]');
   var want = meta && meta.content;
   var have = window.INSOLE && INSOLE.config && INSOLE.config.APP_VERSION;
-  if (!want || want === have) return;
+  var haveApp = window.INSOLE && INSOLE.APP_JS_VERSION;
+  /* 설정 파일만 보면, 화면 파일은 새것인데 07-app.js 만 옛것인 경우를
+   * 놓칩니다. 실제로 그래서 '센서 구성' 칸이 비어 보였습니다. */
+  if (!want || (want === have && want === haveApp)) return;
 
   var ONCE = "insole.selfheal";
   try { if (sessionStorage.getItem(ONCE)) return; sessionStorage.setItem(ONCE, "1"); } catch (e) {}

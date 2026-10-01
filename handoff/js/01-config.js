@@ -27,7 +27,7 @@ INSOLE.config = (function () {
    */
   /* 화면에 띄우는 버전. 기기가 옛 코드를 쓰고 있는지 눈으로 확인하는 용도입니다.
    * sw.js 의 VERSION 과 함께 올립니다. */
-  var APP_VERSION = "v12";
+  var APP_VERSION = "v13";
 
   var SENSORS = [
     { x: 30, y: 30,  name: "엄지",          group: "fore" },

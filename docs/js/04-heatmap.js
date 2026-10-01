@@ -10,6 +10,9 @@ var INSOLE = window.INSOLE || {};
 INSOLE.heatmap = (function () {
   "use strict";
   var C = INSOLE.config;
+
+  /* 센서 좌표는 설정에서 옮길 수 있습니다. 옮기면 히트맵이 따라옵니다. */
+  function P(i) { return INSOLE.layout ? INSOLE.layout.get(i) : C.SENSORS[i]; }
   var ramp = [], offscreen = {};
 
   function hexToRgb(h) {
@@ -93,8 +96,9 @@ INSOLE.heatmap = (function () {
         var num = 0, den = 0;
 
         for (var i = 0; i < C.CHANNELS; i++) {
-          var sx = mirror ? C.FOOT_W - C.SENSORS[i].x : C.SENSORS[i].x;
-          var dx = px - sx, dy = py - C.SENSORS[i].y;
+          var sp = P(i);
+          var sx = mirror ? C.FOOT_W - sp.x : sp.x;
+          var dx = px - sx, dy = py - sp.y;
           var dd = dx * dx + dy * dy;
           if (dd < 1) dd = 1;
           /* 거리 3승 반비례. 낮추면 뭉개지고, 높이면 점처럼 도드라집니다.
@@ -133,9 +137,10 @@ INSOLE.heatmap = (function () {
     ctx.save();
     ctx.scale(scale, scale);
     for (var j = 0; j < C.CHANNELS; j++) {
-      var jx = mirror ? C.FOOT_W - C.SENSORS[j].x : C.SENSORS[j].x;
+      var jp = P(j);
+      var jx = mirror ? C.FOOT_W - jp.x : jp.x;
       ctx.beginPath();
-      ctx.arc(jx, C.SENSORS[j].y, 1.9, 0, Math.PI * 2);
+      ctx.arc(jx, jp.y, 1.9, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(255,255,255,.5)";
       ctx.fill();
       ctx.lineWidth = 0.6;

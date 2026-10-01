@@ -23,9 +23,10 @@ INSOLE.metrics = (function () {
     var x = 0, y = 0;
     for (var i = 0; i < C.CHANNELS; i++) {
       /* 왼발은 좌우 반전된 위치에 센서가 있습니다. */
-      var sx = side === "L" ? C.FOOT_W - C.SENSORS[i].x : C.SENSORS[i].x;
+      var sp = INSOLE.layout ? INSOLE.layout.get(i) : C.SENSORS[i];
+      var sx = side === "L" ? C.FOOT_W - sp.x : sp.x;
       x += sx * v[i];
-      y += C.SENSORS[i].y * v[i];
+      y += sp.y * v[i];
     }
     return { x: x / total, y: y / total, total: total };
   }
@@ -46,7 +47,7 @@ INSOLE.metrics = (function () {
     /* 2점 구성에서는 추정으로 채운 자리가 섞여 있으므로, 무게중심이
      * 아니라 실측한 두 값에서 직접 구합니다. 그러지 않으면 앞쪽에
      * 채운 자리가 많아 똑바로 서 있어도 앞으로 쏠린 것으로 나옵니다. */
-    if (INSOLE.expand && INSOLE.expand.isPair()) {
+    if (INSOLE.expand && !INSOLE.expand.isFull()) {
       return INSOLE.expand.foreAft(values, side);
     }
     var cop = centerOfPressure(values, side);
@@ -61,7 +62,7 @@ INSOLE.metrics = (function () {
     /* 2점 구성에서는 실측 두 값의 합만 씁니다. 추정값을 포함하면,
      * 한 발은 앞쪽에 한 발은 뒤쪽에 실렸을 때 앞쪽 자리가 더 많은
      * 쪽이 무겁게 계산되어 없는 좌우 쏠림이 만들어집니다. */
-    if (INSOLE.expand && INSOLE.expand.isPair()) {
+    if (INSOLE.expand && !INSOLE.expand.isFull()) {
       l = INSOLE.expand.footLoad(values, "L");
       r = INSOLE.expand.footLoad(values, "R");
     } else {

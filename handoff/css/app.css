@@ -423,3 +423,22 @@
   }
   table.ch tr.dim td{opacity:.42}
   .st-off{background:var(--sunk);color:var(--faint)}
+
+  /* 센서 개수 고르기 */
+  .cnt{display:flex;gap:.3rem;flex-wrap:wrap;margin-top:.4rem}
+  .cnt button{
+    flex:1 1 2.1rem;min-width:2.1rem;padding:.45rem 0;
+    font:inherit;font-size:.85rem;font-weight:600;font-family:"IBM Plex Mono",monospace;
+    border:1px solid var(--rule-2);border-radius:8px;
+    background:var(--card);color:var(--ink-2);cursor:pointer;
+  }
+  .cnt button.on{background:var(--s1);border-color:var(--s1);color:#fff}
+  .cnt button:focus-visible{outline:2px solid var(--s1);outline-offset:2px}
+
+  /* 센서 배치 편집기 */
+  .laywrap{display:flex;justify-content:center;margin-top:.5rem}
+  #layCanvas{
+    width:150px;height:300px;touch-action:none;
+    border-radius:12px;background:var(--sunk);cursor:grab;
+  }
+  #layCanvas:active{cursor:grabbing}
