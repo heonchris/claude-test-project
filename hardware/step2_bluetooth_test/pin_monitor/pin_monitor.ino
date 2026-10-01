@@ -1,8 +1,8 @@
 /*
- * 핀 감시 — 2번·3번에 붙은 것이 TXD 인지 STATE 인지 가려낸다
+ * 핀 감시 — 4번·5번에 붙은 것이 TXD 인지 STATE 인지 가려낸다
  *
  * 왜 필요한가:
- *   배선 점검에서 2번·3번 모두 "바깥에서 HIGH 로 잡아 준다" 로 나왔는데
+ *   배선 점검에서 4번·5번 모두 "바깥에서 HIGH 로 잡아 준다" 로 나왔는데
  *   데이터는 한 바이트도 흐르지 않았다. 선은 붙어 있으나 엉뚱한 핀에
  *   붙었을 수 있다.
  *
@@ -21,8 +21,8 @@
  *   3. 연결을 끊는다 → 다시 바뀌는지 본다
  */
 
-const int P2 = 2;
-const int P3 = 3;
+const int P2 = 4;
+const int P3 = 5;
 
 int last2 = -1, last3 = -1;
 unsigned long chg2 = 0, chg3 = 0;
@@ -57,11 +57,11 @@ void loop() {
     last = millis();
     Serial.print(F("["));
     Serial.print((millis() - t0) / 1000);
-    Serial.print(F("초] 2번="));
+    Serial.print(F("초] 4번="));
     Serial.print(v2 ? F("HIGH") : F("LOW "));
     Serial.print(F(" (변화 "));
     Serial.print(chg2 > 0 ? chg2 - 1 : 0);
-    Serial.print(F("회)   3번="));
+    Serial.print(F("회)   5번="));
     Serial.print(v3 ? F("HIGH") : F("LOW "));
     Serial.print(F(" (변화 "));
     Serial.print(chg3 > 0 ? chg3 - 1 : 0);

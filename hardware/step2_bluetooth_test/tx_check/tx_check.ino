@@ -22,7 +22,8 @@
 
 #include <SoftwareSerial.h>
 
-SoftwareSerial bt(2, 3);   /* RX=2, TX=3 */
+/* 쓰고 있는 핀에 맞춰 바꾸세요. 기본은 4·5번입니다. */
+SoftwareSerial bt(4, 5);
 
 void setup() {
   Serial.begin(9600);
