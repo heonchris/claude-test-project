@@ -63,13 +63,13 @@ INSOLE.health = (function () {
    */
   /* 2점 구성에서는 나머지 자리가 추정값이므로 고장 판정을 하지 않습니다.
    * 하지 않으면 멀쩡한 기기가 '문제 채널 14개' 로 보입니다. */
-  function isActive(i) {
-    var slots = INSOLE.expand && INSOLE.expand.activeSlots();
-    return !slots || slots.indexOf(i) >= 0;
+  function isActive(side, i) {
+    if (!INSOLE.expand) return true;
+    return INSOLE.expand.isActive(side, i);
   }
 
   function channelState(side, i) {
-    if (!isActive(i)) return "off";
+    if (!isActive(side, i)) return "off";
 
     /* 데이터가 안 들어오는 중이면 상태를 단정하면 안 됩니다.
      * 이 처리가 없으면 측정을 멈춘 뒤에도 마지막 상태가 그대로 굳어서

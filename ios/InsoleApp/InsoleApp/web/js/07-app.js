@@ -10,7 +10,7 @@
 
   /* 화면 파일과 이 파일의 버전이 어긋나면 자가복구가 잡아냅니다.
    * 서비스워커가 둘을 다른 시점의 것으로 섞어 주는 일이 실제로 있었습니다. */
-  INSOLE.APP_JS_VERSION = "v13";
+  INSOLE.APP_JS_VERSION = "v14";
 
   var running = false, rafId = null, t0 = 0, lastFrame = 0, elapsed = 0;
   var history = [], session = null, records = [], nextId = 1;
@@ -427,8 +427,10 @@
       e.preventDefault();
       layDrag = { i: h.i, moved: false, x0: h.x, y0: h.y };
       laySelected = h.i;
-      setText("laySel", (h.i + 1) + "번 — " + INSOLE.expand.slotName(h.i) +
-              (INSOLE.expand.isActive(h.i) ? " (실측)" : " (미사용)"));
+      var ch = INSOLE.expand.channelAt(h.i);
+      setText("laySel", (h.i + 1) + "번 · " + INSOLE.expand.slotName(h.i) + " — " +
+              (ch >= 0 ? ("ch" + (ch + 1) + " 센서가 여기 있습니다. 끌어서 옮기세요.")
+                       : "센서 없음 (추정으로 채우는 자리)"));
       layDraw();
     }
     function move(e) {
@@ -441,17 +443,6 @@
     }
     function up() {
       if (!layDrag) return;
-      /* 끌지 않고 톡 눌렀으면 켜고 끄기 */
-      if (!layDrag.moved) {
-        if (!INSOLE.expand.toggle(layDrag.i)) {
-          setText("laySel", "마지막 한 개는 끌 수 없습니다. 적어도 하나는 실측이어야 합니다.");
-        } else {
-          setText("laySel", (layDrag.i + 1) + "번 — " + INSOLE.expand.slotName(layDrag.i) +
-                  (INSOLE.expand.isActive(layDrag.i) ? " (실측으로 바꿈)" : " (미사용으로 바꿈)"));
-        }
-        renderCount();
-        renderMapTable();
-      }
       layDrag = null;
       layDraw();
     }
@@ -618,6 +609,8 @@
       if (!sel.classList.contains("mapsel")) return;
       INSOLE.mapping.assign(parseInt(sel.dataset.ch, 10), parseInt(sel.value, 10));
       renderMapTable();   /* 자리를 맞바꿨으므로 다른 줄도 바뀝니다 */
+      renderCount();      /* 실측 자리가 바뀌었으니 안내도 갱신 */
+      layDraw();
     });
     if (document.getElementById("mapReset"))
     $("mapReset").addEventListener("click", function () {

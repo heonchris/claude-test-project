@@ -23,58 +23,97 @@ var INSOLE = window.INSOLE || {};
 INSOLE.expand = (function () {
   "use strict";
   var C = INSOLE.config;
-  var KEY = "insole.active.v2";
+  var KEY = "insole.count.v3";
   var N = C.CHANNELS;
 
   /* 센서를 몇 개만 달 때 어디부터 다는 것이 좋은지. 앞에서부터 고른다.
    * 스쿼트에서 중요한 순서 — 뒤꿈치, 엄지볼, 새끼볼, 뒤꿈치 바깥… */
   var PRIORITY = [6, 2, 4, 7, 0, 3, 5, 1];
 
-  var active = PRIORITY.slice();       /* 실측 센서가 있는 자리 */
+  /* 실측 센서의 **개수**만 여기서 갖는다.
+   *
+   * 어느 자리가 실측인지는 따로 갖지 않는다. 아두이노는 ch1·ch2… 순서로
+   * 보내고, 그 채널이 발의 어디인지는 12-mapping.js 가 정하기 때문이다.
+   * 둘을 따로 보관했더니 서로 어긋나서, 실제로 값이 들어온 자리를
+   * '빈 자리' 로 알고 추정값으로 덮어써 **실측값이 전부 0 이 되는**
+   * 일이 있었다. 그래서 실측 자리는 항상 매핑에서 끌어온다.
+   */
+  var nActive = N;
 
   function sorted(a) { return a.slice().sort(function (x, y) { return x - y; }); }
 
   function load() {
     try {
       var raw = localStorage.getItem(KEY);
-      if (!raw) return;
-      var a = JSON.parse(raw);
-      if (!Array.isArray(a) || a.length < 1 || a.length > N) return;
-      var seen = {}, ok = true;
-      a.forEach(function (v) {
-        if (typeof v !== "number" || v < 0 || v >= N || seen[v]) ok = false;
-        seen[v] = 1;
-      });
-      if (ok) active = a;
+      if (raw === null) return;
+      var n = parseInt(raw, 10);
+      if (n >= 1 && n <= N) nActive = n;
     } catch (e) { /* 저장이 막힌 환경이면 기본값 */ }
   }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(active)); } catch (e) {} }
+  function save() { try { localStorage.setItem(KEY, String(nActive)); } catch (e) {} }
 
-  function count() { return active.length; }
-  function isActive(i) { return active.indexOf(i) >= 0; }
-  function activeSlots() { return active.length === N ? null : sorted(active); }
-  function isFull() { return active.length === N; }
+  function count() { return nActive; }
+  function isFull() { return nActive >= N; }
 
-  /** 개수만 정하면 중요한 자리부터 자동으로 고른다. */
-  function setCount(n) {
-    n = Math.max(1, Math.min(N, n | 0));
-    active = PRIORITY.slice(0, n);
-    save();
-    return active.length;
+  /* 매핑은 16자리(0~7 왼발, 8~15 오른발) 공간을 쓰고, 추정 분포는
+   * 발 하나(0~7) 공간에서 돈다. 둘을 섞으면 왼발 기준 자리를 오른발에도
+   * 그대로 적용해, 오른발을 붙이는 순간 값이 어긋난다. 그래서 발별로
+   * 따로 구한다. */
+  function mapSlot(ch) { return INSOLE.mapping ? INSOLE.mapping.slotOf(ch) : ch; }
+
+  /** 그 발에서 실측 채널이 놓인 자리 (0~7). 채널 순서 그대로. */
+  function slotsInOrder(side) {
+    var base = (side === "R") ? N : 0, out = [], i, sl;
+    for (i = 0; i < nActive; i++) {
+      sl = mapSlot(base + i);
+      /* 그 발 안에 있는 자리만 센다. 다른 발로 보낸 채널은 건너뛴다. */
+      if (side === "R") { if (sl >= N) out.push(sl - N); }
+      else              { if (sl < N)  out.push(sl); }
+    }
+    return out;
   }
 
-  /** 자리 하나를 켜고 끈다. 마지막 하나는 끌 수 없다. */
-  function toggle(i) {
-    if (i < 0 || i >= N) return false;
-    var k = active.indexOf(i);
-    if (k >= 0) {
-      if (active.length <= 1) return false;   /* 전부 끄면 아무것도 못 잰다 */
-      active.splice(k, 1);
-    } else {
-      active.push(i);
+  /** 왼발 기준 실측 자리. 설정 화면이 쓴다. */
+  function activeSlots() { return isFull() ? null : sorted(slotsInOrder("L")); }
+
+  function isActive(side, slot) {
+    if (isFull()) return true;
+    if (typeof slot === "undefined") { slot = side; side = "L"; }   /* 옛 호출 방식 */
+    return slotsInOrder(side).indexOf(slot) >= 0;
+  }
+
+  /** 그 자리에 있는 채널 번호(발 내부 기준). 없으면 -1. */
+  function channelAt(slot) {
+    var act = slotsInOrder("L");
+    return act.indexOf(slot);
+  }
+
+  /**
+   * 개수를 정한다. 실측 채널들을 중요한 자리로 함께 옮긴다.
+   * 개수만 바꾸고 매핑을 그대로 두면 둘이 어긋나므로 반드시 같이 바꾼다.
+   */
+  function setCount(n) {
+    nActive = Math.max(1, Math.min(N, n | 0));
+
+    if (INSOLE.mapping) {
+      if (isFull()) {
+        /* 8개를 다 달면 DATA_CONTRACT 의 채널 표 그대로 간다.
+         * 우선순위 순서로 섞어 두면 규격과 어긋나 혼란만 생긴다. */
+        INSOLE.mapping.reset();
+      } else {
+        /* 실측 채널을 중요한 자리로, 나머지 채널은 남는 자리에 차례로.
+         * 개수만 바꾸고 매핑을 그대로 두면 둘이 어긋나 실측값이
+         * 추정값에 덮어써진다. 그래서 반드시 함께 바꾼다. */
+        var order = PRIORITY.slice(0, nActive), used = {}, i;
+        order.forEach(function (sl) { used[sl] = 1; });
+        for (i = 0; i < N; i++) if (!used[i]) order.push(i);
+        /* 양발을 같은 모양으로. 오른발 채널(8~15)도 같은 자리에 둔다. */
+        for (i = 0; i < N; i++) INSOLE.mapping.assign(i, order[i]);
+        for (i = 0; i < N; i++) INSOLE.mapping.assign(N + i, N + order[i]);
+      }
     }
     save();
-    return true;
+    return nActive;
   }
 
   function pos(i) {
@@ -86,17 +125,19 @@ INSOLE.expand = (function () {
    * 가까운 센서일수록 크게 반영된다. 분모의 상수는 센서가 바로 옆일 때
    * 값이 튀지 않게 눌러 주는 역할이다 (히트맵과 같은 방식).
    */
-  function fillFoot(arr) {
+  function fillFoot(arr, side) {
     if (isFull()) return arr;
+    var act = slotsInOrder(side);
+    if (!act.length) return arr;   /* 그 발에 실측이 없으면 손대지 않는다 */
     var i, k, p, q, dx, dy, w, num, den;
     for (i = 0; i < N && i < arr.length; i++) {
-      if (isActive(i)) continue;                 /* 실측은 건드리지 않는다 */
+      if (act.indexOf(i) >= 0) continue;         /* 실측은 건드리지 않는다 */
       p = pos(i); num = 0; den = 0;
-      for (k = 0; k < active.length; k++) {
-        q = pos(active[k]);
+      for (k = 0; k < act.length; k++) {
+        q = pos(act[k]);
         dx = p.x - q.x; dy = p.y - q.y;
         w = 1 / (Math.pow(dx * dx + dy * dy, 1.5) + 300);
-        num += w * (arr[active[k]] || 0);
+        num += w * (arr[act[k]] || 0);
         den += w;
       }
       arr[i] = den > 0
@@ -108,8 +149,8 @@ INSOLE.expand = (function () {
 
   function apply(values) {
     if (isFull() || !values) return values;
-    fillFoot(values.L);
-    fillFoot(values.R);
+    fillFoot(values.L, "L");
+    fillFoot(values.R, "R");
     return values;
   }
 
@@ -117,16 +158,16 @@ INSOLE.expand = (function () {
 
   /** 한쪽 발이 받는 하중. 실측 채널의 합. */
   function footLoad(values, side) {
-    var a = values[side] || [], t = 0;
-    for (var k = 0; k < active.length; k++) t += a[active[k]] || 0;
+    var a = values[side] || [], t = 0, act = slotsInOrder(side);
+    for (var k = 0; k < act.length; k++) t += a[act[k]] || 0;
     return t;
   }
 
   /** 실측 센서들이 앞뒤로 얼마나 벌어져 있는지 {min, max, span}. */
-  function span() {
-    var lo = Infinity, hi = -Infinity;
-    for (var k = 0; k < active.length; k++) {
-      var y = pos(active[k]).y;
+  function span(side) {
+    var lo = Infinity, hi = -Infinity, act = slotsInOrder(side || "L");
+    for (var k = 0; k < act.length; k++) {
+      var y = pos(act[k]).y;
       if (y < lo) lo = y;
       if (y > hi) hi = y;
     }
@@ -136,7 +177,7 @@ INSOLE.expand = (function () {
   /* 앞뒤를 가리려면 센서가 둘 이상이고 앞뒤로 충분히 떨어져 있어야 한다.
    * 둘 다 앞꿈치에 붙여 놓으면 개수가 둘이어도 앞뒤는 알 수 없다. */
   var MIN_SPAN = 20;
-  function canForeAft() { return active.length >= 2 && span().span >= MIN_SPAN; }
+  function canForeAft(side) { return nActive >= 2 && span(side).span >= MIN_SPAN; }
 
   /**
    * 한쪽 발의 앞쪽 비율 0~1.
@@ -148,12 +189,12 @@ INSOLE.expand = (function () {
    * 센서가 둘일 때는 두 값의 비율과 정확히 같아진다.
    */
   function foreAft(values, side) {
-    if (!canForeAft()) return 0.5;
-    var sp = span();
-    var a = values[side] || [], t = 0, y = 0, k, v;
-    for (k = 0; k < active.length; k++) {
-      v = a[active[k]] || 0;
-      t += v; y += pos(active[k]).y * v;
+    if (!canForeAft(side)) return 0.5;
+    var sp = span(side);
+    var a = values[side] || [], t = 0, y = 0, k, v, act = slotsInOrder(side);
+    for (k = 0; k < act.length; k++) {
+      v = a[act[k]] || 0;
+      t += v; y += pos(act[k]).y * v;
     }
     if (t < 1) return 0.5;
     var r = (sp.max - (y / t)) / sp.span;
@@ -164,7 +205,8 @@ INSOLE.expand = (function () {
 
   return {
     apply: apply, foreAft: foreAft, footLoad: footLoad,
-    count: count, setCount: setCount, toggle: toggle,
+    count: count, setCount: setCount,
+    slotsInOrder: slotsInOrder, channelAt: channelAt,
     isActive: isActive, activeSlots: activeSlots, isFull: isFull,
     canForeAft: canForeAft, span: span, PRIORITY: PRIORITY, N: N,
     slotName: function (i) { var s = C.SENSORS[i]; return s ? s.name : ("자리 " + i); }
