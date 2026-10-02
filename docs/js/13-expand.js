@@ -82,6 +82,21 @@ INSOLE.expand = (function () {
     return slotsInOrder(side).indexOf(slot) >= 0;
   }
 
+  /**
+   * 채널을 그 자리로 옮긴다. **양발을 같이 옮긴다.**
+   *
+   * 설정 화면은 왼발만 보여 주므로, 왼발만 바꾸면 오른발은 옛 자리에
+   * 남아 두 발의 구성이 달라진다. 오른발을 붙이는 순간 값이 엉뚱한
+   * 자리로 들어가는데, 화면만 봐서는 알아차릴 수 없다.
+   */
+  function place(ch, slot) {
+    if (!INSOLE.mapping) return false;
+    if (ch < 0 || ch >= N || slot < 0 || slot >= N) return false;
+    INSOLE.mapping.assign(ch, slot);
+    INSOLE.mapping.assign(N + ch, N + slot);
+    return true;
+  }
+
   /** 그 자리에 있는 채널 번호(발 내부 기준). 없으면 -1. */
   function channelAt(slot) {
     var act = slotsInOrder("L");
@@ -206,7 +221,7 @@ INSOLE.expand = (function () {
   return {
     apply: apply, foreAft: foreAft, footLoad: footLoad,
     count: count, setCount: setCount,
-    slotsInOrder: slotsInOrder, channelAt: channelAt,
+    slotsInOrder: slotsInOrder, channelAt: channelAt, place: place,
     isActive: isActive, activeSlots: activeSlots, isFull: isFull,
     canForeAft: canForeAft, span: span, PRIORITY: PRIORITY, N: N,
     slotName: function (i) { var s = C.SENSORS[i]; return s ? s.name : ("자리 " + i); }

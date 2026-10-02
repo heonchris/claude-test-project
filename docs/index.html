@@ -194,9 +194,9 @@
 
       <div class="card">
         <div class="card-t"><h2>센서 배치</h2><span class="n" id="layState">기본값</span></div>
-        <p class="hintline"><b>점을 끌어서</b> 센서를 실제로 붙인 자리로 옮기세요.
-          색이 찬 점이 실제 센서가 있는 자리입니다. 어느 채널인지는 점을 누르면 알려줍니다.
-          히트맵과 좌우·전후 비율이 이 위치를 따라갑니다.</p>
+        <p class="hintline"><b>빈 점을 누르면</b> 센서를 그 자리로 옮깁니다. ch1 부터 차례로 놓입니다.
+          <b>점을 끌면</b> 위치를 미세하게 조정합니다.
+          여기서 놓은 자리가 아래 <b>센서 위치 설정</b>의 선택지가 됩니다.</p>
         <div class="laywrap">
           <canvas id="layCanvas" width="300" height="600" aria-label="센서 배치 편집기"></canvas>
         </div>
@@ -208,8 +208,8 @@
 
       <div class="card">
         <div class="card-t"><h2>센서 위치 설정</h2><span class="n" id="mapState">기본값</span></div>
-        <p class="hintline">아두이노의 <b>A0 에 꽂은 센서가 발의 어디에 깔려 있는지</b> 정합니다.
-          센서를 꾹 누르면 그 채널이 <b>초록색</b>으로 표시되니, 그 줄의 자리를 바꾸세요.</p>
+        <p class="hintline">위 <b>센서 배치</b>에서 놓은 자리 중에서 고릅니다.
+          센서를 꾹 누르면 그 채널이 <b>초록색</b>으로 표시되니, 틀렸으면 그 줄의 자리를 바꾸세요.</p>
         <div class="tw">
           <table class="ch" id="mapTable"><tbody></tbody></table>
         </div>
@@ -278,7 +278,7 @@
 
 <!-- 로드 순서가 중요합니다. 번호 순서대로 읽어주세요.
      ES 모듈이 아닌 일반 스크립트라 file:// 로 그냥 열어도 동작합니다. -->
-<meta name="app-version" content="v14">
+<meta name="app-version" content="v15">
 <script src="js/01-config.js"></script>
 <script src="js/02-sensor.js"></script>
 <script src="js/03-metrics.js"></script>

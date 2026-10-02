@@ -10,7 +10,7 @@
 
   /* 화면 파일과 이 파일의 버전이 어긋나면 자가복구가 잡아냅니다.
    * 서비스워커가 둘을 다른 시점의 것으로 섞어 주는 일이 실제로 있었습니다. */
-  INSOLE.APP_JS_VERSION = "v14";
+  INSOLE.APP_JS_VERSION = "v15";
 
   var running = false, rafId = null, t0 = 0, lastFrame = 0, elapsed = 0;
   var history = [], session = null, records = [], nextId = 1;
@@ -281,13 +281,19 @@
   }
 
   function renderMapTable() {
-    var M = INSOLE.mapping, html = "", ch, slot, opts;
-    for (ch = 0; ch < M.N; ch++) {
-      opts = "";
-      for (slot = 0; slot < M.N; slot++) {
+    var M = INSOLE.mapping, E = INSOLE.expand;
+    var n = E.count();
+    /* 고를 수 있는 자리는 **배치에서 켜 둔 자리**뿐입니다. 전부 늘어놓으면
+     * 센서가 없는 곳을 고를 수 있어 설정이 어긋납니다. */
+    var choices = E.slotsInOrder("L").slice().sort(function (x, y) { return x - y; });
+    var html = "", ch, k, slot;
+    for (ch = 0; ch < n; ch++) {          /* 실제로 단 센서만 보여 줍니다 */
+      var opts = "";
+      for (k = 0; k < choices.length; k++) {
+        slot = choices[k];
         opts += '<option value="' + slot + '"' +
                 (M.slotOf(ch) === slot ? " selected" : "") + ">" +
-                M.slotName(slot) + "</option>";
+                (slot + 1) + "번 · " + M.slotName(slot) + "</option>";
       }
       html += '<tr data-ch="' + ch + '">' +
                 '<td class="n">ch' + (ch + 1) + '</td>' +
@@ -356,7 +362,17 @@
    * 점을 끌면 위치가, 톡 누르면 쓰고 안 쓰고가 바뀐다.
    * 히트맵과 지표가 같은 좌표를 보므로 옮기면 바로 반영된다.
    */
-  var layDrag = null, laySelected = -1;
+  var layDrag = null, laySelected = -1, layPending = 0;
+
+  function laySay() {
+    var E = INSOLE.expand;
+    if (E.count() >= E.N) {
+      setText("laySel", "센서 8개를 모두 단 구성입니다. 점을 끌어 위치만 조정하세요.");
+      return;
+    }
+    setText("laySel", "다음에 놓을 센서: ch" + (layPending + 1) +
+            " — 빈 점을 누르면 그 자리로 옮깁니다. 색이 찬 점을 누르면 그 센서를 고릅니다.");
+  }
 
   function layDraw() {
     var cv = document.getElementById("layCanvas");
@@ -384,6 +400,13 @@
       var x = p.x * sx, y = p.y * sy;
       var on = INSOLE.expand.isActive(i);
 
+      var pend = (INSOLE.expand.channelAt(i) === layPending);
+      if (pend && INSOLE.expand.count() < INSOLE.expand.N) {
+        ctx.beginPath();
+        ctx.arc(x, y, 20, 0, Math.PI * 2);
+        ctx.strokeStyle = s1; ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]);
+        ctx.stroke(); ctx.setLineDash([]);
+      }
       ctx.beginPath();
       ctx.arc(x, y, i === laySelected ? 17 : 14, 0, Math.PI * 2);
       ctx.fillStyle = on ? s1 : "transparent";
@@ -392,11 +415,13 @@
       if (on) ctx.fill();
       ctx.stroke();
 
+      /* 센서가 있는 자리는 채널 번호를, 빈 자리는 자리 번호를 적는다 */
+      var chAt = INSOLE.expand.channelAt(i);
       ctx.fillStyle = on ? "#fff" : faint;
-      ctx.font = "600 15px ui-monospace, monospace";
+      ctx.font = (on ? "700 " : "600 ") + (on ? 13 : 15) + "px ui-monospace, monospace";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(String(i + 1), x, y + 0.5);
+      ctx.fillText(on && chAt >= 0 ? ("ch" + (chAt + 1)) : String(i + 1), x, y + 0.5);
     }
 
     setText("layState", INSOLE.layout.isDefault() ? "기본값" : "직접 옮김");
@@ -427,10 +452,21 @@
       e.preventDefault();
       layDrag = { i: h.i, moved: false, x0: h.x, y0: h.y };
       laySelected = h.i;
-      var ch = INSOLE.expand.channelAt(h.i);
-      setText("laySel", (h.i + 1) + "번 · " + INSOLE.expand.slotName(h.i) + " — " +
-              (ch >= 0 ? ("ch" + (ch + 1) + " 센서가 여기 있습니다. 끌어서 옮기세요.")
-                       : "센서 없음 (추정으로 채우는 자리)"));
+      var E = INSOLE.expand, ch = E.channelAt(h.i);
+      if (ch >= 0) {
+        /* 이미 센서가 있는 자리 — 그 센서를 고른다. 끌면 위치가 바뀐다. */
+        layPending = ch;
+        setText("laySel", "ch" + (ch + 1) + " 선택됨 (" + (h.i + 1) + "번 · " +
+                E.slotName(h.i) + "). 끌어서 옮기거나, 빈 점을 눌러 그리로 보내세요.");
+      } else if (E.count() < E.N) {
+        /* 빈 자리 — 고른 센서를 여기로 옮긴다. 자리를 쓰던 채널과 맞바꾼다. */
+        INSOLE.expand.place(layPending, h.i);   /* 양발 함께 */
+        setText("laySel", "ch" + (layPending + 1) + " 를 " + (h.i + 1) + "번 · " +
+                E.slotName(h.i) + " 로 옮겼습니다.");
+        layPending = (layPending + 1) % E.count();   /* 다음 센서로 넘어간다 */
+        renderMapTable();
+        renderCount();
+      }
       layDraw();
     }
     function move(e) {
@@ -597,9 +633,11 @@
       var b = e.target.closest ? e.target.closest("[data-n]") : null;
       if (!b) return;
       INSOLE.expand.setCount(parseInt(b.dataset.n, 10));
+      layPending = 0;
       renderCount();
       renderMapTable();
       layDraw();
+      laySay();
     });
     wireLayout();
 
@@ -607,7 +645,7 @@
     $("mapTable").addEventListener("change", function (e) {
       var sel = e.target;
       if (!sel.classList.contains("mapsel")) return;
-      INSOLE.mapping.assign(parseInt(sel.dataset.ch, 10), parseInt(sel.value, 10));
+      INSOLE.expand.place(parseInt(sel.dataset.ch, 10), parseInt(sel.value, 10));
       renderMapTable();   /* 자리를 맞바꿨으므로 다른 줄도 바뀝니다 */
       renderCount();      /* 실측 자리가 바뀌었으니 안내도 갱신 */
       layDraw();
@@ -744,6 +782,7 @@
     }
     renderCount();
     layDraw();
+    laySay();
     setText("appVer", C.APP_VERSION);
     /* 설정 탭을 보고 있을 때만 값을 새로 씁니다. 측정 루프와 무관하게
      * 돌아야 연결만 해둔 상태에서도 어느 센서가 눌리는지 보입니다. */
