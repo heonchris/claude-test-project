@@ -1,28 +1,34 @@
 /* ============================================================
- * 11-ble.js — 실제 인솔과 블루투스 연결 (안드로이드 우선)
+ * 11-ble.js — 인솔과 블루투스 연결 (발마다 하나씩, 동시 2개)
  *
- * 웹에서 직접 블루투스를 씁니다. 안드로이드 크롬·엣지·삼성인터넷에서
- * 동작하며, 앱을 따로 설치할 필요가 없습니다.
+ * 발마다 아두이노 + 블루투스 모듈이 하나씩 붙습니다. 두 신발 사이에
+ * 선을 둘 수 없으므로 이 구조 외에 선택지가 없습니다. 그래서 앱은
+ * **두 기기에 동시에 연결**합니다. 안드로이드는 동시 7개까지 허용하므로
+ * 2개는 여유롭습니다.
+ *
+ * 왼발·오른발은 각각 따로 연결하고 따로 끊습니다. 한쪽만 연결된
+ * 상태에서도 그 발은 정상 동작합니다.
+ *
+ * ── 패킷 ───────────────────────────────────────────────
+ * 두 가지를 모두 받습니다. 헤더로 구분하므로 섞여도 안전합니다.
+ *
+ *   0xA5  34바이트  16채널. 예전 형식. 앞 8채널만 그 발의 값으로 씁니다
+ *   0xA6  19바이트  8채널 + 발 표시. 한 번에 보낼 수 있어 분할이 없습니다
+ *
+ * 0xA6 을 권장합니다. BLE 는 한 번에 20바이트까지만 보내므로 34바이트는
+ * 쪼개져 오고, 9600 baud 로는 30Hz 가 들어가지도 않습니다.
+ * 19바이트면 둘 다 해결됩니다.
  *
  * 아이폰은 사파리를 포함한 모든 브라우저가 이 기능을 지원하지 않습니다.
- * (아이폰의 모든 브라우저는 내부적으로 같은 엔진을 씁니다)
- * 아이폰에서는 Xcode 로 만든 앱에서 Swift 가 대신 연결해 줘야 합니다.
- *
- * 패킷 형식은 DATA_CONTRACT.md 를 따릅니다.
  * ============================================================ */
 var INSOLE = window.INSOLE || {};
 
 INSOLE.ble = (function () {
   "use strict";
   var C = INSOLE.config;
+  var N = C.CHANNELS;                 /* 발당 채널 수 = 8 */
 
-  /* 쓰는 모듈마다 UUID 가 다릅니다. 위에서부터 차례로 시도합니다.
-   *
-   * HM-10 · AT-09 · BT05 (CC2541) 은 공장 기본값이 FFE0/FFE1 입니다.
-   * DATA_CONTRACT.md 의 FFF0/FFF1 은 자체 펌웨어를 만들 때 쓸 임시값이라,
-   * 시중 모듈을 그냥 꽂으면 FFE0 쪽으로 잡힙니다.
-   * 펌웨어가 확정되면 그 UUID 하나만 남기면 됩니다.
-   */
+  /* 쓰는 모듈마다 UUID 가 다릅니다. 위에서부터 차례로 시도합니다. */
   var PROFILES = [
     { name: "HM-10 / AT-09 계열",
       service: "0000ffe0-0000-1000-8000-00805f9b34fb",
@@ -31,42 +37,41 @@ INSOLE.ble = (function () {
       service: "0000fff0-0000-1000-8000-00805f9b34fb",
       notify:  "0000fff1-0000-1000-8000-00805f9b34fb" }
   ];
-  var SERVICE_UUID = PROFILES[0].service;   /* 하위 호환용 참고값 */
-  var NOTIFY_UUID  = PROFILES[0].notify;
-  var PACKET_BYTES = 2 + C.CHANNELS * 2 * 2;   /* 헤더1 + 순번1 + 16채널×2바이트 = 34 */
-  var HEADER = 0xA5;
-  var profile = null;   /* 실제로 잡힌 프로필 */
 
-  var device = null, characteristic = null;
-  var lastRaw = null;   /* 매핑 전 원래 채널 순서. 설정 화면이 씁니다. */
+  var HDR_FULL = 0xA5, LEN_FULL = 2 + N * 2 * 2;   /* 34 */
+  var HDR_FOOT = 0xA6, LEN_FOOT = 3 + N * 2;       /* 19 */
+  var FOOT_BYTE = { L: 0x4C, R: 0x52 };
 
-  /* 들어온 바이트를 해석 전에 그대로 보관합니다.
-   *
-   * 해석에 실패하면 화면은 그냥 조용합니다. 그러면 모듈이 아무것도
-   * 안 보내는 것인지, 보내는데 내용이 깨진 것인지 구분할 수가 없어
-   * 원인을 하드웨어에서 찾게 됩니다. 날것을 보여 주면 한 번에 갈립니다. */
-  var rx = { bytes: 0, notifies: 0, last: [], at: 0 };
+  var SIDES = ["L", "R"];
+  var SIDE_LABEL = { L: "왼발", R: "오른발" };
+
   var listeners = [];
-  var stats = { packets: 0, dropped: 0, bad: 0, lastSeq: -1 };
-
   function emit(type, detail) {
     listeners.forEach(function (fn) { try { fn(type, detail); } catch (e) {} });
   }
   function onChange(fn) { listeners.push(fn); }
 
-  /** 이 브라우저가 웹 블루투스를 지원하는가. */
+  function blank(side) {
+    return {
+      side: side, device: null, ch: null, profile: null,
+      buf: [],
+      rx: { bytes: 0, notifies: 0, last: [], at: 0 },
+      stats: { packets: 0, dropped: 0, bad: 0, lastSeq: -1, mismatched: 0 },
+      lastRaw: null
+    };
+  }
+  var links = { L: blank("L"), R: blank("R") };
+
   function supported() {
     return typeof navigator !== "undefined" &&
            !!navigator.bluetooth && typeof navigator.bluetooth.requestDevice === "function";
   }
 
-  /** 왜 못 쓰는지 사람이 읽을 수 있는 이유. */
   function unsupportedReason() {
     if (supported()) return null;
     var ua = navigator.userAgent || "";
-    /* 아이폰·아이패드는 브라우저를 바꿔도 안 됩니다. 엔진이 같기 때문입니다. */
     if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) {
-      return "아이폰·아이패드는 브라우저에서 블루투스를 쓸 수 없습니다. 크롬을 깔아도 마찬가지입니다. 실제 센서 연결은 안드로이드 휴대폰을 쓰시거나, Xcode 로 설치한 앱이 필요합니다.";
+      return "아이폰·아이패드는 브라우저에서 블루투스를 쓸 수 없습니다. 크롬을 깔아도 마찬가지입니다. 안드로이드 휴대폰을 쓰시거나, Xcode 로 설치한 앱이 필요합니다.";
     }
     if (location.protocol !== "https:" && location.hostname !== "localhost") {
       return "보안 연결(https)에서만 블루투스를 쓸 수 있습니다. 주소가 https 로 시작하는지 확인하세요.";
@@ -74,121 +79,132 @@ INSOLE.ble = (function () {
     return "이 브라우저는 블루투스를 지원하지 않습니다. 안드로이드에서 크롬·엣지·삼성인터넷을 쓰세요.";
   }
 
-  function isConnected() {
-    return !!(device && device.gatt && device.gatt.connected);
+  function isConnected(side) {
+    if (!side) return SIDES.some(isConnected);
+    var l = links[side];
+    return !!(l.device && l.device.gatt && l.device.gatt.connected && l.ch);
   }
-
-  /* ── 조각 모으기 ──────────────────────────────────────────
-   * BLE 는 한 번에 20바이트까지만 보냅니다. 34바이트 패킷은 20 + 14 로
-   * 쪼개져 도착하므로, 받은 조각을 이어 붙였다가 헤더(0xA5)를 찾아
-   * 34바이트가 모이면 한 패킷으로 넘깁니다.
-   *
-   * 한계: 데이터 안에 우연히 0xA5 가 있으면 한 번 어긋날 수 있습니다.
-   * 그 경우 다음 패킷에서 순번이 튀므로 아래에서 자동으로 다시 맞춥니다.
-   */
-  var buf = [];
-  var MAX_BUF = PACKET_BYTES * 4;   /* 쓰레기가 쌓이지 않게 상한을 둔다 */
-
-  function feed(dv) {
-    var i, b;
-
-    /* 해석하기 전에 먼저 기록합니다. */
-    rx.notifies++;
-    rx.bytes += dv.byteLength;
-    rx.at = Date.now();
-    for (i = 0; i < dv.byteLength; i++) {
-      b = dv.getUint8(i);
-      rx.last.push(b);
-      buf.push(b);
-    }
-    if (rx.last.length > 24) rx.last = rx.last.slice(rx.last.length - 24);
-
-    for (;;) {
-      /* 맨 앞이 헤더가 아니면 헤더가 나올 때까지 버린다 */
-      while (buf.length && buf[0] !== HEADER) { buf.shift(); stats.bad++; }
-      if (buf.length < PACKET_BYTES) break;
-
-      var frame = buf.slice(0, PACKET_BYTES);
-      buf = buf.slice(PACKET_BYTES);
-      handlePacket(frame);
-    }
-
-    if (buf.length > MAX_BUF) buf = buf.slice(buf.length - MAX_BUF);
-  }
+  function connectedSides() { return SIDES.filter(isConnected); }
 
   /* ── 패킷 해석 ────────────────────────────────────────────
-   * 34바이트 배열을 받아 채널값으로 풉니다.
+   * BLE 는 한 번에 20바이트까지만 보내므로 34바이트짜리는 쪼개져 옵니다.
+   * 받은 조각을 이어 붙였다가 헤더를 찾아 한 패킷이 모이면 넘깁니다.
    */
-  function handlePacket(bytes) {
-    function u16(off) { return bytes[off] | (bytes[off + 1] << 8); }   /* little-endian */
+  function lenFor(h) {
+    if (h === HDR_FOOT) return LEN_FOOT;
+    if (h === HDR_FULL) return LEN_FULL;
+    return 0;
+  }
 
-    /* 순번으로 유실을 셉니다. 무선이 불안정한지 판단하는 근거가 됩니다. */
-    var seq = bytes[1];
-    if (stats.lastSeq >= 0) {
-      var gap = (seq - stats.lastSeq + 256) % 256;
-      if (gap > 1) stats.dropped += gap - 1;
+  function feed(side, dv) {
+    var l = links[side], i, b;
+
+    /* 해석하기 전에 먼저 기록합니다. 화면이 조용할 때, 모듈이 아무것도
+     * 안 보내는 것인지 내용이 깨진 것인지 가리는 유일한 근거입니다. */
+    l.rx.notifies++;
+    l.rx.bytes += dv.byteLength;
+    l.rx.at = Date.now();
+    for (i = 0; i < dv.byteLength; i++) {
+      b = dv.getUint8(i);
+      l.rx.last.push(b);
+      l.buf.push(b);
     }
-    stats.lastSeq = seq;
-    stats.packets++;
+    if (l.rx.last.length > 24) l.rx.last = l.rx.last.slice(l.rx.last.length - 24);
 
-    /* 채널 순서대로 먼저 읽고, 사용자가 정한 자리로 옮겨 담습니다.
-     * 어느 센서가 발의 어디에 깔려 있는지는 12-mapping.js 가 압니다. */
-    var raw = [];
-    for (var i = 0; i < C.CHANNELS * 2; i++) raw.push(u16(2 + i * 2));
+    for (;;) {
+      while (l.buf.length && !lenFor(l.buf[0])) { l.buf.shift(); l.stats.bad++; }
+      if (!l.buf.length) break;
+      var need = lenFor(l.buf[0]);
+      if (l.buf.length < need) break;
+      var frame = l.buf.slice(0, need);
+      l.buf = l.buf.slice(need);
+      handlePacket(side, frame);
+    }
 
-    var v = INSOLE.sensor.values;
-    INSOLE.mapping.apply(raw, v);
-    lastRaw = raw;          /* 매핑 전 원본. 진단·기록은 이것만 쓴다 */
-
-    /* 센서가 앞뒤 2점뿐이면 나머지 자리를 추정으로 채웁니다.
-     * 실측값은 그대로 두므로 지표는 왜곡되지 않습니다. */
-    INSOLE.expand.apply(v);
-    /* 오류값 정리와 수신 시각 기록은 health 가 담당합니다. */
-    INSOLE.health.sanitize(v);
-    INSOLE.health.markFrame();
+    if (l.buf.length > LEN_FULL * 4) l.buf = l.buf.slice(l.buf.length - LEN_FULL * 4);
   }
 
   /**
-   * 인솔에 연결합니다.
-   * 반드시 사용자가 버튼을 눌러 호출해야 합니다 —
-   * 브라우저가 기기 선택 창을 띄우려면 사용자 동작이 필요합니다.
+   * 한 발의 8채널을 그 발의 자리에 담는다.
+   * 어느 채널이 발의 어디인지는 12-mapping.js 가 정한다.
    */
-  function connect(opts) {
+  function handlePacket(side, bytes) {
+    var l = links[side];
+    var foot = side, off;
+
+    if (bytes[0] === HDR_FOOT) {
+      /* 펌웨어가 밝힌 발을 믿는다. 연결할 때 고른 것과 다르면 기록해 둔다 */
+      var m = bytes[2];
+      var declared = (m === FOOT_BYTE.L) ? "L" : (m === FOOT_BYTE.R) ? "R" : null;
+      if (declared && declared !== side) l.stats.mismatched++;
+      if (declared) foot = declared;
+      off = 3;
+    } else {
+      off = 2;   /* 0xA5 예전 형식 — 앞 8채널만 그 발의 값으로 쓴다 */
+    }
+
+    var seq = bytes[1];
+    if (l.stats.lastSeq >= 0) {
+      var gap = (seq - l.stats.lastSeq + 256) % 256;
+      if (gap > 1) l.stats.dropped += gap - 1;
+    }
+    l.stats.lastSeq = seq;
+    l.stats.packets++;
+
+    var raw = [], i;
+    for (i = 0; i < N; i++) raw.push(bytes[off + i * 2] | (bytes[off + i * 2 + 1] << 8));
+    l.lastRaw = raw;
+
+    /* 글로벌 채널 번호: 왼발 0~7, 오른발 8~15 */
+    var base = (foot === "R") ? N : 0;
+    var arr = INSOLE.sensor.values[foot];
+    for (i = 0; i < N; i++) {
+      var slot = INSOLE.mapping ? INSOLE.mapping.slotOf(base + i) : (base + i);
+      var local = slot - base;
+      if (local < 0 || local >= N) continue;   /* 다른 발로 보낸 채널은 건너뛴다 */
+      arr[local] = raw[i];
+    }
+
+    INSOLE.health.sanitize(INSOLE.sensor.values);
+    /* 센서를 다 달지 않았으면 빈 자리를 추정으로 채웁니다. */
+    if (INSOLE.expand) INSOLE.expand.apply(INSOLE.sensor.values);
+    INSOLE.health.markFrame(foot);
+  }
+
+  /* ── 연결 ─────────────────────────────────────────────── */
+  function connect(side, opts) {
+    if (SIDES.indexOf(side) < 0) side = "L";
     if (!supported()) return Promise.reject(new Error(unsupportedReason()));
 
+    var l = links[side];
     var anyDevice = !!(opts && opts.any);
     var all = PROFILES.map(function (p) { return p.service; });
 
-    /* 선택 창에 띄울 조건입니다. 여러 개를 주면 OR 로 걸립니다.
-     *
-     * 서비스로만 거르면, 광고 패킷에 서비스 UUID 를 싣지 않는 일부
-     * 짝퉁 모듈이 목록에 아예 안 나옵니다. 흔한 공장 기본 이름도
-     * 함께 걸어 두면 그런 경우에도 보입니다.
-     *   HMSoft = HM-10 기본 이름 · BT05 · AT-09 · JDY-08
-     */
     var filters = all.map(function (u) { return { services: [u] }; });
     ["HMSoft", "HM-", "BT05", "AT-", "JDY"].forEach(function (n) {
       filters.push({ namePrefix: n });
     });
 
-    /* anyDevice: 조건을 전부 빼고 주변의 모든 기기를 보여 줍니다.
-     * 모듈이 조건에 안 걸려 목록이 비는 것인지, 아예 신호를 안 내보내는
-     * 것인지 구분하는 용도입니다. 목록이 지저분해지므로 진단 전용입니다. */
     var req = anyDevice
       ? { acceptAllDevices: true, optionalServices: all }
       : { filters: filters, optionalServices: all };
 
     return navigator.bluetooth.requestDevice(req).then(function (d) {
-      device = d;
-      device.addEventListener("gattserverdisconnected", function () {
-        characteristic = null;
-        INSOLE.sensor.setSource("sim");
-        emit("disconnected", { name: device && device.name });
+      /* 같은 기기를 양쪽에 연결하면 두 발이 같은 값을 받아 좌우 비교가
+       * 무의미해집니다. 사람 눈에는 정상처럼 보이므로 막아 둡니다. */
+      var other = (side === "L") ? "R" : "L";
+      if (links[other].device && links[other].device.id === d.id) {
+        throw new Error("이 기기는 이미 " + SIDE_LABEL[other] + "에 연결되어 있습니다. 다른 기기를 고르세요.");
+      }
+      l.device = d;
+      d.addEventListener("gattserverdisconnected", function () {
+        l.ch = null;
+        if (!isConnected()) INSOLE.sensor.setSource("sim");
+        emit("disconnected", { side: side, name: d.name });
       });
-      emit("connecting", { name: d.name });
+      emit("connecting", { side: side, name: d.name });
       return d.gatt.connect();
     }).then(function (server) {
-      /* 아는 프로필을 위에서부터 시도합니다. 먼저 잡히는 것을 씁니다. */
       var i = 0;
       function tryNext() {
         if (i >= PROFILES.length) {
@@ -200,71 +216,102 @@ INSOLE.ble = (function () {
         var p = PROFILES[i++];
         return server.getPrimaryService(p.service)
           .then(function (svc) { return svc.getCharacteristic(p.notify); })
-          .then(function (ch) { profile = p; return ch; })
+          .then(function (ch) { l.profile = p; return ch; })
           .catch(tryNext);
       }
       return tryNext();
     }).then(function (ch) {
-      characteristic = ch;
+      l.ch = ch;
       ch.addEventListener("characteristicvaluechanged", function (e) {
-        feed(e.target.value);
+        feed(side, e.target.value);
       });
       return ch.startNotifications();
     }).then(function () {
-      stats = { packets: 0, dropped: 0, bad: 0, lastSeq: -1 };
-      buf = [];
-      rx = { bytes: 0, notifies: 0, last: [], at: 0 };
-      /* 이제 시뮬레이터 대신 실제 값이 들어옵니다. */
+      l.buf = [];
+      l.rx = { bytes: 0, notifies: 0, last: [], at: 0 };
+      l.stats = { packets: 0, dropped: 0, bad: 0, lastSeq: -1, mismatched: 0 };
       INSOLE.sensor.setSource("ble");
-      emit("connected", { name: device.name || "인솔" });
+      emit("connected", { side: side, name: l.device.name || SIDE_LABEL[side] });
       return true;
     }).catch(function (err) {
-      /* 사용자가 선택 창을 닫은 것은 오류가 아닙니다. */
       if (err && err.name === "NotFoundError") {
-        emit("cancelled", {});
+        emit("cancelled", { side: side });
         return false;
       }
-      emit("error", { message: (err && err.message) || String(err) });
+      emit("error", { side: side, message: (err && err.message) || String(err) });
       throw err;
     });
   }
 
-  function disconnect() {
-    try { if (device && device.gatt && device.gatt.connected) device.gatt.disconnect(); } catch (e) {}
-    characteristic = null;
-    INSOLE.sensor.setSource("sim");
-    emit("disconnected", {});
+  function disconnect(side) {
+    if (!side) { SIDES.forEach(disconnect); return; }
+    var l = links[side];
+    try { if (l.device && l.device.gatt && l.device.gatt.connected) l.device.gatt.disconnect(); } catch (e) {}
+    links[side] = blank(side);
+    /* 그 발의 값은 비워 둡니다. 남겨 두면 끊긴 발이 계속 눌려 있는 것처럼
+     * 보여 좌우 비교가 거짓이 됩니다. */
+    var arr = INSOLE.sensor.values[side];
+    for (var i = 0; i < arr.length; i++) arr[i] = 0;
+    if (!isConnected()) INSOLE.sensor.setSource("sim");
+    emit("disconnected", { side: side });
   }
 
-  /* 앱 -> 모듈 -> 아두이노 방향 시험용.
-   *
-   * 지금까지는 아두이노가 모듈로 보내는 쪽만 확인했습니다. 반대로
-   * 보내 보면 모듈의 어느 쪽이 죽었는지 가려집니다. HM-10 계열은
-   * 같은 특성(FFE1)으로 읽고 쓰기를 모두 합니다. */
-  function send(text) {
-    if (!characteristic) return Promise.reject(new Error("연결되어 있지 않습니다."));
+  /** 앱에서 모듈로 글자를 보냅니다. 배선 점검용입니다. */
+  function send(side, text) {
+    var l = links[side || "L"];
+    if (!l.ch) return Promise.reject(new Error(SIDE_LABEL[side || "L"] + "이 연결되어 있지 않습니다."));
     var bytes = new TextEncoder().encode(text);
-    if (characteristic.writeValueWithoutResponse) {
-      return characteristic.writeValueWithoutResponse(bytes)
-        .catch(function () { return characteristic.writeValue(bytes); });
+    if (l.ch.writeValueWithoutResponse) {
+      return l.ch.writeValueWithoutResponse(bytes)
+        .catch(function () { return l.ch.writeValue(bytes); });
     }
-    return characteristic.writeValue(bytes);
+    return l.ch.writeValue(bytes);
   }
 
-  function deviceName() { return device && device.name ? device.name : null; }
-  function profileName() { return profile ? profile.name : null; }
-  function getStats() { return stats; }
+  function deviceName(side) {
+    var l = links[side];
+    return (l && l.device && l.device.name) ? l.device.name : null;
+  }
+  function profileName(side) { return links[side] && links[side].profile ? links[side].profile.name : null; }
+
+  /** 합산 통계. side 를 주면 그 발만. */
+  function getStats(side) {
+    if (side) return links[side].stats;
+    var out = { packets: 0, dropped: 0, bad: 0, lastSeq: -1, mismatched: 0 };
+    SIDES.forEach(function (s) {
+      out.packets += links[s].stats.packets;
+      out.dropped += links[s].stats.dropped;
+      out.bad     += links[s].stats.bad;
+      out.mismatched += links[s].stats.mismatched;
+    });
+    return out;
+  }
+  function getRx(side) {
+    if (side) return links[side].rx;
+    var out = { bytes: 0, notifies: 0, last: [], at: 0 };
+    SIDES.forEach(function (s) {
+      out.bytes += links[s].rx.bytes;
+      out.notifies += links[s].rx.notifies;
+      if (links[s].rx.at > out.at) { out.at = links[s].rx.at; out.last = links[s].rx.last; }
+    });
+    return out;
+  }
+  function lastRaw(side) {
+    if (side) return links[side].lastRaw;
+    return links.L.lastRaw || links.R.lastRaw;
+  }
 
   return {
     supported: supported, unsupportedReason: unsupportedReason,
-    connect: connect, disconnect: disconnect, isConnected: isConnected,
+    connect: connect, disconnect: disconnect,
+    isConnected: isConnected, connectedSides: connectedSides,
     deviceName: deviceName, profileName: profileName,
-    lastRaw: function () { return lastRaw; },
-    send: send,
-    rx: function () { return rx; },
-    stats: getStats, onChange: onChange,
-    PROFILES: PROFILES, PACKET_BYTES: PACKET_BYTES,
-    SERVICE_UUID: SERVICE_UUID, NOTIFY_UUID: NOTIFY_UUID,
+    stats: getStats, rx: getRx, lastRaw: lastRaw,
+    send: send, onChange: onChange,
+    SIDES: SIDES, SIDE_LABEL: SIDE_LABEL,
+    PROFILES: PROFILES, PACKET_BYTES: LEN_FULL, FOOT_PACKET_BYTES: LEN_FOOT,
     _feed: feed   /* 테스트용 */
   };
 })();
+
+window.INSOLE = INSOLE;

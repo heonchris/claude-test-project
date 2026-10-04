@@ -10,7 +10,7 @@
 
   /* 화면 파일과 이 파일의 버전이 어긋나면 자가복구가 잡아냅니다.
    * 서비스워커가 둘을 다른 시점의 것으로 섞어 주는 일이 실제로 있었습니다. */
-  INSOLE.APP_JS_VERSION = "v15";
+  INSOLE.APP_JS_VERSION = "v16";
 
   var running = false, rafId = null, t0 = 0, lastFrame = 0, elapsed = 0;
   var history = [], session = null, records = [], nextId = 1;
@@ -225,12 +225,17 @@
     if (!$("sc-diag").classList.contains("on")) return;
 
     var hz = INSOLE.health.actualHz();
-    var live = INSOLE.health.isLive();
-    /* 측정 중인데 데이터가 안 오면 '끊김'. 이게 진단의 핵심입니다. */
-    var st = !running ? "대기" : (live ? "수신 중" : "끊김");
-    var dEl = $("dState");
-    dEl.textContent = st;
-    dEl.className = "v " + (st === "끊김" ? "bad" : st === "수신 중" ? "good" : "");
+    /* 발마다 기기가 따로라 한쪽만 끊길 수 있습니다. 하나로 묶어 보면
+     * 오른발이 죽어도 왼발 덕분에 '수신 중' 으로 보여 진단이 무의미해집니다. */
+    ["L", "R"].forEach(function (side) {
+      var el = document.getElementById("dState" + side);
+      if (!el) return;
+      var conn = INSOLE.ble.isConnected(side);
+      var lv = INSOLE.health.isLive(side);
+      var t = !conn ? "연결 안 됨" : (lv ? "수신 중" : "끊김");
+      el.textContent = t;
+      el.className = "v " + (t === "끊김" ? "bad" : t === "수신 중" ? "good" : "");
+    });
     $("dHz").innerHTML = (hz ? hz.toFixed(1) : "–") + '<small>Hz</small>';
     $("dOk").innerHTML = sum.ok + '<small>/' + (sum.total || C.CHANNELS * 2) + '</small>';
     var bad = $("dBad");
@@ -311,7 +316,7 @@
   function updateMapValues() {
     var tb = document.getElementById("mapTable");
     if (!tb) return;
-    var raw = INSOLE.ble.lastRaw();
+    var raw = INSOLE.ble.lastRaw("L");   /* 설정 화면은 왼발 기준 */
     var rows = tb.querySelectorAll("tr");
     for (var i = 0; i < rows.length; i++) {
       var cell = rows[i].querySelector("[data-v]");
@@ -501,7 +506,7 @@
 
   /* 해석 전 수신 바이트. 무선이 조용할 때 원인을 가르는 유일한 근거입니다. */
   function renderRx() {
-    var r = INSOLE.ble.rx(), st = INSOLE.ble.stats();
+    var r = INSOLE.ble.rx(), st = INSOLE.ble.stats();   /* 양발 합산 */
     setText("rxBytes", String(r.bytes));
     setText("rxCnt", String(r.notifies));
 
@@ -517,39 +522,79 @@
       v = "인솔에 연결되어 있지 않습니다.";
     } else if (r.bytes === 0) {
       v = "연결은 됐는데 바이트가 하나도 안 옵니다 → 아두이노가 모듈로 보내지 못하는 중입니다. " +
-          "아두이노 3번 핀이 모듈 RXD 에 꽂혔는지, 블루투스로 보내는 스케치가 올라가 있는지 확인하세요.";
+          "아두이노 5번 핀이 모듈 RXD 에 꽂혔는지, 블루투스로 보내는 스케치가 올라가 있는지 확인하세요.";
     } else if (st.packets === 0) {
       v = "바이트는 오는데 해석이 안 됩니다 → 내용이 깨졌습니다. " +
           "모듈 통신 속도(기본 9600)와 스케치의 bt.begin() 숫자가 다를 때 이렇게 됩니다. " +
           "위 16진수에 A5 가 보이면 속도는 맞는 것입니다.";
     } else {
-      v = "정상입니다. 해석된 패킷 " + st.packets + "개.";
+      v = "정상입니다. 해석된 패킷 " + st.packets + "개";
+      var per = INSOLE.ble.SIDES.filter(function (sd) { return INSOLE.ble.isConnected(sd); })
+        .map(function (sd) { return INSOLE.ble.SIDE_LABEL[sd] + " " + INSOLE.ble.stats(sd).packets; });
+      if (per.length) v += " (" + per.join(" · ") + ")";
+      v += ".";
+      if (st.mismatched) {
+        v += " 다만 펌웨어가 밝힌 발과 연결할 때 고른 발이 " + st.mismatched +
+             "번 달랐습니다. 왼발 기기를 오른발로 연결했는지 확인하세요.";
+      }
     }
     setText("rxVerdict", v);
   }
 
   /* 앱바의 연결 표시와 진단 탭의 연결 카드를 한 곳에서 갱신합니다. */
   function renderConnection() {
+    var B = INSOLE.ble;
+    var anyConn = B.isConnected();
+
+    ["L", "R"].forEach(function (side) {
+      var row = document.getElementById("row" + side);
+      if (!row) return;
+      var on = B.isConnected(side);
+      row.classList.toggle("live", on);
+      setText("name" + side, on ? (B.deviceName(side) || "연결됨") : "연결 안 됨");
+      row.querySelector('[data-conn="' + side + '"]').hidden = on;
+      row.querySelector('[data-disc="' + side + '"]').hidden = !on;
+    });
+
+    /* 한쪽만 연결하면 좌우 비교가 성립하지 않습니다. 조용히 틀린 값을
+     * 보여 주면 자세 문제로 오해하므로 분명히 알려 줍니다. */
+    var warn = document.getElementById("bleWarn");
+    if (warn) {
+      var dead = B.SIDES.filter(function (s) { return !B.isConnected(s); });
+      if (anyConn && dead.length === 1) {
+        warn.textContent = B.SIDE_LABEL[dead[0]] + "이 연결되지 않았습니다. " +
+          "그 발은 0 으로 남으므로 좌우 균형은 판단하지 않습니다.";
+        warn.hidden = false;
+      } else {
+        warn.hidden = true;
+      }
+    }
+    return renderConnectionRest();
+  }
+
+  function renderConnectionRest() {
     var onBle = INSOLE.sensor.getSource() === "ble";
     var pill = $("conn"), txt = $("connTxt");
     pill.classList.toggle("live", onBle);
-    txt.textContent = onBle ? (INSOLE.ble.deviceName() || "인솔 연결됨") : "시뮬레이션";
+    txt.textContent = onBle
+      ? (INSOLE.ble.connectedSides().map(function (s) { return INSOLE.ble.SIDE_LABEL[s]; }).join("+") + " 연결됨")
+      : "시뮬레이션";
 
     $("bleMode").textContent = onBle ? "실제 인솔" : "시뮬레이션";
-    $("bleConnect").hidden = onBle;
-    $("bleAny").hidden = onBle;
-    $("bleDisconnect").hidden = !onBle;
 
     var hint = $("bleHint");
     if (onBle) {
-      hint.innerHTML = "<b>" + (INSOLE.ble.deviceName() || "인솔") + "</b> 에서 실제 값을 받고 있습니다. " +
+      var ns = INSOLE.ble.connectedSides().map(function (s) {
+        return INSOLE.ble.SIDE_LABEL[s] + " " + (INSOLE.ble.deviceName(s) || "");
+      });
+      hint.innerHTML = "<b>" + ns.join(" · ") + "</b> 에서 실제 값을 받고 있습니다. " +
                        "설정 탭의 시연 시나리오는 이때 동작하지 않습니다.";
     } else if (INSOLE.ble.supported()) {
-      hint.textContent = "실제 인솔을 연결하면 시뮬레이션 대신 진짜 값이 들어옵니다.";
-      $("bleConnect").disabled = false;
+      hint.innerHTML = "발마다 기기가 하나씩입니다. <b>왼발과 오른발을 각각</b> 연결하세요. " +
+                       "한쪽만 연결해도 그 발은 정상 동작합니다.";
     } else {
       hint.textContent = INSOLE.ble.unsupportedReason();
-      $("bleConnect").disabled = true;
+      document.querySelectorAll("[data-conn]").forEach(function (b) { b.disabled = true; });
     }
   }
 
@@ -656,23 +701,45 @@
       renderMapTable();
     });
 
-    if (document.getElementById("bleSend"))
-    $("bleSend").addEventListener("click", function () {
-      var btn = this;
-      btn.disabled = true;
-      setText("sendState", "보내는 중…");
-      INSOLE.ble.send("HELLO\n").then(function () {
-        setText("sendState", "보냈습니다. 아두이노 시리얼 모니터를 확인하세요.");
-      }).catch(function (e) {
-        setText("sendState", "보내기 실패: " + ((e && e.message) || String(e)));
-      }).then(function () { btn.disabled = false; });
+    ["L", "R"].forEach(function (side) {
+      var el = document.getElementById("bleSend" + side);
+      if (!el) return;
+      el.addEventListener("click", function () {
+        el.disabled = true;
+        setText("sendState", "보내는 중…");
+        INSOLE.ble.send(side, "HELLO\n").then(function () {
+          setText("sendState", INSOLE.ble.SIDE_LABEL[side] +
+                  "로 보냈습니다. 아두이노 시리얼 모니터를 확인하세요.");
+        }).catch(function (e) {
+          setText("sendState", "보내기 실패: " + ((e && e.message) || String(e)));
+        }).then(function () { el.disabled = false; });
+      });
     });
 
-    wireConnect("bleConnect", "인솔 연결", null);
-    wireConnect("bleAny", "모든 기기 보기", { any: true });
-    $("bleDisconnect").addEventListener("click", function () {
-      INSOLE.ble.disconnect();
-      renderConnection();
+    document.querySelectorAll("[data-conn]").forEach(function (btn) {
+      var side = btn.dataset.conn;
+      var label = btn.textContent;
+      btn.addEventListener("click", function () {
+        btn.disabled = true; btn.textContent = "연결 중…";
+        INSOLE.ble.connect(side, btn.dataset.any ? { any: true } : null)
+          .catch(function (err) {
+            var m = (err && err.message) || String(err);
+            if (err && err.name === "NotFoundError") m =
+              "기기를 고르지 않았거나, 목록에 아무것도 나오지 않았습니다. " +
+              "위치(GPS)가 켜져 있는지, 모듈 LED 가 깜빡이는지 확인하세요.";
+            setText("bleHint", m);
+          })
+          .then(function () {
+            btn.disabled = false; btn.textContent = label;
+            renderConnection();
+          });
+      });
+    });
+    document.querySelectorAll("[data-disc]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        INSOLE.ble.disconnect(btn.dataset.disc);
+        renderConnection();
+      });
     });
     /* 앱바의 연결 표시를 누르면 진단 탭으로 갑니다. */
     $("conn").addEventListener("click", function () {

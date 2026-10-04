@@ -442,3 +442,16 @@
     border-radius:12px;background:var(--sunk);cursor:grab;
   }
   #layCanvas:active{cursor:grabbing}
+
+  /* 발별 연결 줄 */
+  .footrow{
+    display:flex;align-items:center;gap:.5rem;
+    padding:.5rem 0;border-bottom:1px solid var(--rule);
+  }
+  .footrow:last-of-type{border-bottom:0}
+  .footrow .fl{display:flex;align-items:center;gap:.35rem;font-size:.88rem;font-weight:600;white-space:nowrap}
+  .footrow .fn{
+    flex:1;min-width:0;font-size:.78rem;color:var(--muted);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .footrow.live .fn{color:var(--good);font-weight:600}

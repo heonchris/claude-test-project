@@ -70,12 +70,11 @@ INSOLE.health = (function () {
 
   function channelState(side, i) {
     if (!isActive(side, i)) return "off";
+    if (!isLive(side)) return "unknown";
 
     /* 데이터가 안 들어오는 중이면 상태를 단정하면 안 됩니다.
      * 이 처리가 없으면 측정을 멈춘 뒤에도 마지막 상태가 그대로 굳어서
      * "포화" 경고가 영영 남아 있게 됩니다. */
-    if (!isLive()) return "unknown";
-
     var w = win[side][i];
     /* 창이 덜 찼으면 판단하지 않습니다. 성급한 경고는 혼란만 줍니다. */
     if (w.length < Math.min(30, C.HEALTH_WINDOW)) return "unknown";
@@ -107,32 +106,62 @@ INSOLE.health = (function () {
    * 데이터가 끊겼는데 "30Hz 수신 중"이라고 표시하면 진단 화면이
    * 무의미해집니다. 반드시 마지막 수신 시각을 함께 봐야 합니다.
    */
-  var stamps = [], lastStamp = 0;
+  /* 발마다 따로 셉니다. 발마다 기기가 하나씩이라 한쪽만 끊길 수 있는데,
+   * 하나로 묶어 보면 오른발이 죽어도 왼발 덕분에 '수신 중' 으로 보입니다.
+   * 그러면 0 으로 남은 오른발 때문에 **없는 좌우 쏠림**이 만들어집니다. */
+  var feed = {
+    L: { stamps: [], last: 0 },
+    R: { stamps: [], last: 0 }
+  };
   var STALE_MS = 1000;   /* 이만큼 소식이 없으면 끊긴 것으로 봅니다 */
 
   function now() {
     return (window.performance && performance.now) ? performance.now() : Date.now();
   }
-  function markFrame() {
-    var t = now();
-    lastStamp = t;
-    stamps.push(t);
-    if (stamps.length > 40) stamps.shift();
-  }
-  /** 마지막 수신 이후 지난 시간(ms). 한 번도 못 받았으면 Infinity. */
-  function sinceLast() {
-    return lastStamp ? (now() - lastStamp) : Infinity;
-  }
-  /** 데이터가 살아 있는가. */
-  function isLive() { return sinceLast() < STALE_MS; }
 
-  function actualHz() {
+  /** side 를 주지 않으면 양발 모두 표시합니다(시뮬레이터용). */
+  function markFrame(side) {
+    var t = now();
+    var sides = (side === "L" || side === "R") ? [side] : ["L", "R"];
+    sides.forEach(function (s) {
+      var f = feed[s];
+      f.last = t;
+      f.stamps.push(t);
+      if (f.stamps.length > 40) f.stamps.shift();
+    });
+  }
+
+  /** 마지막 수신 이후 지난 시간(ms). 한 번도 못 받았으면 Infinity. */
+  function sinceLast(side) {
+    if (side === "L" || side === "R") {
+      return feed[side].last ? (now() - feed[side].last) : Infinity;
+    }
+    return Math.min(sinceLast("L"), sinceLast("R"));
+  }
+
+  /** 데이터가 살아 있는가. side 를 주면 그 발만. */
+  function isLive(side) { return sinceLast(side) < STALE_MS; }
+
+  /** 양발이 모두 살아 있는가. 좌우 비교는 이때만 뜻이 있습니다. */
+  function bothLive() { return isLive("L") && isLive("R"); }
+
+  /** 끊긴 발 목록. */
+  function deadSides() {
+    return ["L", "R"].filter(function (s) { return !isLive(s); });
+  }
+
+  function actualHz(side) {
+    if (!side) {
+      /* 둘 중 빠른 쪽을 대표값으로. 한쪽만 연결된 경우를 위해서입니다. */
+      return Math.max(actualHz("L"), actualHz("R"));
+    }
     /* 끊겼으면 과거 평균을 돌려주면 안 됩니다. */
-    if (!isLive()) return 0;
-    if (stamps.length < 5) return 0;
-    var span = stamps[stamps.length - 1] - stamps[0];
+    if (!isLive(side)) return 0;
+    var st = feed[side].stamps;
+    if (st.length < 5) return 0;
+    var span = st[st.length - 1] - st[0];
     if (span <= 0) return 0;
-    return (stamps.length - 1) / (span / 1000);
+    return (st.length - 1) / (span / 1000);
   }
 
   /* ── 영점 보정 ────────────────────────────────────────────
@@ -207,12 +236,16 @@ INSOLE.health = (function () {
     } catch (e) {}
   }
 
-  function reset() { init(); stamps = []; lastStamp = 0; }
+  function reset() {
+    init();
+    feed = { L: { stamps: [], last: 0 }, R: { stamps: [], last: 0 } };
+  }
 
   return {
     push: push, sanitize: sanitize, isActive: isActive,
     channelState: channelState, summary: summary,
     markFrame: markFrame, actualHz: actualHz, isLive: isLive, sinceLast: sinceLast,
+    bothLive: bothLive, deadSides: deadSides,
     captureZero: captureZero, clearZero: clearZero, hasZero: hasZero, loadZero: loadZero,
     corrected: corrected, reset: reset
   };

@@ -57,8 +57,20 @@ INSOLE.metrics = (function () {
   }
 
   /** 좌우 비율. 1에 가까울수록 왼발에 쏠린 것. */
+  /**
+   * 왼발 비율 0~1.
+   *
+   * 한쪽 발이 끊겨 있으면 그 발 값은 0 이다. 그대로 계산하면 '한쪽으로
+   * 100% 쏠림' 이라는 **거짓 경고**가 나온다. 실제로는 자세가 아니라
+   * 연결이 끊긴 것이다. 그래서 양발이 모두 살아 있을 때만 계산하고,
+   * 아니면 0.5(판단 보류)를 돌려준다.
+   */
   function leftRightRatio(values) {
     var l, r;
+    if (INSOLE.health && INSOLE.health.bothLive && !INSOLE.health.bothLive()) {
+      /* 시뮬레이션 중에는 양발이 함께 도므로 이 가지에 걸리지 않는다 */
+      if (INSOLE.sensor && INSOLE.sensor.getSource() === "ble") return 0.5;
+    }
     /* 2점 구성에서는 실측 두 값의 합만 씁니다. 추정값을 포함하면,
      * 한 발은 앞쪽에 한 발은 뒤쪽에 실렸을 때 앞쪽 자리가 더 많은
      * 쪽이 무겁게 계산되어 없는 좌우 쏠림이 만들어집니다. */

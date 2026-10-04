@@ -14,13 +14,14 @@
 | 앱 화면·상호작용 | **완성** | 동작하는 참조 구현 |
 | 히트맵·무게중심·판정 알고리즘 | **완성** | 그대로 이식 가능 |
 | 데이터 규격 (BLE 패킷) | **초안 확정** | `handoff/DATA_CONTRACT.md` |
-| 안드로이드 블루투스 연결 | **구현됨** | `handoff/js/11-ble.js` |
+| 안드로이드 블루투스 연결 | **구현됨** | 양발 동시 2기기. `handoff/js/11-ble.js` |
 | 채널↔발 위치 매핑 설정 | **구현됨** | 앱 [설정] 탭에서 변경. `js/12-mapping.js` |
 | 아이폰 블루투스 연결 | **미구현** | Swift 작업 필요 (아래 참조) |
 | 1채널 센서 테스트 펌웨어 | **있음** | `hardware/step1_fsr_test` |
 | 블루투스 모듈 테스트 펌웨어 | **있음** | `hardware/step2_bluetooth_test` (자가진단 포함) |
 | 규격 패킷 송신 펌웨어 | **있음** | `hardware/step3_packet_stream` (1채널) |
 | 다채널 펌웨어 | **있음** | `hardware/step4_multi_channel` (핀 배열만 수정) |
+| 양발 2기기 펌웨어 | **있음** | `hardware/step5_two_feet` (FOOT 만 L/R 로) |
 | 8채널 펌웨어 | **없음** | 미착수 |
 | 실제 센서로 검증 | **1채널 성공** | 센서→아두이노→BLE→앱 전 구간 확인 (2025-10) |
 | 백엔드·DB | **없음** | 미착수 |
@@ -100,9 +101,10 @@ app/         ← 초기 단일 파일 프로토타입 (보관용. handoff/ 가 �
 2. **`hardware/step2_bluetooth_test`** — 블루투스 모듈 종류 확인 및 무선 전송 확인
 3. **`hardware/step3_packet_stream`** — 규격 패킷으로 앱 히트맵 띄우기
 4. **`hardware/step4_multi_channel`** — 센서 여러 개 (`PINS` 한 줄만 고치면 됨)
-5. 8채널 펌웨어 — 나노(A0~A7)로 — 우노는 아날로그 핀이 6개뿐이라 나노(A0~A7) 또는 멀티플렉서 필요
-6. 실측값으로 `handoff/js/01-config.js` 의 판정 임계값 재보정
-7. 백엔드·DB 설계 (`DATA_CONTRACT.md` 5절 초안 참조)
+5. **`hardware/step5_two_feet`** — 발마다 아두이노 하나씩, 앱이 2기기 동시 연결
+6. 8채널 펌웨어 — 나노(A0~A7)로 — 우노는 아날로그 핀이 6개뿐이라 나노(A0~A7) 또는 멀티플렉서 필요
+7. 실측값으로 `handoff/js/01-config.js` 의 판정 임계값 재보정
+8. 백엔드·DB 설계 (`DATA_CONTRACT.md` 5절 초안 참조)
 
 ---
 
