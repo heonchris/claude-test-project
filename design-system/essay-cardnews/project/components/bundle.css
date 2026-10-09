@@ -1,0 +1,133 @@
+@import url("https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&family=Nanum+Myeongjo:wght@400;700&display=swap");
+
+/* Essay note card news. Every value comes from tokens.json; the fallbacks only
+   keep a card readable where tokens.css is not loaded. */
+
+.cn-card, .cn-strip {
+  --cn-paper: var(--paper, #ffffff);
+  --cn-ink: var(--ink, #111111);
+  --cn-ink-body: var(--ink-body, #333333);
+  --cn-ink-muted: var(--ink-muted, #767676);
+  --cn-mint: var(--mint, #a8f0d4);
+  --cn-line: var(--line, #dddddd);
+  --cn-placeholder: var(--placeholder, #f2f2f2);
+  --cn-sans: var(--font-sans, "Nanum Gothic", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif);
+  --cn-serif: var(--font-serif, "Nanum Myeongjo", "AppleMyungjo", "Batang", serif);
+  --cn-pad-y: var(--pad-y, 100px);
+  --cn-pad-x: var(--pad-x, 90px);
+  --cn-gap-lg: var(--gap-lg, 72px);
+  --cn-gap-md: var(--gap-md, 48px);
+  --cn-gap-sm: var(--gap-sm, 32px);
+
+  position: relative;
+  box-sizing: border-box;
+  width: var(--card-width, 1080px);
+  height: var(--card-height, 1350px);
+  padding: var(--cn-pad-y) var(--cn-pad-x);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow: hidden;
+  background: var(--cn-paper);
+  color: var(--cn-ink-body);
+  font-family: var(--cn-sans);
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  border-radius: 0;
+  -webkit-font-smoothing: antialiased;
+}
+.cn-strip { height: auto; }
+.cn-card *, .cn-card *::before, .cn-card *::after { box-sizing: border-box; }
+:where(.cn-card, .cn-strip) :where(p, h1, h2, blockquote, figure, figcaption) { margin: 0; }
+
+/* Type styles */
+.cn-cover-title { font-size: 76px; line-height: 1.28; font-weight: 800; letter-spacing: -0.03em; color: var(--cn-ink); white-space: pre-line; }
+.cn-heading { font-size: 56px; line-height: 1.36; font-weight: 800; letter-spacing: -0.03em; color: var(--cn-ink); white-space: pre-line; }
+.cn-statement { font-size: 42px; line-height: 1.55; font-weight: 700; letter-spacing: -0.02em; color: var(--cn-ink); text-align: center; white-space: pre-line; }
+.cn-emphasis { font-size: 36px; line-height: 1.5; font-weight: 700; letter-spacing: -0.02em; color: var(--cn-ink); text-align: center; white-space: pre-line; }
+.cn-meta { font-size: 30px; line-height: 1.4; font-weight: 700; letter-spacing: -0.01em; color: var(--cn-ink); }
+.cn-body { display: flex; flex-direction: column; gap: var(--cn-gap-sm); }
+.cn-body p, .cn-body-text { font-size: 28px; line-height: 1.7; font-weight: 400; letter-spacing: -0.01em; color: var(--cn-ink-body); white-space: pre-line; }
+.cn-strong { font-weight: 800; color: var(--cn-ink); }
+.cn-caption { font-size: 24px; line-height: 1.5; font-weight: 400; letter-spacing: -0.01em; color: var(--cn-ink-muted); }
+
+/* The one colour: a mint highlighter under the lower part of the heading line.
+   Hard colour stops, so it reads as a flat marker stroke, not a gradient. */
+.cn-mark {
+  background-image: linear-gradient(to bottom, transparent 52%, var(--cn-mint) 52%, var(--cn-mint) 92%, transparent 92%);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  padding: 0 6px;
+  margin: 0 -6px;
+}
+
+/* Body card */
+.cn-card-body { margin-top: var(--cn-gap-lg); }
+.cn-conclusion {
+  margin-top: var(--cn-gap-lg);
+  font-size: 28px; line-height: 1.7; font-weight: 800; letter-spacing: -0.01em;
+  color: var(--cn-ink); text-align: center; white-space: pre-line;
+}
+
+/* Author row */
+.cn-author { display: flex; align-items: center; gap: 20px; }
+.cn-avatar {
+  flex: none; width: var(--avatar-size, 56px); height: var(--avatar-size, 56px);
+  border-radius: var(--radius-full, 9999px); object-fit: cover;
+  background: var(--cn-placeholder);
+}
+.cn-author-handle { margin-left: 4px; }
+
+/* Cover */
+.cn-cover { gap: var(--cn-gap-sm); }
+.cn-divider { height: 0; border: 0; border-top: var(--border-divider, 1px) solid var(--cn-line); margin: 0; }
+
+/* Images */
+.cn-figure { display: flex; flex-direction: column; gap: 16px; width: var(--content-width, 900px); }
+.cn-figure img, .cn-slot { display: block; width: 100%; border-radius: 0; }
+.cn-figure img { height: auto; }
+.cn-figure-hero img, .cn-figure-hero .cn-slot { height: var(--hero-height, 675px); object-fit: cover; }
+.cn-figure figcaption { text-align: center; }
+.cn-slot {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--cn-placeholder); color: var(--cn-ink-muted);
+  font-size: 24px; line-height: 1.5; text-align: center;
+}
+.cn-sticker { position: absolute; right: var(--cn-pad-x); bottom: var(--cn-pad-y); }
+.cn-sticker img, .cn-sticker .cn-slot { display: block; width: 100%; height: 100%; object-fit: contain; }
+
+/* Thought card */
+.cn-thought-center { flex: 1; display: flex; align-items: center; justify-content: center; }
+.cn-thought .cn-emphasis { padding-bottom: 8px; }
+
+/* Opinion card */
+.cn-tag {
+  align-self: flex-start;
+  display: inline-block; padding: 6px 20px;
+  background: var(--cn-ink); color: var(--cn-paper);
+  font-size: 28px; line-height: 1.4; font-weight: 700; letter-spacing: 0.02em;
+  border-radius: 0;
+}
+.cn-opinion .cn-heading { margin-top: var(--cn-gap-md); }
+.cn-opinion .cn-card-body { margin-top: var(--cn-gap-lg); }
+.cn-quote {
+  margin-top: var(--cn-gap-md);
+  padding: 40px 48px;
+  border: var(--border-quote, 1px) solid var(--cn-ink);
+  border-radius: 0;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.cn-quote-text { font-family: var(--cn-serif); font-size: 50px; line-height: 1.45; font-weight: 700; letter-spacing: -0.02em; color: var(--cn-ink); white-space: pre-line; }
+.cn-quote .cn-caption { text-align: right; }
+.cn-closing {
+  margin-top: var(--cn-gap-md);
+  text-align: right;
+  font-size: 28px; line-height: 1.7; font-weight: 800; letter-spacing: -0.01em;
+  color: var(--cn-ink); white-space: pre-line;
+}
+
+/* Preview helper: shows a 1080-wide card at a fraction of its size. */
+.cn-stage { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; padding: 16px; background: var(--line, #dddddd); }
+.cn-zoom-40 { zoom: 0.4; }
+.cn-zoom-50 { zoom: 0.5; }
+.cn-card.cn-strip { padding: 64px 90px; gap: 32px; }

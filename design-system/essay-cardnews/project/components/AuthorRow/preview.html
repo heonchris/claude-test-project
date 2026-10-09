@@ -1,0 +1,12 @@
+<!-- @dsCard group="Text" height=90 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>preview</title></head>
+<body style="margin:0">
+<div id="root" class="cn-stage"></div>
+<script>
+  var C = window.CardNews, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h("div", {className:"cn-zoom-50"}, h("div", {className:"cn-card cn-strip"}, h(C.AuthorRow, {"name": "글쓴이", "handle": "@essay.note"}))));
+</script>
+</body>
+</html>

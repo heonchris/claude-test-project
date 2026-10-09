@@ -1,0 +1,12 @@
+<!-- @dsCard group="Images" height=320 subtitle="폭 190–330, 세로형" -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>preview</title></head>
+<body style="margin:0">
+<div id="root" class="cn-stage"></div>
+<script>
+  var C = window.CardNews, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h("div", {className:"cn-zoom-50", style:{display:"flex", gap:"32px", alignItems:"flex-end"}}, [190,260,330].map(function(w){ return h("div", {key:w, className:"cn-card", style:{width:(w+180)+"px", height:(Math.round(w*4/3)+200)+"px"}}, h(C.Sticker, {width:w})); })));
+</script>
+</body>
+</html>

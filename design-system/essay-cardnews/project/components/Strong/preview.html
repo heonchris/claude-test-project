@@ -1,0 +1,12 @@
+<!-- @dsCard group="Text" height=90 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>preview</title></head>
+<body style="margin:0">
+<div id="root" class="cn-stage"></div>
+<script>
+  var C = window.CardNews, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h("div", {className:"cn-zoom-50"}, h("div", {className:"cn-card cn-strip"}, h(C.BodyText, {paragraphs:[h(React.Fragment, null, "그렇게 몇 달이 지나갔다. ", h(C.Strong, null, "남은 건 통장 잔고와 조금의 후회였다."))]}))));
+</script>
+</body>
+</html>
