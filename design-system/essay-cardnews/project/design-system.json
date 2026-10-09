@@ -7,8 +7,8 @@
   "libraries": [{"name": "react", "version": "18"}, {"name": "react-dom", "version": "18"}],
   "sections": {},
   "groups": ["Profile"],
-  "assetGroups": {"Profile": {"name": "Profile", "tile": "s", "order": [], "files": {}}},
+  "assetGroups": {"Profile": {"name": "Profile", "tile": "s", "order": ["avatar.png"], "files": {"avatar.png": {"name": "avatar.png", "blob": "a684a8c37c4126fc3a67f6654ec46336", "size": 38358, "type": "image/png"}}}},
   "blobs": {},
   "docs": {"sections": []},
-  "lastChange": {"by": "heonchris", "at": "2026-10-09T14:20:00Z", "via": "Claude Code", "note": "First version: tokens, 13 components, brand book, cover."}
+  "lastChange": {"by": "우승헌", "at": "2026-10-09T15:00:00Z", "via": "Claude Code", "note": "Ask before making a cover; author 우승헌 with avatar.png; images and stickers only when given or asked."}
 }
