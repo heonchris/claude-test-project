@@ -72,6 +72,9 @@ void loop() {
     if (pull > 900) {
       Serial.println(F("핀에 아무것도 안 붙어 있음. "
                        "10kΩ 저항이 이 핀과 GND 사이에 꽂혀 있는지 보세요"));
+    } else if (pull < 60) {
+      Serial.println(F("저항이 10kΩ 보다 훨씬 작습니다. "
+                       "색띠가 갈색-검정-주황인지 보세요 (주황이 검정이면 10Ω)"));
     } else if (hi[i] > 1000 && lo[i] > 1000) {
       Serial.println(F("1023 고정. 핀이 5V 에 바로 붙었습니다. "
                        "저항이 빠졌거나 FSR 자리를 건너뛰었습니다"));
@@ -88,6 +91,8 @@ void loop() {
       Serial.println(F("정상"));
     }
   }
+  Serial.println(F("  (풀업값은 채널끼리 비슷해야 합니다. "
+                   "10kΩ 이면 150~400. 한쪽만 동떨어지면 그 채널의 저항입니다)"));
   Serial.println();
 
   for (int i = 0; i < N; i++) { lo[i] = 1023; hi[i] = 0; }
