@@ -14,6 +14,9 @@ INSOLE.health = (function () {
 
   /* 채널별 최근값 링버퍼. [side][ch] = [값, 값, ...] */
   var win = { L: [], R: [] };
+  /* 하중 판정용 참조값 캐시. 자세한 설명은 loadRef() 에 있습니다. */
+  var seq = 0;
+  var refCache = { L: null, R: null };
   /* 영점: 발을 올리기 전 기준값. 빼고 나서 화면에 씁니다. */
   var zero = { L: null, R: null };
   /* 떨림 완화용 최근값 */
@@ -21,7 +24,7 @@ INSOLE.health = (function () {
 
   function init() {
     ["L", "R"].forEach(function (s) {
-      win[s] = []; smooth[s] = [];
+      win[s] = []; smooth[s] = []; refCache[s] = null;
       for (var i = 0; i < C.CHANNELS; i++) { win[s].push([]); smooth[s].push([]); }
     });
   }
@@ -55,11 +58,57 @@ INSOLE.health = (function () {
         if (w.length > C.HEALTH_WINDOW) w.shift();
       }
     });
+    seq++;
+  }
+
+  /* ── 하중 참조값 ──────────────────────────────────────────
+   * "이 채널이 조용한데, 발에는 체중이 실려 있었나?" 를 답하기 위한 값.
+   *
+   * 프레임마다 '다른 채널 중 가장 큰 값' 을 본다. 합이 아니라 최대를
+   * 쓰는 이유는, 채널이 늘어날수록 합의 기준이 흔들리기 때문이다.
+   *
+   * 두 가지를 참조에서 제외한다.
+   *   · 판정 대상 자신 — 자기가 자기의 증거가 될 수 없다.
+   *   · 포화된 채널 — 1023 에 붙어 버린 고장 채널은 하중이 아니다.
+   *     빼지 않으면 고장난 채널 하나가 "체중이 실려 있다" 고 우겨서
+   *     옆의 멀쩡한 채널까지 끊김으로 몰고 간다.
+   *
+   * 자신을 O(1) 로 빼내려고 1등과 2등을 같이 들고 있는다.
+   * 캐시는 push 횟수로 무효화한다. */
+  function satMask(side) {
+    var m = [];
+    for (var i = 0; i < C.CHANNELS; i++) {
+      var w = win[side][i], mn = C.MAX_RAW + 1;
+      for (var k = 0; k < w.length; k++) if (w[k] < mn) mn = w[k];
+      m.push(w.length > 0 && mn >= C.SAT_MIN);
+    }
+    return m;
+  }
+
+  function loadRef(side) {
+    var c = refCache[side];
+    if (c && c.seq === seq) return c;
+    var sat = satMask(side);
+    var len = win[side][0] ? win[side][0].length : 0;
+    var t1 = new Array(len), t1c = new Array(len), t2 = new Array(len);
+    for (var j = 0; j < len; j++) {
+      var a = -1, ac = -1, b = -1;
+      for (var i = 0; i < C.CHANNELS; i++) {
+        if (!isActive(side, i) || sat[i]) continue;
+        var v = win[side][i][j];
+        if (v > a) { b = a; a = v; ac = i; }
+        else if (v > b) { b = v; }
+      }
+      t1[j] = a; t1c[j] = ac; t2[j] = b;
+    }
+    c = { seq: seq, t1: t1, t1c: t1c, t2: t2 };
+    refCache[side] = c;
+    return c;
   }
 
   /**
    * 채널 하나의 상태.
-   * @returns {"ok"|"dead"|"sat"|"unknown"}
+   * @returns {"ok"|"dead"|"sat"|"idle"|"unknown"|"off"}
    */
   /* 2점 구성에서는 나머지 자리가 추정값이므로 고장 판정을 하지 않습니다.
    * 하지 않으면 멀쩡한 기기가 '문제 채널 14개' 로 보입니다. */
@@ -83,14 +132,36 @@ INSOLE.health = (function () {
       if (w[k] > mx) mx = w[k];
       if (w[k] < mn) mn = w[k];
     }
-    if (mx <= C.DEAD_MAX) return "dead";
-    if (mn >= C.SAT_MIN)  return "sat";
+
+    /* 계속 최대치에 붙어 있으면 하중과 무관하게 포화입니다. */
+    if (mn >= C.SAT_MIN) return "sat";
+
+    /* 스스로 큰 값을 낸 적이 있으면 그것만으로 살아 있는 증거입니다.
+     * 지금 발을 떼고 있어도 고장이 아닙니다. */
+    if (mx >= C.LOAD_MIN) return "ok";
+
+    /* 여기부터는 이 채널이 조용한 경우입니다. 조용한 이유가
+     * 고장인지 안 밟아서인지는, 같은 발의 '다른' 채널이 하중을
+     * 보고 있었는지로만 갈립니다. */
+    var ref = loadRef(side), loaded = 0, mxLoaded = -1;
+    for (var j = 0; j < w.length; j++) {
+      var other = (ref.t1c[j] === i) ? ref.t2[j] : ref.t1[j];
+      if (other < C.LOAD_MIN) continue;
+      loaded++;
+      if (w[j] > mxLoaded) mxLoaded = w[j];
+    }
+    /* 하중이 실린 적이 없으면 판정 근거가 없습니다.
+     * 여기서 "끊김" 이라고 하면, 가만히 있는 멀쩡한 기기가
+     * 매번 '문제 채널 3개' 로 보입니다. */
+    if (loaded < C.LOAD_FRAMES) return "idle";
+
+    if (mxLoaded <= C.DEAD_MAX) return "dead";
     return "ok";
   }
 
   /** 전체 요약. { ok, dead, sat, unknown, problems: [{side,ch,state}] } */
   function summary() {
-    var out = { ok: 0, dead: 0, sat: 0, unknown: 0, off: 0, total: 0, problems: [] };
+    var out = { ok: 0, dead: 0, sat: 0, idle: 0, unknown: 0, off: 0, total: 0, problems: [] };
     ["L", "R"].forEach(function (side) {
       for (var i = 0; i < C.CHANNELS; i++) {
         var st = channelState(side, i);
@@ -238,6 +309,7 @@ INSOLE.health = (function () {
 
   function reset() {
     init();
+    seq++;
     feed = { L: { stamps: [], last: 0 }, R: { stamps: [], last: 0 } };
   }
 

@@ -27,7 +27,7 @@ INSOLE.config = (function () {
    */
   /* 화면에 띄우는 버전. 기기가 옛 코드를 쓰고 있는지 눈으로 확인하는 용도입니다.
    * sw.js 의 VERSION 과 함께 올립니다. */
-  var APP_VERSION = "v16";
+  var APP_VERSION = "v17";
 
   var SENSORS = [
     { x: 30, y: 30,  name: "엄지",          group: "fore" },
@@ -101,6 +101,22 @@ INSOLE.config = (function () {
   var DEAD_MAX = 4;
   var SAT_MIN  = MAX_RAW - 2;
 
+  /* 하중이 실린 순간에만 '끊김' 을 판정하기 위한 기준입니다.
+   *
+   * FSR 은 안 밟으면 0 입니다. 그래서 "최근 창의 최대가 작다" 만 보면
+   * 지금 안 밟고 있는 멀쩡한 채널이 전부 고장으로 집계됩니다.
+   * 고장은 "발에 체중이 실려 있는데도 이 채널만 조용하다" 일 때만
+   * 성립합니다.
+   *
+   * LOAD_MIN   : 같은 발의 '다른' 채널 중 가장 큰 값이 이 값을 넘으면
+   *              하중으로 봅니다. 참조에서 자기 자신과 포화된 채널을
+   *              빼는데, 1023 에 붙어 버린 고장 채널이 혼자 하중을
+   *              만들어 옆 채널까지 끊김으로 몰고 가기 때문입니다.
+   * LOAD_FRAMES: 하중 프레임이 이만큼은 모여야 판정합니다. 10Hz 에서
+   *              1초쯤입니다. 스쳐 간 한 프레임으로 단정하지 않습니다. */
+  var LOAD_MIN    = 40;
+  var LOAD_FRAMES = 10;
+
   /* ── 값 떨림 완화 ─────────────────────────────────────────
    * 최근 N개의 이동평균을 씁니다. 1이면 필터 없음.
    * FSR 은 값이 미세하게 계속 떨리므로 3~5 정도가 적당합니다.
@@ -122,6 +138,7 @@ INSOLE.config = (function () {
     GRID_W: GRID_W, GRID_H: GRID_H,
     CHART_WINDOW_SEC: CHART_WINDOW_SEC,
     HEALTH_WINDOW: HEALTH_WINDOW, DEAD_MAX: DEAD_MAX, SAT_MIN: SAT_MIN,
+    LOAD_MIN: LOAD_MIN, LOAD_FRAMES: LOAD_FRAMES,
     SMOOTH_N: SMOOTH_N,
     STORAGE_KEY: STORAGE_KEY, MAX_RECORDS: MAX_RECORDS,
     /* 발당 채널이 전부 최대일 때의 합. 게이지 상한으로 씁니다. */

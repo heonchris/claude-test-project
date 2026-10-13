@@ -10,7 +10,7 @@
 
   /* 화면 파일과 이 파일의 버전이 어긋나면 자가복구가 잡아냅니다.
    * 서비스워커가 둘을 다른 시점의 것으로 섞어 주는 일이 실제로 있었습니다. */
-  INSOLE.APP_JS_VERSION = "v16";
+  INSOLE.APP_JS_VERSION = "v17";
 
   var running = false, rafId = null, t0 = 0, lastFrame = 0, elapsed = 0;
   var history = [], session = null, records = [], nextId = 1;
@@ -200,7 +200,8 @@
   }
 
   /* ── 진단 화면 ────────────────────────────────────────────*/
-  var STATE_LABEL = { ok: "정상", dead: "끊김", sat: "포화", unknown: "확인 중", off: "미사용" };
+  var STATE_LABEL = { ok: "정상", dead: "끊김", sat: "포화",
+                     idle: "안 밟음", unknown: "확인 중", off: "미사용" };
 
   function renderHealth() {
     var sum = INSOLE.health.summary();
@@ -241,6 +242,9 @@
     var bad = $("dBad");
     bad.textContent = sum.problems.length ? String(sum.problems.length) : "0";
     bad.className = "v " + (sum.problems.length ? "bad" : "good");
+    /* 밟지 않아 판정을 못 한 채널. 이게 없으면 가만히 있을 때
+     * '정상 0' 만 보이고 왜 0 인지 알 길이 없습니다. */
+    setText("dIdle", String(sum.idle));
 
     /* 무선이 불안정한지 판단하는 근거입니다. 시뮬레이션 중에는 뜻이 없어
      * 가로줄로 둡니다. */
