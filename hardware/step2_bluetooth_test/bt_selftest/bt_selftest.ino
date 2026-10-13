@@ -17,10 +17,20 @@
  *   모듈 TXD, RXD → 디지털 4번, 5번  (순서는 이 스케치가 알아냅니다)
  */
 
-#include <SoftwareSerial.h>
-
-SoftwareSerial sA(4, 5);   /* 정상: 모듈 TXD→2, 모듈 RXD→3 */
-SoftwareSerial sB(5, 4);   /* 반대: 모듈 TXD→3, 모듈 RXD→2 */
+/* 메가는 하드웨어 Serial1 을 쓴다.
+ * 메가의 소프트웨어 시리얼은 받는 핀으로 10~15, 50~53, A8~A15 만 쓸 수
+ * 있어서 4번으로는 **컴파일은 되지만 한 바이트도 받지 못한다.**
+ * Serial1 은 받는 핀·보내는 핀이 고정이라 바꿔 꽂을 일도 없다. */
+#if defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA_ADK)
+  #define IS_MEGA 1
+  #define WIRINGS 1
+#else
+  #define IS_MEGA 0
+  #define WIRINGS 2
+  #include <SoftwareSerial.h>
+  SoftwareSerial sA(4, 5);   /* 정상: 모듈 TXD→4, 모듈 RXD→5 */
+  SoftwareSerial sB(5, 4);   /* 반대: 모듈 TXD→5, 모듈 RXD→4 */
+#endif
 
 long speeds[] = { 9600, 38400, 57600, 19200, 115200, 4800 };
 const int NS = sizeof(speeds) / sizeof(speeds[0]);
@@ -29,13 +39,26 @@ String reply = "";
 String sent  = "";
 
 /* 둘 중 하나만 살려 둔다. begin() 이 핀 방향을 다시 잡아 준다. */
+#if IS_MEGA
+/* 메가는 받는 핀·보내는 핀이 고정이라 바꿔 꽂을 일이 없다. */
+HardwareSerial& pick(bool swapped, long baud) {
+  (void)swapped;
+  Serial1.end(); Serial1.begin(baud);
+  return Serial1;
+}
+#else
 SoftwareSerial& pick(bool swapped, long baud) {
   if (swapped) { sA.end(); sB.begin(baud); sB.listen(); return sB; }
   sB.end(); sA.begin(baud); sA.listen(); return sA;
 }
+#endif
 
 bool probe(bool swapped, long baud) {
+#if IS_MEGA
+  HardwareSerial& bt = pick(swapped, baud);
+#else
   SoftwareSerial& bt = pick(swapped, baud);
+#endif
   delay(120);
   while (bt.available()) bt.read();                  /* 찌꺼기 비우기 */
 
@@ -66,17 +89,28 @@ void setup() {
   Serial.println();
   Serial.println(F("=== 블루투스 모듈 자가진단 v2 ==="));
   Serial.println(F("휴대폰 블루투스를 끈 상태에서 하세요."));
+#if IS_MEGA
+  Serial.println(F("보드: 메가 — 하드웨어 Serial1 을 씁니다."));
+  Serial.println(F("배선: 모듈 TXD -> 19번(RX1),  모듈 RXD -> 18번(TX1)"));
+  Serial.println(F("핀이 고정이라 배선 순서는 검사하지 않습니다."));
+#else
+  Serial.println(F("보드: 우노/나노 — 소프트웨어 시리얼."));
   Serial.println(F("배선 2가지 x 속도 6가지를 모두 시도합니다."));
+#endif
   Serial.println();
 
   bool ok = false;
   bool foundSwap = false;
   long foundBaud = 0;
 
-  for (int w = 0; w < 2 && !ok; w++) {
+  for (int w = 0; w < WIRINGS && !ok; w++) {
+#if IS_MEGA
+    Serial.println(F("[ Serial1 · TXD->19, RXD->18 ]"));
+#else
     Serial.print(F("[ 배선 "));
     Serial.print(w == 0 ? F("TXD->4, RXD->5") : F("TXD->5, RXD->4"));
     Serial.println(F(" ]"));
+#endif
 
     for (int i = 0; i < NS; i++) {
       Serial.print(F("   "));
@@ -97,7 +131,13 @@ void setup() {
   Serial.println(F("--- 결과 ---"));
 
   if (!ok) {
+#if IS_MEGA
+    Serial.println(F("모든 속도에서 무응답입니다."));
+    Serial.println(F("메가는 모듈 TXD 가 19번, RXD 가 18번이어야 합니다."));
+    Serial.println(F("4·5번에 꽂혀 있으면 한 바이트도 못 받습니다. 옮기세요."));
+#else
     Serial.println(F("12가지 조합 모두 무응답입니다."));
+#endif
     Serial.println();
     Serial.println(F("배선 순서는 이미 양쪽 다 시도했으므로, 순서 문제는 아닙니다."));
     Serial.println(F("다음 중 하나입니다."));

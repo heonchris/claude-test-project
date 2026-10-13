@@ -29,17 +29,28 @@
  * 고장이므로, 막히면 핀을 옮겨 보는 것을 점검 목록에 넣어 둔다.
  */
 
-#include <SoftwareSerial.h>
-
-SoftwareSerial bt(4, 5);   /* RX=4(모듈 TXD), TX=5(모듈 RXD) */
+/* 보드마다 블루투스 연결 핀이 다릅니다.
+ *   우노·나노 : 소프트웨어 시리얼 — 모듈 TXD→4번, RXD→5번
+ *   메가      : 하드웨어 Serial1  — 모듈 TXD→19번, RXD→18번
+ * 메가의 소프트웨어 시리얼은 받는 핀으로 10~15, 50~53, A8~A15 만 쓸 수
+ * 있습니다. 4번은 목록에 없어 컴파일은 되지만 한 바이트도 못 받습니다. */
+#if defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA_ADK)
+  #define BT Serial1
+  #define BT_LISTEN()          /* 하드웨어 시리얼은 항상 듣고 있다 */
+#else
+  #include <SoftwareSerial.h>
+  SoftwareSerial btSoft(4, 5);
+  #define BT btSoft
+  #define BT_LISTEN() btSoft.listen()
+#endif
 
 unsigned long total = 0;
 
 void setup() {
   Serial.begin(9600);
   while (!Serial) { }
-  bt.begin(9600);
-  bt.listen();
+  BT.begin(9600);
+  BT_LISTEN();
   delay(300);
 
   Serial.println();
@@ -50,8 +61,8 @@ void setup() {
 }
 
 void loop() {
-  while (bt.available()) {
-    byte b = bt.read();
+  while (BT.available()) {
+    byte b = BT.read();
     total++;
 
     Serial.print(F("["));

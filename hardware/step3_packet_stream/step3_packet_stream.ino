@@ -19,7 +19,7 @@
  *   34바이트 × 10Hz =  340 B/s  →  여유 있음
  * 규격의 30Hz 를 쓰려면 모듈과 스케치의 속도를 함께 올려야 한다.
  *   AT+BAUD4  (38400)  또는  AT+BAUD8 (115200)   ※ 모델마다 번호가 다름
- * 속도를 바꾸면 bt.begin() 의 숫자도 같이 바꿔야 한다.
+ * 속도를 바꾸면 BT.begin() 의 숫자도 같이 바꿔야 한다.
  *
  * ── 배선 ───────────────────────────────────────────────
  *   2단계와 동일 (모듈 TXD→2번, RXD→3번 분압, 센서는 A0)
@@ -32,9 +32,18 @@
  * 고장이므로, 막히면 핀을 옮겨 보는 것을 점검 목록에 넣어 둔다.
  */
 
-#include <SoftwareSerial.h>
-
-SoftwareSerial bt(4, 5);          // RX=4(모듈 TXD), TX=5(모듈 RXD)
+/* 보드마다 블루투스 연결 핀이 다릅니다.
+ *   우노·나노 : 소프트웨어 시리얼 — 모듈 TXD→4번, RXD→5번
+ *   메가      : 하드웨어 Serial1  — 모듈 TXD→19번, RXD→18번
+ * 메가의 소프트웨어 시리얼은 받는 핀으로 10~15, 50~53, A8~A15 만 쓸 수
+ * 있습니다. 4번은 목록에 없어 컴파일은 되지만 한 바이트도 못 받습니다. */
+#if defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA_ADK)
+  #define BT Serial1
+#else
+  #include <SoftwareSerial.h>
+  SoftwareSerial btSoft(4, 5);
+  #define BT btSoft
+#endif
 
 const int FSR_PIN   = A0;
 const byte HEADER   = 0xA5;
@@ -46,7 +55,7 @@ byte packet[PACKET];
 
 void setup() {
   Serial.begin(9600);
-  bt.begin(9600);
+  BT.begin(9600);
 
   packet[0] = HEADER;
   for (int i = 2; i < PACKET; i++) packet[i] = 0;   // ch2~16 은 계속 0
@@ -59,7 +68,7 @@ void loop() {
   packet[2] = raw & 0xFF;           // little-endian 하위 바이트
   packet[3] = (raw >> 8) & 0xFF;    // 상위 바이트
 
-  bt.write(packet, PACKET);
+  BT.write(packet, PACKET);
 
   // USB 로는 사람이 읽을 수 있게. 무선이 안 될 때 비교용.
   Serial.print(F("seq="));  Serial.print(packet[1]);
