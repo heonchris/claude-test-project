@@ -41,10 +41,15 @@
 |---|---|---|---|---|
 | `hardware/insole_L_uno` | Arduino Uno | 왼발 | 4번 | 5번 |
 | `hardware/insole_R_uno` | Arduino Uno | 오른발 | 4번 | 5번 |
+| `hardware/insole_L_nano` | Arduino Nano | 왼발 | 4번 | 5번 |
+| `hardware/insole_R_nano` | Arduino Nano | 오른발 | 4번 | 5번 |
 | `hardware/insole_R_mega` | Arduino Mega | 오른발 | **19번** | **18번** |
 
 보드를 잘못 고르면 업로드 전에 한글 오류로 막힌다.
 자세한 내용은 `hardware/README.md`.
+
+나노는 우노와 같은 칩이라 코드가 같다. 업로드가 `stk500_recv()` 로 실패하면
+`Tools > Processor` 를 `ATmega328P (Old Bootloader)` 로 바꿔 본다.
 
 업로드가 타임아웃(`stk500v2_getsync()`, `unable to open port`)이면 선이 아니라
 포트 문제다. 호환보드는 `CH340` 드라이버를 따로 깔아야 COM 번호가 생긴다
