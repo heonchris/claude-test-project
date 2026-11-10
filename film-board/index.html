@@ -283,7 +283,7 @@ function all(kind){var out=[];for(var id in S.items){var it=S.items[id];if(it.ki
 function natNo(a){var m=String(a||"").match(/\d+/);return m?Number(m[0]):9999}
 function days(){return all("day").sort(function(a,b){return(a.data.date||"9").localeCompare(b.data.date||"9")})}
 function dayNo(){var m={},i=0;days().forEach(function(d){if(d.data.status!=="cancelled"&&d.data.status!=="tentative")m[d.data.date]=++i});return m}
-function isNew(it){return it.updatedAt>S.lastSeen&&it.updatedBy!==S.me.name&&it.updatedBy!=="세팅"}
+function isNew(it){var t=it.data.editedAt||it.updatedAt;return t>S.lastSeen&&it.updatedBy!==S.me.name&&it.updatedBy!=="세팅"&&it.updatedBy!==""}
 function toast(msg){var t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(function(){t.hidden=true},2600)}
 
 /* ================= 서버 ================= */
@@ -326,7 +326,7 @@ function remove(id){
   return api("apiDelete",S.code,id,S.me.name).then(put).catch(function(){S.items[id]=old;render();toast("지우지 못했어요. 다시 시도해 주세요.")});
 }
 function logChange(title,lines){
-  return save("log",{type:"change",team:"prod",title:title,body:lines.join("\n"),acks:{},auto:true}).catch(function(){});
+  var t=Date.now();return save("log",{type:"change",team:"prod",title:title,body:lines.join("\n"),acks:{},auto:true,author:S.me.name,createdAt:t,editedAt:t}).catch(function(){});
 }
 
 /* ================= 화면 ================= */
@@ -478,13 +478,13 @@ function gearView(){
 }
 
 /* ---- 공지·변경 ---- */
-function pendingLogs(){if(!S.me.name)return[];return all("log").filter(function(l){var a=l.data.acks||{};return l.updatedBy!==S.me.name&&!a[S.me.name]&&(l.data.type==="decision"||l.data.type==="change"||l.data.type==="notice")&&l.updatedBy!=="세팅"})}
+function pendingLogs(){if(!S.me.name)return[];return all("log").filter(function(l){var a=l.data.acks||{};return(l.data.author||l.updatedBy)!==S.me.name&&!a[S.me.name]})}
 function logCard(l){
   var d=l.data,acks=Object.keys(d.acks||{}),mine=!!(d.acks||{})[S.me.name];
   var files=(d.files||[]).map(function(f){return/^image\//.test(f.mime||"")?'<a href="'+esc(f.url)+'" target="_blank" rel="noopener"><img class="thumb" src="'+esc(f.thumb||f.url)+'" alt="'+esc(f.name)+'" loading="lazy"></a>':'<a class="file" href="'+esc(f.url)+'" target="_blank" rel="noopener"><span>📎</span><span>'+esc(f.name)+'</span></a>'}).join("");
   return'<article class="card'+(isNew(l)?" is-new":"")+'"><div class="row">'+pill(LOG_T,d.type,"notice")+'<span class="team">'+tape(d.team)+esc((TEAM[d.team]||TEAM.all).n)+'</span>'+(isNew(l)?'<span class="newtag">NEW</span>':"")+'</div>'+
     '<h3>'+esc(d.title)+'</h3>'+(d.body?'<p class="body">'+esc(d.body)+'</p>':"")+(files?'<div class="files">'+files+'</div>':"")+
-    '<div class="foot"><span>'+esc(l.updatedBy||"")+" · "+esc(rel(d.createdAt||l.updatedAt))+'</span><span class="acts">'+(acks.length?'<span>확인: '+esc(acks.slice(0,5).join(", "))+(acks.length>5?" 외 "+(acks.length-5)+"명":"")+'</span>':"")+
+    '<div class="foot"><span>'+esc(d.author||l.updatedBy||"")+" · "+esc(rel(d.createdAt||l.updatedAt))+'</span><span class="acts">'+(acks.length?'<span>확인: '+esc(acks.slice(0,5).join(", "))+(acks.length>5?" 외 "+(acks.length-5)+"명":"")+'</span>':"")+
     '<button type="button" class="ack" data-ack="'+l.id+'" aria-pressed="'+mine+'">'+(mine?"✓ 확인함":"확인했어요")+'</button>'+(d.auto?"":'<button class="mini" type="button" data-edit="'+l.id+'">수정</button>')+'<button class="mini danger" type="button" data-del="'+l.id+'">삭제</button></span></div></article>';
 }
 function boardView(){
@@ -559,7 +559,8 @@ function submitForm(e){
     var v=String(el.value||"").trim();if(f.req&&!v)return fail(f.label+"을(를) 입력해 주세요.");data[f.k]=v}
   S.busy=true;btn.disabled=true;btn.textContent="저장 중";
   var old=id&&S.items[id]?JSON.parse(JSON.stringify(S.items[id].data)):null;
-  if(!old){if(kind==="log")data.acks={};data.createdAt=Date.now()}
+  data.editedAt=Date.now();
+  if(!old){if(kind==="log")data.acks={};data.createdAt=Date.now();data.author=S.me.name}
   if(kind==="gear"&&!old)data.checked=false;
   var chain=Promise.resolve();
   if(img)chain=chain.then(function(){return upload(img,btn,"사진 올리는 중")}).then(function(r){data.image=r});

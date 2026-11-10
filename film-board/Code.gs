@@ -42,6 +42,8 @@ function sheet_() {
     sh = ss.insertSheet(SHEET_NAME);
     sh.getRange(1, 1, 1, HEADER.length).setValues([HEADER]).setFontWeight('bold');
     sh.setFrozenRows(1);
+    sh.getRange('A:D').setNumberFormat('@');
+    sh.getRange('F:F').setNumberFormat('@');
   }
   return sh;
 }
@@ -91,8 +93,8 @@ function findRow_(sh, id) {
 }
 
 function write_(sh, row, item) {
-  var title = item.data.title || item.data.name || item.data.no || item.data.date || '';
-  var values = [[item.id, item.kind, String(title), JSON.stringify(item.data), item.updatedAt, item.updatedBy, !!item.deleted]];
+  var title = String(item.data.title || item.data.name || item.data.no || item.data.date || '').replace(/^[=+\-@]/, "'$&");
+  var values = [[item.id, item.kind, title, JSON.stringify(item.data), item.updatedAt, item.updatedBy, !!item.deleted]];
   if (row < 0) sh.appendRow(values[0]);
   else sh.getRange(row, 1, 1, HEADER.length).setValues(values);
 }
@@ -104,7 +106,7 @@ function withLock_(fn) {
 }
 
 function newId_() {
-  return Utilities.getUuid().replace(/-/g, '').slice(0, 16);
+  return 'i' + Utilities.getUuid().replace(/-/g, '').slice(0, 15);
 }
 
 /* ---------- 페이지에서 부르는 함수 ---------- */
@@ -206,9 +208,12 @@ function setup() {
     return;
   }
   var now = Date.now();
-  seedItems_().forEach(function (x, i) {
-    write_(sh, -1, { id: newId_(), kind: x[0], data: x[1], updatedAt: now - i, updatedBy: '세팅', deleted: false });
+  var seed = seedItems_();
+  var values = seed.map(function (x, i) {
+    var t = String(x[1].title || x[1].name || x[1].no || x[1].date || '');
+    return [newId_(), x[0], t, JSON.stringify(x[1]), now - i, '세팅', false];
   });
+  sh.getRange(2, 1, values.length, HEADER.length).setValues(values);
   Logger.log('완료. 시트: ' + sh.getParent().getUrl());
 }
 
