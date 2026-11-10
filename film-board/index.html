@@ -188,7 +188,7 @@ a{color:inherit}
   <div class="slate" aria-hidden="true"></div>
   <div class="wrap head">
     <div>
-      <h1>촬영 보드</h1>
+      <h1 id="title">촬영 보드</h1>
       <div class="subt" id="subtitle">일정 · 씬 · 소품 · 장비 · 변경 사항</div>
     </div>
     <div class="me"><span class="sync" id="sync">연결 중</span><button class="ghost" type="button" id="meBtn">이름 설정</button></div>
@@ -221,7 +221,7 @@ var FORMS={
     {k:"location",label:"장소",ph:"예: 남양주 조안스테이",wide:1},{k:"scenes",label:"찍을 씬",ph:"예: S#1~5",wide:1},
     {k:"note",label:"메모",type:"textarea",ph:"주차, 집합 위치, 우천 시 대안 등",wide:1}]},
   slot:{title:"시간대",fields:[
-    {k:"date",label:"촬영일",type:"day",req:1,wide:1},{k:"start",label:"시작",type:"time",req:1},{k:"end",label:"끝",type:"time"},
+    {k:"date",label:"촬영일",type:"day",req:1,wide:1},{k:"start",label:"시작",type:"time"},{k:"end",label:"끝",type:"time"},
     {k:"location",label:"장소",ph:"예: 조안스테이 2층 방",wide:1},{k:"scenes",label:"씬",ph:"예: S#3, S#4",wide:1},
     {k:"note",label:"메모",type:"textarea",ph:"세팅 시간, 이동, 배우 대기 등",wide:1}]},
   meal:{title:"식사",fields:[
@@ -238,18 +238,19 @@ var FORMS={
     {k:"place",label:"장소 (대본상)",ph:"예: 자취방"},{k:"ie",label:"실내/실외",type:"select",options:list2(["INT.","EXT.","INT./EXT."])},
     {k:"dn",label:"시간대",type:"select",options:list2(["낮","밤","아침","저녁","새벽"])},{k:"cast",label:"등장인물",ph:"이름"},
     {k:"props",label:"필요 소품",ph:"예: 이삿짐 박스, 스탠드",wide:1},{k:"planned",label:"촬영 예정일",type:"day",wide:1},
+    {k:"note",label:"연출·준비 메모",type:"textarea",ph:"치팅 방법, 확인할 것 등",wide:1},
     {sec:"촬영 기록"},
     {k:"shotDate",label:"실제 촬영일",type:"date"},{k:"shotPlace",label:"실제 촬영 장소",ph:"예: 조안스테이 2층"},
     {k:"shotNote",label:"기록",type:"textarea",ph:"OK 테이크, 놓친 컷, 다음에 다시 찍을 것",wide:1}]},
   prop:{title:"소품",fields:[
     {k:"name",label:"소품 이름",req:1,wide:1,ph:"예: 빈티지 스탠드 조명"},
-    {k:"space",label:"공간",type:"space",ph:"예: 조안스테이 방"},{k:"scenes",label:"쓰는 씬",ph:"S#3, S#7"},
+    {k:"space",label:"공간",type:"space",ph:"예: 설아 방 (조안스테이 숙소)"},{k:"scenes",label:"쓰는 씬",ph:"S#3, S#7"},
     {k:"qty",label:"수량",ph:"1"},{k:"source",label:"구하는 방법",type:"select",options:list2(["보유","구매","대여","제작","협찬"])},
     {k:"owner",label:"담당",ph:"이름"},{k:"status",label:"상태",type:"select",options:opts(PROP_ST)},
     {k:"cost",label:"예상 비용",ph:"예: 15,000원"},{k:"link",label:"구매·참고 링크",type:"url",ph:"https://"},
     {k:"note",label:"메모",type:"textarea",wide:1},{k:"image",label:"사진",type:"image",wide:1}]},
   mood:{title:"레퍼런스",fields:[
-    {k:"title",label:"제목",req:1,ph:"예: 창가 쪽 따뜻한 조명",wide:1},{k:"space",label:"공간",type:"space",ph:"조안스테이 방"},
+    {k:"title",label:"제목",req:1,ph:"예: 창가 쪽 따뜻한 조명",wide:1},{k:"space",label:"공간",type:"space",ph:"설아 방 (조안스테이 숙소)"},
     {k:"link",label:"출처 링크",type:"url",ph:"핀터레스트 등"},
     {k:"note",label:"이 느낌을 고른 이유",type:"textarea",ph:"색감, 소품 배치, 빛 방향 등",wide:1},{k:"image",label:"이미지",type:"image",wide:1}]},
   gear:{title:"장비",fields:[
@@ -331,6 +332,8 @@ function logChange(title,lines){
 function render(){
   var sy=$("#sync");
   sy.textContent=!S.loaded?"연결 중":S.online?"실시간":"오프라인";sy.className="sync"+(S.online?"":" bad");
+  var meta=all("meta")[0];
+  if(meta){$("#title").textContent=meta.data.title||"촬영 보드";$("#subtitle").textContent=meta.data.subtitle||"일정 · 씬 · 소품 · 장비 · 변경 사항";document.title=(meta.data.title||"")+" 촬영 보드"}
   $("#meBtn").textContent=S.me.name?(TEAM[S.me.team]?TEAM[S.me.team].n+" · ":"")+S.me.name:"이름 설정";
   var unacked=pendingLogs().length;
   $("#tabs").innerHTML=TABS.map(function(t){
@@ -375,7 +378,7 @@ function homeView(){
 
 /* ---- 일정 ---- */
 function slotsAndMeals(date,compact){
-  var sl=all("slot").filter(function(s){return s.data.date===date}).sort(function(a,b){return(a.data.start||"").localeCompare(b.data.start||"")});
+  var sl=all("slot").filter(function(s){return s.data.date===date}).sort(function(a,b){return(a.data.start||"99").localeCompare(b.data.start||"99")});
   var ml=all("meal").filter(function(s){return s.data.date===date}).sort(function(a,b){return(a.data.time||"").localeCompare(b.data.time||"")});
   var h="";
   if(sl.length||!compact){
@@ -420,7 +423,7 @@ function scenesView(){
   h+='<div class="items">'+list.map(function(s){var d=s.data;
     return'<div class="it clickable" data-edit="'+s.id+'" role="button" tabindex="0"><span class="no">'+esc(d.no)+'</span><div class="main"><b>'+esc(d.summary||"(내용 요약 없음)")+'</b><small>'+
       esc([d.ie,d.place,d.dn].filter(Boolean).join(" · "))+(d.cast?" · "+esc(d.cast):"")+(d.planned?" · 예정 "+esc(fmtDate(d.planned)):"")+'</small>'+
-      (d.shotDate||d.shotPlace?'<small>✓ '+esc(fmtDate(d.shotDate))+" "+esc(d.shotPlace||"")+(d.shotNote?" — "+esc(d.shotNote):"")+'</small>':"")+'</div>'+pill(SCENE_ST,d.status,"todo")+'</div>'}).join("")+'</div>';
+      (d.note?'<small>'+esc(d.note)+'</small>':"")+(d.shotDate||d.shotPlace||d.shotNote?'<small>✓ '+esc(fmtDate(d.shotDate))+" "+esc(d.shotPlace||"")+(d.shotNote?" — "+esc(d.shotNote):"")+'</small>':"")+'</div>'+pill(SCENE_ST,d.status,"todo")+'</div>'}).join("")+'</div>';
   return h;
 }
 
@@ -450,7 +453,7 @@ function propsView(){
     var arr=groups2[g].sort(function(a,b){return Object.keys(PROP_ST).indexOf(a.data.status||"need")-Object.keys(PROP_ST).indexOf(b.data.status||"need")});
     h+='<div class="sect">'+esc(g)+' · '+arr.length+'</div><div class="items">'+arr.map(function(p){var d=p.data;
       return'<div class="it clickable" data-edit="'+p.id+'" role="button" tabindex="0">'+(d.image?'<img class="ithumb" src="'+esc(d.image.thumb||d.image.url)+'" alt="" loading="lazy">':'<span class="ithumb">사진</span>')+
-        '<div class="main"><b>'+esc(d.name)+(d.qty?' <span class="muted mono">×'+esc(d.qty)+'</span>':"")+'</b><small>'+esc([d.scenes&&("씬 "+d.scenes),d.source,d.owner&&("담당 "+d.owner),d.cost].filter(Boolean).join(" · "))+'</small>'+(d.note?'<small>'+esc(d.note)+'</small>':"")+'</div>'+pill(PROP_ST,d.status,"need")+'</div>'}).join("")+'</div>';
+        '<div class="main"><b>'+esc(d.name)+(d.qty?' <span class="muted mono">×'+esc(d.qty)+'</span>':"")+'</b><small>'+esc([d.scenes&&("씬 "+d.scenes),d.source,d.owner&&("담당 "+d.owner),d.cost].filter(Boolean).join(" · "))+'</small>'+(d.note?'<small>'+esc(d.note)+'</small>':"")+(d.link?'<small><a href="'+esc(d.link)+'" target="_blank" rel="noopener">구매·참고 링크</a></small>':"")+'</div>'+pill(PROP_ST,d.status,"need")+'</div>'}).join("")+'</div>';
   });
   return h;
 }
@@ -494,7 +497,7 @@ function boardView(){
 /* ================= 폼 ================= */
 var editing=null;
 function dayOptions(sel){var no=dayNo();return'<option value="">선택 안 함</option>'+days().map(function(d){var v=d.data.date;return'<option value="'+esc(v)+'"'+(v===sel?" selected":"")+'>'+esc(fmtDate(v))+(no[v]?" · "+no[v]+"회차":d.data.status==="tentative"?" · 예비일":"")+(d.data.location?" · "+esc(d.data.location):"")+'</option>'}).join("")}
-function spaceList(){var set={"조안스테이 방":1};all("prop").concat(all("mood")).forEach(function(i){if(i.data.space)set[i.data.space]=1});return Object.keys(set)}
+function spaceList(){var set={"설아 방 (조안스테이 숙소)":1};all("prop").concat(all("mood")).forEach(function(i){if(i.data.space)set[i.data.space]=1});return Object.keys(set)}
 function fieldHtml(f,v){
   if(f.sec)return'<div class="fsec">'+f.sec+'</div>';
   var id="f-"+f.k,cls="field"+(f.wide?" wide":""),req=f.req?" required":"",ph=f.ph?' placeholder="'+esc(f.ph)+'"':"";v=v==null?"":v;
@@ -622,13 +625,14 @@ function del(id){
 }
 document.addEventListener("click",function(e){
   if(e.target.id==="sheet"){closeSheet();return}
+  if(e.target.closest("a"))return;
   var b=e.target.closest("[data-tab],[data-goto],[data-team],[data-new],[data-edit],[data-del],[data-ack],[data-close],[data-pview],[data-sfilter],[data-act],#meBtn");
   if(!b)return;var d=b.dataset;
   if(d.tab||d.goto){S.tab=d.tab||d.goto;try{history.replaceState(null,"","#"+S.tab)}catch(x){}render();window.scrollTo(0,0)}
   else if(d.team){S.team=d.team;render()}
   else if(d.pview){S.propView=d.pview;render()}
   else if(d.sfilter){S.sceneFilter=d.sfilter;render()}
-  else if(d.new){e.preventDefault();var pre={};if(d.date)pre.date=d.date;if(d.new==="day")pre.status="confirmed";if(d.new==="log")pre.team=S.me.team||"all";if(d.new==="mood"||d.new==="prop")pre.space="조안스테이 방";openForm(d.new,null,pre)}
+  else if(d.new){e.preventDefault();var pre={};if(d.date)pre.date=d.date;if(d.new==="day")pre.status="confirmed";if(d.new==="log")pre.team=S.me.team||"all";if(d.new==="mood"||d.new==="prop")pre.space="설아 방 (조안스테이 숙소)";openForm(d.new,null,pre)}
   else if(d.edit){e.preventDefault();var it=S.items[d.edit];if(it)openForm(it.kind,it.id)}
   else if(d.del){e.preventDefault();arm(b,"d"+d.del,function(){del(d.del)})}
   else if(d.ack){if(!S.me.name){openMe();return}var l=S.items[d.ack];if(!l)return;var on=!(l.data.acks||{})[S.me.name];
