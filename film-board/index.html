@@ -219,6 +219,7 @@ var FORMS={
     {k:"date",label:"날짜",type:"date",req:1},{k:"status",label:"상태",type:"select",options:opts(DAY_ST)},
     {k:"call",label:"콜타임 (집합)",type:"time"},{k:"wrap",label:"예상 종료",type:"time"},
     {k:"location",label:"장소",ph:"예: 남양주 조안스테이",wide:1},{k:"scenes",label:"찍을 씬",ph:"예: S#1~5",wide:1},
+    {k:"crew",label:"스태프·역할·집합",type:"textarea",ph:"예: 촬영 손채환 · 사운드 정은설 / 9시 학교 집합",wide:1},
     {k:"note",label:"메모",type:"textarea",ph:"주차, 집합 위치, 우천 시 대안 등",wide:1}]},
   slot:{title:"시간대",fields:[
     {k:"date",label:"촬영일",type:"day",req:1,wide:1},{k:"start",label:"시작",type:"time"},{k:"end",label:"끝",type:"time"},
@@ -262,7 +263,7 @@ var FORMS={
     {k:"body",label:"내용",type:"textarea",wide:1,ph:"무엇이 정해졌고, 누가 무엇을 해야 하는지"},
     {k:"files",label:"파일 첨부 (대본, 콘티, 사진)",type:"files",wide:1}]}
 };
-var WATCH={day:["date","status","call","wrap","location","scenes"],slot:["date","start","end","location","scenes"],meal:["date","time","meal","how","place","people","status"]};
+var WATCH={day:["date","status","call","wrap","location","scenes","crew"],slot:["date","start","end","location","scenes"],meal:["date","time","meal","how","place","people","status"]};
 
 /* ================= 상태 ================= */
 var S={items:{},since:0,loaded:false,err:null,tab:"home",team:"all",propView:"list",sceneFilter:"all",
@@ -360,7 +361,7 @@ function homeView(){
   if(nd){var d=nd.data;
     h+='<div class="next"><div class="lbl">다음 촬영<b>'+esc(dday(d.date))+'</b></div><div class="main">'+
       '<div class="row"><span class="t">'+esc(fmtDate(d.date))+(no[d.date]?" · "+no[d.date]+"회차":"")+'</span>'+pill(DAY_ST,d.status,"confirmed")+'</div>'+
-      '<dl class="kv"><dt>콜타임</dt><dd class="mono">'+esc(d.call||"미정")+'</dd><dt>장소</dt><dd>'+esc(d.location||"미정")+'</dd><dt>씬</dt><dd>'+esc(d.scenes||"미정")+'</dd></dl>'+
+      '<dl class="kv"><dt>콜타임</dt><dd class="mono">'+esc(d.call||"미정")+'</dd><dt>장소</dt><dd>'+esc(d.location||"미정")+'</dd><dt>씬</dt><dd>'+esc(d.scenes||"미정")+'</dd>'+(d.crew?'<dt>스태프</dt><dd>'+esc(d.crew)+'</dd>':"")+'</dl>'+
       slotsAndMeals(d.date,true)+'<button class="linkbtn" type="button" data-goto="schedule" style="align-self:flex-start">일정 자세히 보기</button></div></div>';
   }else h+='<div class="list"><div class="empty"><strong>예정된 촬영이 없어요</strong><span>일정 탭에서 촬영일을 추가하세요.</span></div></div>';
   var p=pendingLogs();
@@ -403,7 +404,7 @@ function scheduleView(){
     return'<details class="card day'+(d.date===t?" today":"")+(past?" past":"")+(isNew(it)?" is-new":"")+'"'+((!past&&nd&&nd.id===it.id)||d.date===t?" open":"")+'><summary class="dhead">'+
       '<div class="when"><div class="n">'+(no[d.date]?no[d.date]+"회차":d.status==="tentative"?"예비":"—")+'</div><div class="d">'+esc(fmtDate(d.date).split(" ")[0])+'</div><div class="w">'+esc((fmtDate(d.date).split(" ")[1]||""))+" "+esc(dday(d.date))+'</div></div>'+
       '<div class="what"><div class="row">'+pill(DAY_ST,d.status,"confirmed")+(isNew(it)?'<span class="newtag">NEW</span>':"")+'</div><b>'+esc(d.scenes||"씬 미정")+'</b><span class="muted" style="font-size:13px">'+esc(d.location||"장소 미정")+(d.call?" · 콜 "+esc(d.call):"")+'</span></div><span class="chev" aria-hidden="true">›</span></summary>'+
-      '<dl class="kv"><dt>콜타임</dt><dd class="mono">'+esc(d.call||"미정")+(d.wrap?" ~ "+esc(d.wrap):"")+'</dd><dt>장소</dt><dd>'+esc(d.location||"미정")+'</dd><dt>씬</dt><dd>'+esc(d.scenes||"미정")+'</dd>'+(d.note?'<dt>메모</dt><dd>'+esc(d.note)+'</dd>':"")+'</dl>'+
+      '<dl class="kv"><dt>콜타임</dt><dd class="mono">'+esc(d.call||"미정")+(d.wrap?" ~ "+esc(d.wrap):"")+'</dd><dt>장소</dt><dd>'+esc(d.location||"미정")+'</dd><dt>씬</dt><dd>'+esc(d.scenes||"미정")+'</dd>'+(d.crew?'<dt>스태프</dt><dd>'+esc(d.crew)+'</dd>':"")+(d.note?'<dt>메모</dt><dd>'+esc(d.note)+'</dd>':"")+'</dl>'+
       slotsAndMeals(d.date,false)+
       '<div class="sub"><h4>이날 씬 · 촬영 기록</h4>'+(scenes.length?'<div class="scenechips">'+scenes.map(function(s){return'<button type="button" class="sc" data-edit="'+s.id+'">'+esc(s.data.no)+" "+pill(SCENE_ST,s.data.status,"todo")+'</button>'}).join("")+'</div>':'<p class="note">씬 탭에서 촬영 예정일을 이날로 정하면 여기 모여요. 촬영이 끝나면 씬을 눌러 기록하세요.</p>')+'</div>'+
       '<div class="foot"><span>'+esc(it.updatedBy||"")+" · "+esc(rel(it.updatedAt))+' 업데이트</span><span class="acts"><button class="mini" type="button" data-edit="'+it.id+'">촬영일 수정</button><button class="mini danger" type="button" data-del="'+it.id+'">삭제</button></span></div></details>';
