@@ -3,10 +3,16 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1};
 (async()=>{
   const G=makeGas();
   G.setup();const sh=G.__book.sheets.items;
-  ok(sh.rows.length===1+103,'setup이 헤더+103행을 만든다 ('+sh.rows.length+')');
+  ok(sh.rows.length===1+2,'setup이 헤더+2행(제목, 제안 공지)을 만든다 ('+sh.rows.length+')');
   ok(sh.rows.slice(1).every(r=>/^i[0-9a-f]{15}$/.test(r[0])),'모든 id가 문자로 시작');
-  G.setup();ok(sh.rows.length===104,'setup을 두 번 실행해도 중복 없음');
-  G.resetAndSetup();ok(sh.rows.length===104,'resetAndSetup 후 다시 103행');
+  G.setup();ok(sh.rows.length===3,'setup을 두 번 실행해도 중복 없음');
+  G.resetAndSetup();ok(sh.rows.length===3,'resetAndSetup 후 다시 2행');
+  // 테스트용 데이터 (실제 초기 데이터와 무관)
+  G.apiSave('',{kind:'day',data:{date:'2099-01-01',call:'17:00',location:'테스트 골목',scenes:'S#1~4',crew:'촬영 손채환',status:'confirmed'}},'세팅');
+  G.apiSave('',{kind:'gear',data:{name:'카메라 가방',category:'카메라',checked:false}},'세팅');
+  G.apiSave('',{kind:'gear',data:{name:'삼각대',category:'카메라',checked:false}},'세팅');
+  G.apiSave('',{kind:'prop',data:{name:'달력',space:'설아 방',status:'need'}},'세팅');
+  G.apiSave('',{kind:'prop',data:{name:'펜',space:'인물 소품',status:'finding'}},'세팅');
   const b=await chromium.launch();
   async function open(name,team,code){
     const p=await b.newPage({viewport:{width:390,height:850}});
@@ -22,12 +28,12 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1};
   const n=await open(null,null);ok(await n.isVisible('#me-name'),'처음 열면 이름 입력 창이 뜬다');
   await n.fill('#me-name','하은');await n.selectOption('#me-team','prop');await n.click('#f-submit');await n.waitForTimeout(100);
   ok((await n.textContent('#meBtn')).includes('하은'),'이름 저장 후 헤더에 표시');
-  ok(Number(await n.textContent('[data-tab=board] .count'))===12,'새 사람에게 확인 안 한 공지 12건');
+  ok(Number(await n.textContent('[data-tab=board] .count'))===1,'새 사람에게 확인 안 한 공지 1건 (즉흥영화 제안)');
   const A=await open('경현','dir'),B=await open('민지','prod');
   // A가 11/12 콜타임 변경
   await A.click('[data-tab=schedule]');await A.click('details[open] >> text=촬영일 수정');
   await A.fill('#f-call','16:30');await A.click('#f-submit');await A.waitForTimeout(300);
-  const d=JSON.parse(sh.rows.find(r=>r[1]==='day'&&r[3].includes('2026-11-12'))[3]);
+  const d=JSON.parse(sh.rows.find(r=>r[1]==='day'&&r[3].includes('2099-01-01'))[3]);
   ok(d.call==='16:30'&&d.status==='changed','시트에 콜타임 16:30·상태 변경됨 저장');
   ok(d.crew.includes('손채환'),'수정해도 다른 필드(스태프) 유지');
   await B.evaluate(()=>sync());await B.waitForTimeout(200);

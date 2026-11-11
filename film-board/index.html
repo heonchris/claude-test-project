@@ -417,7 +417,7 @@ function scenesView(){
   var sc=all("scene").sort(function(a,b){return natNo(a.data.no)-natNo(b.data.no)||String(a.data.no).localeCompare(String(b.data.no))});
   var done=sc.filter(function(s){return s.data.status==="done"}).length;
   var h='<div class="bar"><h2>씬 · 촬영 기록 <span class="muted mono" style="font-size:14px">'+done+'/'+sc.length+'</span></h2>'+addBtn("scene","씬")+'</div>';
-  if(!sc.length)return h+emptyBox("씬 목록이 아직 없어요","최종 대본이 정리되면 씬 번호, 장소, 등장인물, 필요 소품을 여기에 채워요. 촬영이 끝나면 씬마다 언제 어디서 찍었는지 기록하세요.","scene","씬 직접 추가");
+  if(!sc.length)return h+emptyBox("씬 목록이 아직 없어요","이야기 흐름이 정해지면 씬(또는 핵심 사건)마다 장소, 등장인물, 필요 소품을 채워요. 촬영이 끝나면 언제 어디서 찍었는지 기록하세요.","scene","씬 직접 추가");
   var f=S.sceneFilter;
   h+='<div class="chips" role="group" aria-label="상태 필터">'+[["all","전체"]].concat(opts(SCENE_ST)).map(function(o){var n=o[0]==="all"?sc.length:sc.filter(function(s){return(s.data.status||"todo")===o[0]}).length;return'<button type="button" class="chip" data-sfilter="'+o[0]+'" aria-pressed="'+(f===o[0])+'">'+o[1]+' <span class="mono">'+n+'</span></button>'}).join("")+'</div>';
   var list=sc.filter(function(s){return f==="all"||(s.data.status||"todo")===f});
