@@ -101,6 +101,33 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1};
   await A.fill('#imp-text','1. 비 오는 날 우연히 만난다\n2. 우산을 나눠 쓴다');await A.check('[name=imp-mode][value=lines]');await A.click('#f-submit');await A.waitForTimeout(100);
   ok((await A.textContent('#form h2')).includes('2개'),'한 줄 = 씬 하나 모드');
   await A.click('[data-close]');
+  // ④ 소품 가져오기 (기존 "펜"은 갱신)
+  await A.click('[data-tab=props]');await A.click('[data-act=import][data-target=prop]');
+  ok((await A.textContent('#form h2')).includes('소품 가져오기'),'소품 탭에서 소품 가져오기 창');
+  await A.fill('#imp-text','[설아 방]\n필름카메라 - 승헌\n전자지도(0)\n펜 - 소현');await A.click('#f-submit');await A.waitForTimeout(100);
+  ok(await A.locator('.imp-list .p-info').count()===1,'이미 있는 "펜"은 갱신으로 표시');
+  await A.click('#f-submit');await A.waitForTimeout(300);
+  const propRows=sh.rows.filter(r=>r[1]==='prop'&&r[6]!==true).map(r=>JSON.parse(r[3]));
+  const pen=propRows.find(d=>d.name==='펜'),cam=propRows.find(d=>d.name==='필름카메라'),map=propRows.find(d=>d.name==='전자지도');
+  ok(pen&&pen.owner==='소현'&&propRows.filter(d=>d.name==='펜').length===1,'펜: 중복 없이 담당 소현으로 갱신');
+  ok(cam&&cam.owner==='승헌'&&cam.status==='finding'&&cam.space==='설아 방','필름카메라: 새로, 담당 승헌, 구하는 중, 공간 설아 방');
+  ok(map&&map.status==='secured','전자지도(0) → 확보');
+  // ⑤ 장비 가져오기
+  await A.click('[data-tab=gear]');await A.click('[data-act=import][data-target=gear]');
+  await A.fill('#imp-text','[조명]\n- 반사판\n- 삼각대 (채환 챙김)');await A.click('#f-submit');await A.waitForTimeout(100);await A.click('#f-submit');await A.waitForTimeout(300);
+  const gearRows=sh.rows.filter(r=>r[1]==='gear').map(r=>JSON.parse(r[3]));
+  ok(gearRows.find(d=>d.name==='반사판')?.category==='조명','반사판 새로, 분류 조명');
+  ok(gearRows.filter(d=>d.name==='삼각대').length===1&&gearRows.find(d=>d.name==='삼각대').owner==='채환','삼각대는 갱신(중복 없음), 챙길 사람 채환');
+  // ⑥ 일정 가져오기
+  await A.click('[data-tab=schedule]');await A.click('[data-act=import][data-target=schedule]');
+  await A.fill('#imp-text','<11/12 촬영>\n5시 집합\nS#1~4\n시립대 자과관 뒤쪽 골목\n촬영: 손채환\n12:00 점심 김밥천국');await A.click('#f-submit');await A.waitForTimeout(100);
+  ok(await A.locator('.imp-list .it').count()===3,'촬영일·집합 시간대·식사 3개 찾음');
+  await A.click('#f-submit');await A.waitForTimeout(300);
+  const yr=new Date().getFullYear();const dayRow=sh.rows.slice(1).map(r=>[r[1],JSON.parse(r[3]||'{}')]).find(([k,d])=>k==='day'&&d.date===yr+'-11-12');
+  ok(dayRow&&dayRow[1].call==='17:00'&&dayRow[1].location==='시립대 자과관 뒤쪽 골목'&&dayRow[1].crew==='촬영 손채환','11/12 촬영일: 콜 17:00, 장소, 스태프');
+  ok(sh.rows.some(r=>r[1]==='meal'&&/김밥천국/.test(r[3])),'점심 식사도 저장');
+  await B.evaluate(()=>sync());await B.click('[data-tab=board]');await B.waitForTimeout(100);
+  ok((await B.textContent('#main')).includes('일정 3개를 문서에서 가져왔어요'),'일정 가져오기 공지');
   // 비밀번호
   G.__props.PASSCODE='film1114';
   const C=await open('지수','cam');ok(await C.isVisible('#code'),'비밀번호 설정 후 비밀번호 창');

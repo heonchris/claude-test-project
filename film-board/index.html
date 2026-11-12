@@ -180,6 +180,8 @@ a{color:inherit}
 .imp-mode input{accent-color:var(--accent);margin:0}
 .imp-list{max-height:52vh;overflow:auto;margin-top:0}
 .imp-list .it{grid-template-columns:auto auto 1fr auto;cursor:pointer}
+.imp-list .it>span:empty{display:none}
+.imp-list .it:has(>span:empty){grid-template-columns:auto 1fr auto}
 .toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);border-radius:8px;padding:8px 14px;font-size:14px;z-index:30;max-width:calc(100% - 32px)}
 @media (max-width:520px){
   .fgrid{grid-template-columns:1fr}
@@ -360,7 +362,8 @@ function render(){
   m.innerHTML=v();
 }
 function addBtn(kind,label,extra){return'<button class="primary" type="button" data-new="'+kind+'"'+(extra||"")+'>+ '+label+'</button>'}
-function emptyBox(t,d,kind,label){return'<div class="list"><div class="empty"><strong>'+t+'</strong><span>'+d+'</span>'+(kind?addBtn(kind,label):"")+'</div></div>'}
+function impBtn(target,primary){return'<button class="'+(primary?"primary":"ghost")+'" type="button" data-act="import" data-target="'+target+'">문서에서 가져오기</button>'}
+function emptyBox(t,d,kind,label,imp){return'<div class="list"><div class="empty"><strong>'+t+'</strong><span>'+d+'</span>'+(imp?'<span class="acts" style="justify-content:center">'+impBtn(imp,true)+(kind?'<button class="ghost" type="button" data-new="'+kind+'">직접 추가</button>':"")+'</span>':kind?addBtn(kind,label):"")+'</div></div>'}
 
 /* ---- 홈 ---- */
 function nextDay(){var t=todayStr();return days().filter(function(d){return(d.data.date||"")>=t&&d.data.status!=="cancelled"&&d.data.status!=="done"})[0]}
@@ -403,8 +406,8 @@ function slotsAndMeals(date,compact){
 }
 function scheduleView(){
   var ds=days();var t=todayStr();var no=dayNo();
-  var h='<div class="bar"><h2>촬영 일정</h2>'+addBtn("day","촬영일")+'</div>';
-  if(!ds.length)return h+emptyBox("등록된 촬영일이 없어요","날짜, 콜타임, 장소를 넣어 두면 모두가 같은 일정을 봐요.","day","첫 촬영일 추가");
+  var h='<div class="bar"><h2>촬영 일정</h2><span class="acts">'+impBtn("schedule")+addBtn("day","촬영일")+'</span></div>';
+  if(!ds.length)return h+emptyBox("등록된 촬영일이 없어요","날짜, 콜타임, 장소를 넣어 두면 모두가 같은 일정을 봐요. 일정 문서나 단톡방 공지를 붙여 넣으면 날짜별로 자동으로 채워요.","day","첫 촬영일 추가","schedule");
   var nd=nextDay();
   h+='<div class="list">'+ds.map(function(it){
     var d=it.data,past=(d.date||"9")<t;
@@ -424,8 +427,8 @@ function scheduleView(){
 function scenesView(){
   var sc=all("scene").sort(function(a,b){return natNo(a.data.no)-natNo(b.data.no)||String(a.data.no).localeCompare(String(b.data.no))});
   var done=sc.filter(function(s){return s.data.status==="done"}).length;
-  var h='<div class="bar"><h2>씬 · 촬영 기록 <span class="muted mono" style="font-size:14px">'+done+'/'+sc.length+'</span></h2><span class="acts"><button class="ghost" type="button" data-act="import">문서에서 가져오기</button>'+addBtn("scene","씬")+'</span></div>';
-  if(!sc.length)return h+'<div class="list"><div class="empty"><strong>씬 목록이 아직 없어요</strong><span>구글 문서 링크나 대본을 붙여 넣으면 씬 번호, 장소, 시간대, 등장인물을 자동으로 채워요. 핵심 사건 목록도 한 줄씩 씬으로 만들 수 있어요.</span><span class="acts" style="justify-content:center"><button class="primary" type="button" data-act="import">문서에서 가져오기</button><button class="ghost" type="button" data-new="scene">직접 추가</button></span></div></div>';
+  var h='<div class="bar"><h2>씬 · 촬영 기록 <span class="muted mono" style="font-size:14px">'+done+'/'+sc.length+'</span></h2><span class="acts"><button class="ghost" type="button" data-act="import" data-target="scene">문서에서 가져오기</button>'+addBtn("scene","씬")+'</span></div>';
+  if(!sc.length)return h+'<div class="list"><div class="empty"><strong>씬 목록이 아직 없어요</strong><span>구글 문서 링크나 대본을 붙여 넣으면 씬 번호, 장소, 시간대, 등장인물을 자동으로 채워요. 핵심 사건 목록도 한 줄씩 씬으로 만들 수 있어요.</span><span class="acts" style="justify-content:center"><button class="primary" type="button" data-act="import" data-target="scene">문서에서 가져오기</button><button class="ghost" type="button" data-new="scene">직접 추가</button></span></div></div>';
   var f=S.sceneFilter;
   h+='<div class="chips" role="group" aria-label="상태 필터">'+[["all","전체"]].concat(opts(SCENE_ST)).map(function(o){var n=o[0]==="all"?sc.length:sc.filter(function(s){return(s.data.status||"todo")===o[0]}).length;return'<button type="button" class="chip" data-sfilter="'+o[0]+'" aria-pressed="'+(f===o[0])+'">'+o[1]+' <span class="mono">'+n+'</span></button>'}).join("")+'</div>';
   var list=sc.filter(function(s){return f==="all"||(s.data.status||"todo")===f});
@@ -440,7 +443,7 @@ function scenesView(){
 function propsView(){
   var v=S.propView;
   var h='<div class="bar"><div class="seg2" role="group"><button type="button" data-pview="list" aria-pressed="'+(v==="list")+'">소품 리스트</button><button type="button" data-pview="mood" aria-pressed="'+(v==="mood")+'">무드보드</button></div>'+
-    (v==="list"?addBtn("prop","소품"):addBtn("mood","레퍼런스"))+'</div>';
+    (v==="list"?'<span class="acts">'+impBtn("prop")+addBtn("prop","소품")+'</span>':addBtn("mood","레퍼런스"))+'</div>';
   if(v==="mood"){
     var ms=all("mood").sort(function(a,b){return(a.data.space||"").localeCompare(b.data.space||"")||b.updatedAt-a.updatedAt});
     if(!ms.length)return h+emptyBox("레퍼런스가 아직 없어요","조안스테이 방을 어떤 느낌으로 꾸밀지, 참고 이미지를 올리고 이유를 적어 두세요. 공간별로 묶여서 보여요.","mood","첫 레퍼런스 올리기");
@@ -454,7 +457,7 @@ function propsView(){
     return h;
   }
   var ps=all("prop");
-  if(!ps.length)return h+emptyBox("소품 리스트가 비어 있어요","소품 이름, 쓰는 씬, 구하는 방법, 담당을 적어 두면 촬영 전에 빠진 걸 바로 찾을 수 있어요.","prop","첫 소품 추가");
+  if(!ps.length)return h+emptyBox("소품 리스트가 비어 있어요","소품 리스트 문서나 단톡방 메모를 붙여 넣으면 이름, 담당, 수량, 상태를 자동으로 채워요.","prop","첫 소품 추가","prop");
   var got=ps.filter(function(p){return p.data.status==="secured"||p.data.status==="onset"}).length;
   h+='<p class="note">확보 '+got+' / '+ps.length+' · 줄을 누르면 수정할 수 있어요.</p>';
   var groups2={};ps.forEach(function(p){var k=p.data.space||"공간 미정";(groups2[k]=groups2[k]||[]).push(p)});
@@ -470,8 +473,8 @@ function propsView(){
 /* ---- 장비 ---- */
 function gearView(){
   var gs=all("gear");var done=gs.filter(function(g){return g.data.checked}).length;
-  var h='<div class="bar"><h2>장비 체크리스트 <span class="muted mono" style="font-size:14px">'+done+'/'+gs.length+'</span></h2><span class="acts">'+(done?'<button class="ghost" type="button" data-act="reset">체크 모두 해제</button>':"")+addBtn("gear","장비")+'</span></div>';
-  if(!gs.length)return h+emptyBox("장비 목록이 비어 있어요","카메라, 조명, 음향, 현장 물품을 적어 두고 출발 전에 체크하세요.","gear","첫 장비 추가");
+  var h='<div class="bar"><h2>장비 체크리스트 <span class="muted mono" style="font-size:14px">'+done+'/'+gs.length+'</span></h2><span class="acts">'+(done?'<button class="ghost" type="button" data-act="reset">체크 모두 해제</button>':"")+impBtn("gear")+addBtn("gear","장비")+'</span></div>';
+  if(!gs.length)return h+emptyBox("장비 목록이 비어 있어요","장비 체크리스트를 붙여 넣으면 분류(카메라·조명·음향·현장)와 챙길 사람을 자동으로 채워요.","gear","첫 장비 추가","gear");
   h+='<p class="note">출발 전에 챙긴 장비를 체크하세요. 다음 회차를 준비할 때는 ‘체크 모두 해제’를 누르면 돼요.</p>';
   var cats=["카메라","조명","음향","현장","미술·소품","기타"];var groups={};
   gs.forEach(function(g){var k=g.data.category||"기타";(groups[k]=groups[k]||[]).push(g)});
@@ -599,10 +602,27 @@ function diffLines(kind,old,data){
   return out.length?out:null;
 }
 
-/* ---- 문서에서 씬 가져오기 ---- */
+/* ---- 문서에서 가져오기 (씬·소품·장비·일정) ---- */
 var IMP=null;
-function cleanLine(l){return String(l).replace(/\u00a0/g," ").replace(/\*\*/g,"").replace(/\\([#~!*\[\]_.\-])/g,"$1").replace(/^\*(.*)\*$/,"$1").trim()}
+var IMP_T={
+  scene:{name:"씬",tab:/시나리오|대본|각본|스토리/,text:/S\s*#\s*\d/i,
+    help:'대본에 <b>S#1 옆동네 (밤)</b>처럼 씬 머리가 있으면 씬마다 장소, 시간대, 등장인물(대사 앞 이름), 첫 지문을 채워요. 이미 있는 씬은 이 내용만 갱신하고 상태·예정일·촬영 기록은 그대로 둬요.',
+    ph:"S#1 옆동네 (밤)&#10;설아가 휴대전화를 보며 걷고 있다.&#10;설아: 응, 나 지금 가는 중이야.&#10;&#10;S#2 굴다리 (밤)&#10;…"},
+  prop:{name:"소품",tab:/소품/,text:/소품/,
+    help:'줄마다, 또는 쉼표로 나열한 소품을 읽어요. <b>필름카메라 - 승헌</b>, <b>집전화기 2개(당근 5-7천원) : 혜민</b>처럼 쓰면 담당·수량·비용도 채워요. <b>(0)</b>은 확보, <b>(x)</b>는 필요로 읽고, <b>[설아 방]</b> 같은 머리말은 공간이 돼요. 이미 있는 소품은 이름으로 찾아 갱신해요.',
+    ph:"[설아 방]&#10;- 아날로그 시계 (x)&#10;- 집전화기 2개(당근에서 5-7천원) : 혜민&#10;&#10;11/14 : 자전거, 풍경소리(0), 장갑, 필름카메라(x)&#10;필름카메라 - 승헌"},
+  gear:{name:"장비",tab:/장비/,text:/장비|카메라|삼각대|조명/,
+    help:'줄마다, 또는 쉼표로 나열한 장비를 읽어요. <b>렌즈 가방 (경현, 채환이 챙김)</b>처럼 쓰면 챙길 사람이, 괄호 속 다른 내용은 메모가 돼요. 분류(카메라·조명·음향·현장)는 머리말이나 장비 이름으로 정해요. 이미 있는 장비는 이름으로 찾아 갱신해요.',
+    ph:"[장비 체크리스트]&#10;- 카메라 가방 (바디 + ND 필터)&#10;- 렌즈 가방 (경현, 채환이 챙김)&#10;- 삼각대&#10;- 판조명 가방&#10;- 마이크 세트"},
+  schedule:{name:"일정",tab:/일정|스케줄|타임/,text:/\d{1,2}\s*[\/.월]\s*\d{1,2}/,
+    help:'<b>11/12</b>, <b>11. 14 (토) ~ 15 (일)</b>, <b>&lt;11/14 집합&gt;</b>처럼 날짜로 시작하는 줄마다 촬영일을 만들어요. 그 아래 <b>09:00 - 11:00 카페 S#16</b>은 시간대, <b>5시 집합</b>은 콜타임, <b>촬영: 손채환</b>은 스태프, 점심·저녁이 들어간 줄은 식사가 돼요. 이미 있는 날짜는 적힌 내용만 갱신해요.',
+    ph:"<11/12 촬영>&#10;5시 집합&#10;S#1~4&#10;시립대 자과관 뒤쪽 골목&#10;촬영: 손채환&#10;&#10;11/14&#10;09:00 학교 집합 (장비조)&#10;12:00 점심 칠오닭갈비"}
+};
+function cleanLine(l){return String(l).replace(/\u00a0/g," ").replace(/\*\*/g,"").replace(/\\([#~!*\[\]_.\-<>|])/g,"$1").replace(/^\*(.*)\*$/,"$1").replace(/\[([^\]]+)\]\((https?:[^)]+)\)/g,"$1 $2").trim()}
 function sceneKey(no){return String(no||"").replace(/\s/g,"").toUpperCase()}
+function nameKey(n){return String(n||"").replace(/\([^)]*\)/g,"").replace(/[\s?·.,!]/g,"").toLowerCase()}
+
+/* -- 씬 -- */
 function parseScenes(text){
   var lines=String(text||"").split(/\r?\n/).map(cleanLine);
   var strict=lines.some(function(l){return/^S\s*#\s*\d/i.test(l)});
@@ -644,33 +664,221 @@ function parseLines(text){
   return String(text||"").split(/\r?\n/).map(cleanLine).filter(function(l){return l.length>1}).map(function(l,i){
     l=l.replace(/^(\d+[.)]|[-•·⁃*])\s*/,"");return{no:"S#"+(i+1),summary:l.length>90?l.slice(0,89)+"…":l,place:"",ie:"",dn:"",cast:"",note:""}});
 }
-function openImport(){IMP={stage:"input",text:"",url:"",tabs:null,tab:0,docTitle:"",mode:"auto",found:[]};editing={kind:"__import"};renderImport();showSheet()}
+
+/* -- 소품·장비 목록 -- */
+function stripMarker(l){return l.replace(/^([-–•·⁃*▪◦+]|\d+[.)]|[✓✔☐☑□■])\s*/,"").trim()}
+function maskParens(s){var d=0,o="";for(var i=0;i<s.length;i++){var ch=s[i];if("([（".indexOf(ch)>=0)d++;o+=d>0?"\u0001":ch;if(")]）".indexOf(ch)>=0)d=Math.max(0,d-1)}return o}
+function splitTop(s){var m=maskParens(s),out=[],st=0;for(var i=0;i<m.length;i++)if(m[i]===","||m[i]==="，"||m[i]==="、"){out.push(s.slice(st,i));st=i+1}out.push(s.slice(st));return out.map(function(x){return x.trim()}).filter(Boolean)}
+function cutTop(s,re){var m=maskParens(s).match(re);if(!m)return null;return[s.slice(0,m.index).trim(),s.slice(m.index+m[0].length).trim()]}
+function isHeader(l){return/^[\[<【〈].{1,40}[\]>】〉]$/.test(l)||/^#{1,4}\s+\S/.test(l)||(/[:：]$/.test(l)&&l.length<=30)}
+function headerText(l){return l.replace(/^#{1,4}\s+/,"").replace(/^[\[<【〈]\s*|\s*[\]>】〉]$/g,"").replace(/[:：]$/,"").trim()}
+function cleanOwner(s,needVerb){
+  s=String(s||"").trim();var verb=/(챙김|챙기기|챙겨|담당|제공|구매|준비|가져|빌려)/.test(s);
+  if(needVerb&&!verb)return"";
+  s=s.replace(/(촬영|소품|제작|연출|미술|음향|조명)팀(에서)?\s*/g,"").replace(/\s*(이|가)?\s*(챙김|챙기기|챙겨\S*|담당|제공|구매\S*|준비\S*|가져\S*|빌려\S*)\s*[!.]*$/,"").replace(/[!.]+$/,"").trim();
+  return/^[가-힣A-Za-z]{2,5}(\s*[,·\/&와과및]\s*[가-힣A-Za-z]{2,5})*$/.test(s)?s.replace(/\s*[,·\/&와과및]\s*/g,", "):"";
+}
+function parseItem(raw,group){
+  var s=" "+raw+" ",it={name:"",group:group||"",qty:"",owner:"",note:"",status:"",scenes:"",cost:"",source:"",link:""},notes=[];
+  var url=s.match(/https?:\/\/\S+/);if(url){it.link=url[0].replace(/[)\]]+$/,"");s=s.replace(url[0]," ")}
+  if(/\(\s*(?:0|o|O|○|있음)\s*\)|[✓✔✅]/.test(s))it.status="secured";
+  if(/\(\s*(?:x|X|✗|×|없음)\s*\)|[❌✗]/.test(s))it.status="need";
+  s=s.replace(/\(\s*(?:0|o|O|○|있음|x|X|✗|×|없음)\s*\)|[✓✔✅❌✗]/g," ");
+  var cost=s.match(/\d[\d,]*\s*(?:[~\-]\s*\d[\d,]*\s*)?(?:천|만)?\s*원/);if(cost)it.cost=cost[0].replace(/\s+/g,"");
+  if(/당근|구매|사기|사야|쿠팡|네이버|주문|다이소/.test(s))it.source="구매";else if(/대여|렌탈|빌리|빌려/.test(s))it.source="대여";else if(/제작|만들|프린트|출력/.test(s))it.source="제작";else if(/보유|있음|제공|집에/.test(s))it.source="보유";
+  var sc=s.match(/(?:S\s*#\s*|씬\s*)\d+(?:\s*[,~\-]\s*\d+)*/gi);if(sc){it.scenes=sc.map(function(x){return x.replace(/\s/g,"").replace(/^씬/,"S#")}).join(", ");sc.forEach(function(x){s=s.replace(x," ")})}
+  var parts=cutTop(s.trim(),/\s+[-–—]{1,2}\s+|\s*[:：]\s+|\s+[:：]\s*|\s*->\s*|\s*→\s*/);
+  var name=parts?parts[0]:s.trim(),right=parts?parts[1]:"";
+  if(right){var o=cleanOwner(right,false);if(o)it.owner=o;else notes.push(right)}
+  name=name.replace(/\(([^()]*)\)/g,function(_,inner){inner=inner.trim();if(!inner)return"";
+    var o=cleanOwner(inner,true);if(o&&!it.owner){it.owner=o;return""}
+    inner=inner.replace(/\d[\d,]*\s*(?:[~\-]\s*\d[\d,]*\s*)?(?:천|만)?\s*원/,"").replace(/\s+/g," ").trim();
+    if(inner)notes.push(inner);return""});
+  var q=name.match(/\s*(\d+)\s*(개|대|세트|벌|장|병|통|켤레|EA|ea)(?![가-힣])/);if(q){it.qty=q[1];name=name.replace(q[0]," ")}
+  if(/\?/.test(name)){notes.push("필요한지 확인");name=name.replace(/\?/g,"")}
+  it.name=name.replace(/\s+/g," ").replace(/^[\s\-–•·:,.]+|[\s\-–•·:,.]+$/g,"").trim();
+  it.note=notes.filter(Boolean).join(" · ");
+  return it.name&&it.name.length<=40&&/[가-힣A-Za-z]/.test(it.name)?it:null;
+}
+function looksProse(b){var o=b.replace(/\([^)]*\)/g," ").trim();return(/(다|요|죠|음|함)[.!]?$/.test(o)&&o.length>14)||o.split(/\s+/).length>9}
+function parseList(text){
+  var lines=String(text||"").split(/\r?\n/).map(cleanLine),group="",out=[];
+  lines.forEach(function(l){
+    if(!l)return;
+    if((l.match(/\|/g)||[]).length>=2)return;
+    var only=l.match(/^(?:[-•·*]\s*)?(https?:\/\/\S+)$/);
+    if(only){if(out.length&&!out[out.length-1].link)out[out.length-1].link=only[1];return}
+    if(/^[a-z0-9.-]+\.[a-z]{2,}\/\S+$/i.test(l)){if(out.length&&!out[out.length-1].link)out[out.length-1].link="https://"+l;return}
+    if(isHeader(l)){group=headerText(l);return}
+    var b=stripMarker(l);if(!b)return;
+    function push(x,g,owner){var it=parseItem(x,g);if(!it)return;if(owner&&!it.owner)it.owner=owner;out.push(it)}
+    // "11/12 -> a, b, c" / "11/14(씬 13) : a, b, c" : 왼쪽은 묶음 이름, 오른쪽은 소품 목록
+    var lr=cutTop(b,/\s*->\s*|\s*→\s*/)||cutTop(b,/\s*[:：]\s*/);
+    if(lr&&splitTop(lr[1]).length>=2){var left=lr[0].replace(/\([^)]*\)/g,"").trim();
+      if(/\d{1,2}\s*[\/.]\s*\d{1,2}|씬|S\s*#|소품|장비|준비|리스트|체크|평일|주말/i.test(lr[0])||left.length<=10){
+        var g=lr[0].replace(/\s+/g," ");splitTop(lr[1]).forEach(function(x){push(x,g)});return}}
+    // "책, 신문 - 하은" / "편지, 키링, 동전 - 경현" : 여러 소품에 담당 한 명
+    var ow=cutTop(b,/\s+[-–—]{1,2}\s+|\s*[:：]\s+|\s+[:：]\s*/);
+    if(ow&&splitTop(ow[0]).length>=2){var o=cleanOwner(ow[1],false);if(o){splitTop(ow[0]).forEach(function(x){push(x,group,o)});return}}
+    var parts=splitTop(b);
+    if((parts.length>=3&&parts.every(function(x){return x.length<=25})||parts.length===2&&parts.every(function(x){return x.length<=15}))&&!looksProse(b)){parts.forEach(function(x){push(x,group)});return}
+    if(/^\d{1,2}\s*[\/.]\s*\d{1,2}|\d{1,2}:\d{2}/.test(b))return;
+    if(looksProse(b)&&!(ow&&ow[0].length<=40))return;
+    if(b.length>60&&!(ow&&ow[0].length<=40))return;
+    push(b,group);
+  });
+  var map={},res=[];
+  out.forEach(function(it){var k=nameKey(it.name);if(!k)return;var m=map[k];
+    if(!m){map[k]=it;res.push(it);return}
+    ["qty","owner","cost","source","link","scenes"].forEach(function(f){if(!m[f]&&it[f])m[f]=it[f]});
+    if(it.note&&m.note.indexOf(it.note)<0)m.note=(m.note?m.note+" · ":"")+it.note;
+    if(it.status==="secured")m.status="secured";else if(!m.status&&it.status)m.status=it.status;
+    if(!m.group&&it.group)m.group=it.group;});
+  return res;
+}
+function gearCategory(group,name){
+  var g=group+" ";
+  if(/카메라|렌즈|촬영/.test(g))return"카메라";if(/조명/.test(g))return"조명";if(/음향|사운드|오디오|마이크/.test(g))return"음향";if(/소품|의상|미술/.test(g))return"미술·소품";if(/현장|소모품|운영/.test(g))return"현장";
+  if(/카메라|렌즈|삼각대|짐벌|필터|모니터|리그|SD|메모리|배터리/i.test(name))return/조명/.test(name)?"조명":"카메라";
+  if(/조명|반사판|디퓨저|스탠드|젤|판조명/.test(name))return"조명";
+  if(/마이크|붐|레코더|헤드폰|데드캣|오디오/.test(name))return"음향";
+  return"현장";
+}
+
+/* -- 일정 -- */
+function isoDate(mo,d,y){
+  mo=+mo;d=+d;if(mo<1||mo>12||d<1||d>31)return"";
+  var now=new Date(),yy=y?+y:now.getFullYear();
+  if(!y&&new Date(yy,mo-1,d)<new Date(now.getFullYear(),now.getMonth(),now.getDate()-180))yy++;
+  return yy+"-"+pad(mo)+"-"+pad(d);
+}
+function parseTime(s){
+  var m=String(s).match(/(오전|오후|밤|저녁|아침|새벽)?\s*(\d{1,2})\s*(?::\s*(\d{2})|시(?:\s*(\d{1,2})\s*분|\s*반)?)/);
+  if(!m)return null;
+  var h=+m[2],mi=m[3]||m[4]||(/반/.test(m[0])?"30":"0");
+  if(/오후|저녁|밤/.test(m[1]||""))h=h<12?h+12:h;else if(!m[1]&&!m[3]&&h>=1&&h<=7)h+=12;
+  if(h>23||+mi>59)return null;
+  return{t:pad(h)+":"+pad(+mi),index:m.index,len:m[0].length};
+}
+var DATE_RE=/^(?:(\d{4})\s*[-.\/년]\s*)?(\d{1,2})\s*(?:[.\/]|월)\s*(\d{1,2})\s*일?(?![\d:시])/;
+function isMeal(p){return!/이동/.test(p)&&(/^(아침|점심|저녁|간식|야식)(\s*(식사|밥))?(\s|$|[:·,(])/.test(p)||/^(식사|밥)(\s|$)/.test(p))}
+function parseSchedule(text){
+  var lines=String(text||"").split(/\r?\n/).map(cleanLine),days=[],cur=null;
+  function scenesOf(s){var m=s.match(/S\s*#\s*\d+(?:\s*[,~\-]\s*(?:S\s*#\s*)?\d+)*\??/gi);return m?m.map(function(x){return x.replace(/\s/g,"")}).join(", "):""}
+  function content(raw){
+    var l=stripMarker(raw.replace(/^[\s|]+|[\s|]+$/g,""));if(!l)return;
+    var cells=raw.indexOf("|")>=0?raw.split("|").map(function(c){return stripMarker(c.trim())}).filter(Boolean):null;
+    var t=parseTime(l);
+    if(t&&t.index<=2){
+      var rest=l.slice(t.index+t.len),end="";
+      var e=rest.match(/^\s*(?:부터)?\s*[-~–]\s*/);if(e){var t2=parseTime(rest.slice(e[0].length));if(t2&&t2.index<=1){end=t2.t;rest=rest.slice(e[0].length+t2.index+t2.len)}}
+      rest=rest.replace(/^\s*(부터|까지)\s*/,"").replace(/^[\s|·:-]+/,"").trim();
+      var place=rest,note="";
+      if(cells&&cells.length>=2){place=cells[1];note=cells.slice(2).join(" · ")}
+      var scn=scenesOf(rest+" "+note);
+      if(/집합/.test(rest)&&!cur.call)cur.call=t.t;
+      if(isMeal(place)){var mt=(place.match(/아침|점심|저녁|간식|야식/)||[""])[0]||(+t.t.slice(0,2)<10?"아침":+t.t.slice(0,2)<16?"점심":"저녁");
+        cur.meals.push({date:cur.date,time:t.t,meal:mt,how:/배달/.test(place)?"배달":/도시락/.test(place)?"도시락":/편의점|마트/.test(place)?"편의점":"식당",place:place.replace(/(아침|점심|저녁|간식|야식)\s*(식사)?/,"").replace(/^[\s·:-]+/,"").trim(),status:"none",note:note});return}
+      if(scn&&!cells)place=place.replace(/S\s*#\s*\d+(?:\s*[,~\-]\s*(?:S\s*#\s*)?\d+)*\??/gi,"").replace(/[\s,·&]+$/,"").trim();
+      if(place.length>40){note=(note?note+" · ":"")+place;place=""}
+      cur.slots.push({date:cur.date,start:t.t,end:end,location:place,scenes:scn,note:note});return;
+    }
+    var kv=l.match(/^(장소|위치|로케이션|로케|씬|촬영\s*씬|집합|콜타임|콜|종료|메모|비고|인원|스태프)\s*[:：]\s*(.+)$/);
+    if(kv){var k=kv[1].replace(/\s/g,""),v=kv[2].trim();
+      if(/장소|위치|로케/.test(k))cur.location=v;else if(/씬/.test(k))cur.scenes.push(v);
+      else if(/집합|콜/.test(k)){var tt=parseTime(v);if(tt)cur.call=tt.t;else cur.notes.push(l)}
+      else if(k==="종료"){var tw=parseTime(v);if(tw)cur.wrap=tw.t}
+      else if(/인원|스태프/.test(k))cur.crew.push(l);else cur.notes.push(v);return}
+    var role=l.match(/^(촬영\s*보조|촬영|사운드|음향|조명|연출|조연출|제작|붐|스크립터|미술|분장|PD|감독)\s*[:：]\s*(.+)$/);
+    if(role){cur.crew.push(role[1]+" "+role[2].trim());return}
+    if(/예비/.test(l))cur.status="tentative";else if(/취소/.test(l))cur.status="cancelled";
+    var sc=scenesOf(l);if(sc){cur.scenes.push(l.replace(/^(씬|촬영)\s*[:：]?\s*/,""));return}
+    if(!cur.location&&l.length<=40&&!looksProse(l)&&!/[:：]/.test(l))cur.location=l;else cur.notes.push(l);
+  }
+  lines.forEach(function(l){
+    if(!l)return;
+    var lead=l.replace(/^[\s|\[<【(*•·⁃\-]+/,"");
+    var m=lead.match(DATE_RE);
+    if(m){
+      var date=isoDate(m[2],m[3],m[1]);
+      if(date){
+        var rest=lead.slice(m[0].length).replace(/^\s*(\([^)]*\)|[월화수목금토일](?:요일)?)\s*/,"");
+        var ds=[date],rg=rest.match(/^\s*[~\-–]\s*(?:(\d{1,2})\s*[.\/월]\s*)?(\d{1,2})\s*일?\s*(\([^)]*\)|[월화수목금토일](?:요일)?)?/);
+        if(rg){var d2=isoDate(rg[1]||m[2],rg[2],m[1]);if(d2&&d2>date)ds.push(d2);rest=rest.slice(rg[0].length)}
+        rest=rest.replace(/^[\s\]>】)|:：>-]+/,"").replace(/[\]>】|]+\s*$/,"").trim();
+        cur={date:date,also:ds.slice(1),call:"",wrap:"",location:"",scenes:[],crew:[],notes:[],status:"",slots:[],meals:[]};days.push(cur);
+        if(rest&&!/^(촬영|집합|일정|촬영\s*일정|회의|준비|소품\s*준비|촬영\s*및\s*역할)$/.test(rest))content(rest);
+        return;
+      }
+    }
+    if(cur)content(l);
+  });
+  var out=[];
+  days.forEach(function(d){
+    var data={date:d.date,call:d.call,wrap:d.wrap,location:d.location,scenes:d.scenes.join(" · "),crew:d.crew.join("\n"),note:d.notes.join("\n"),status:d.status};
+    [d.date].concat(d.also).forEach(function(dt){var x={};for(var k in data)x[k]=data[k];x.date=dt;out.push({kind:"day",data:x})});
+    d.slots.forEach(function(s){out.push({kind:"slot",data:s})});
+    d.meals.forEach(function(s){out.push({kind:"meal",data:s})});
+  });
+  var seen={};return out.filter(function(e){var k=e.kind+"|"+JSON.stringify(e.data);if(seen[k])return false;seen[k]=1;return true});
+}
+
+/* -- 공통: 찾은 항목을 미리 보기 줄로 -- */
+function slotKey(d){return d.date+"|"+(d.start||"")+"|"+nameKey(d.location)}
+function mealKey(d){return d.date+"|"+(d.meal||"")+"|"+(d.time||"")}
+function existingFor(e){
+  var k=e.kind,d=e.data;
+  return all(k).filter(function(x){
+    if(k==="scene")return sceneKey(x.data.no)===sceneKey(d.no);
+    if(k==="prop"||k==="gear")return nameKey(x.data.name)===nameKey(d.name);
+    if(k==="day")return x.data.date===d.date;
+    if(k==="slot")return slotKey(x.data)===slotKey(d);
+    if(k==="meal")return mealKey(x.data)===mealKey(d);
+    return false;})[0]||null;
+}
+function buildEntries(target,mode,text){
+  if(target==="scene")return(mode==="lines"?parseLines(text):parseScenes(text)).map(function(x){
+    return{kind:"scene",data:x,label:x.no,main:x.summary||"(지문 없음)",sub:[[x.ie,x.place,x.dn].filter(Boolean).join(" · ")||"장소 미정",x.cast,x.note].filter(Boolean).join(" · "),on:true}});
+  if(target==="prop")return parseList(text).map(function(x){
+    var d={name:x.name,space:x.group,scenes:x.scenes,qty:x.qty,source:x.source,owner:x.owner,cost:x.cost,link:x.link,note:x.note,status:x.status||(x.owner?"finding":"need"),_st:!!x.status};
+    return{kind:"prop",data:d,label:"",main:x.name+(x.qty?" ×"+x.qty:""),sub:[d.space,d.scenes&&("씬 "+d.scenes),d.owner&&("담당 "+d.owner),d.cost,d.note].filter(Boolean).join(" · "),st:PROP_ST[d.status][0],on:!/장비/.test(x.group)}});
+  if(target==="gear")return parseList(text).map(function(x){
+    var d={name:x.name,category:gearCategory(x.group,x.name),qty:x.qty,owner:x.owner,note:[x.note,x.link].filter(Boolean).join(" · ")};
+    return{kind:"gear",data:d,label:"",main:x.name+(x.qty?" ×"+x.qty:""),sub:[d.category,d.owner&&("챙길 사람 "+d.owner),d.note].filter(Boolean).join(" · "),on:!/소품|의상/.test(x.group)}});
+  return parseSchedule(text).map(function(e){var d=e.data;
+    if(e.kind==="day")return{kind:"day",data:d,label:"촬영일",main:fmtDate(d.date)+(d.call?" · 콜 "+d.call:""),sub:[d.location,d.scenes,d.crew.replace(/\n/g," · "),d.note.replace(/\n/g," · ")].filter(Boolean).join(" · ")||"내용 없음",on:true};
+    if(e.kind==="slot")return{kind:"slot",data:d,label:"시간대",main:fmtDate(d.date)+" "+d.start+(d.end?"–"+d.end:""),sub:[d.location,d.scenes,d.note].filter(Boolean).join(" · "),on:true};
+    return{kind:"meal",data:d,label:"식사",main:fmtDate(d.date)+" "+d.time+" "+d.meal,sub:[d.how,d.place,d.note].filter(Boolean).join(" · "),on:true};});
+}
+
+/* -- 창 -- */
+function openImport(target){IMP={target:target||"scene",stage:"input",text:"",url:"",tabs:null,tab:0,docTitle:"",mode:"auto",found:[]};editing={kind:"__import"};renderImport();showSheet()}
 function keepInput(){var t=$("#imp-text"),u=$("#imp-url");if(t)IMP.text=t.value;if(u)IMP.url=u.value;var m=document.querySelector("[name=imp-mode]:checked");if(m)IMP.mode=m.value}
 function renderImport(){
-  var f=$("#form");
+  var f=$("#form"),T=IMP_T[IMP.target];
   if(IMP.stage==="input"){
-    f.innerHTML='<h2>문서에서 씬 가져오기</h2><p class="note">대본에 <b>S#1 옆동네 (밤)</b>처럼 씬 머리가 있으면 씬마다 장소, 시간대, 등장인물(대사 앞 이름), 첫 지문을 채워요. 이미 있는 씬은 이 내용만 갱신하고 상태·예정일·촬영 기록은 그대로 둬요.</p>'+
+    f.innerHTML='<h2>문서에서 '+T.name+' 가져오기</h2><p class="note">'+T.help+'</p>'+
       '<div class="imp-src"><label class="field" for="imp-url">구글 문서 링크<input id="imp-url" inputmode="url" placeholder="https://docs.google.com/document/d/…" value="'+esc(IMP.url)+'"></label><button class="ghost" type="button" data-act="imp-load" style="padding-block:8px">불러오기</button></div>'+
       (IMP.tabs&&IMP.tabs.length>1?'<label class="field" for="imp-tab">문서 탭 ('+esc(IMP.docTitle)+')<select id="imp-tab">'+IMP.tabs.map(function(t,i){return'<option value="'+i+'"'+(i===IMP.tab?" selected":"")+'>'+esc(t.title||("탭 "+(i+1)))+'</option>'}).join("")+'</select></label>':IMP.docTitle?'<p class="note">불러온 문서: '+esc(IMP.docTitle)+'</p>':"")+
-      '<label class="field" for="imp-text">대본 내용 (불러오거나 직접 붙여 넣기)<textarea id="imp-text" class="imp-text" placeholder="S#1 옆동네 (밤)&#10;설아가 휴대전화를 보며 걷고 있다.&#10;설아: 응, 나 지금 가는 중이야.&#10;&#10;S#2 굴다리 (밤)&#10;…">'+esc(IMP.text)+'</textarea></label>'+
-      '<div class="field">나누는 방법<div class="imp-mode" role="radiogroup"><label><input type="radio" name="imp-mode" value="auto"'+(IMP.mode==="auto"?" checked":"")+'>씬 번호(S#)로</label><label><input type="radio" name="imp-mode" value="lines"'+(IMP.mode==="lines"?" checked":"")+'>한 줄 = 씬 하나</label></div><span>‘한 줄 = 씬 하나’는 핵심 사건이나 스토리보드 목록을 줄마다 적었을 때 써요.</span></div>'+
-      '<div class="err" id="f-err" role="alert"></div><div class="acts"><button type="button" class="ghost" data-close>취소</button><button class="primary" type="submit" id="f-submit">씬 찾기</button></div>';
+      '<label class="field" for="imp-text">내용 (불러오거나 직접 붙여 넣기)<textarea id="imp-text" class="imp-text" placeholder="'+T.ph+'">'+esc(IMP.text)+'</textarea></label>'+
+      (IMP.target==="scene"?'<div class="field">나누는 방법<div class="imp-mode" role="radiogroup"><label><input type="radio" name="imp-mode" value="auto"'+(IMP.mode==="auto"?" checked":"")+'>씬 번호(S#)로</label><label><input type="radio" name="imp-mode" value="lines"'+(IMP.mode==="lines"?" checked":"")+'>한 줄 = 씬 하나</label></div><span>‘한 줄 = 씬 하나’는 핵심 사건이나 스토리보드 목록을 줄마다 적었을 때 써요.</span></div>':"")+
+      '<div class="err" id="f-err" role="alert"></div><div class="acts"><button type="button" class="ghost" data-close>취소</button><button class="primary" type="submit" id="f-submit">'+T.name+' 찾기</button></div>';
     return;
   }
-  var have={};all("scene").forEach(function(s){have[sceneKey(s.data.no)]=s});
-  var nNew=IMP.found.filter(function(x){return!have[sceneKey(x.no)]}).length;
-  f.innerHTML='<h2>씬 '+IMP.found.length+'개를 찾았어요</h2><p class="note">새로 추가 '+nNew+'개 · 내용 갱신 '+(IMP.found.length-nNew)+'개. 올리지 않을 씬은 체크를 풀어요. 올린 뒤에도 씬을 눌러 고칠 수 있어요.</p>'+
-    '<div class="items imp-list">'+IMP.found.map(function(x,i){var ex=have[sceneKey(x.no)];
-      return'<label class="it"><input class="chk" type="checkbox" data-imp="'+i+'" checked><span class="no">'+esc(x.no)+'</span><div class="main"><b>'+esc(x.summary||"(지문 없음)")+'</b><small>'+esc([x.ie,x.place,x.dn].filter(Boolean).join(" · ")||"장소 미정")+(x.cast?" · "+esc(x.cast):"")+'</small>'+(x.note?'<small>'+esc(x.note)+'</small>':"")+'</div>'+(ex?'<span class="pill p-info">갱신</span>':'<span class="pill p-ok">새로</span>')+'</label>'}).join("")+'</div>'+
-    '<div class="err" id="f-err" role="alert"></div><div class="acts"><button type="button" class="ghost" data-act="imp-back" style="margin-right:auto">뒤로</button><button type="button" class="ghost" data-close>취소</button><button class="primary" type="submit" id="f-submit">'+IMP.found.length+'개 올리기</button></div>';
+  var nNew=0,nOn=0;IMP.found.forEach(function(e){e.ex=existingFor(e);if(!e.ex)nNew++;if(e.on)nOn++});
+  f.innerHTML='<h2>'+T.name+' '+IMP.found.length+'개를 찾았어요</h2><p class="note">새로 추가 '+nNew+'개 · 갱신 '+(IMP.found.length-nNew)+'개. 올리지 않을 항목은 체크를 풀어요. 올린 뒤에도 눌러서 고칠 수 있어요.'+(nOn<IMP.found.length?' 다른 목록(장비/소품)으로 보이는 항목은 미리 체크를 풀어 두었어요.':'')+'</p>'+
+    '<div class="items imp-list">'+IMP.found.map(function(e,i){
+      return'<label class="it"><input class="chk" type="checkbox" data-imp="'+i+'"'+(e.on?" checked":"")+'>'+(e.label?'<span class="no">'+esc(e.label)+'</span>':'<span></span>')+'<div class="main"><b>'+esc(e.main)+'</b>'+(e.sub?'<small>'+esc(e.sub)+'</small>':"")+'</div><span class="row" style="gap:4px;flex-direction:column;align-items:flex-end">'+(e.ex?'<span class="pill p-info">갱신</span>':'<span class="pill p-ok">새로</span>')+(e.st?'<span class="pill p-mute">'+esc(e.st)+'</span>':"")+'</span></label>'}).join("")+'</div>'+
+    '<div class="err" id="f-err" role="alert"></div><div class="acts"><button type="button" class="ghost" data-act="imp-back" style="margin-right:auto">뒤로</button><button type="button" class="ghost" data-close>취소</button><button class="primary" type="submit" id="f-submit"'+(nOn?"":" disabled")+'>'+nOn+'개 올리기</button></div>';
 }
 function importLoad(btn){
   keepInput();if(!IMP.url.trim()){$("#f-err").textContent="구글 문서 링크를 붙여 넣어 주세요.";return}
   btn.disabled=true;btn.textContent="불러오는 중";$("#f-err").textContent="";
   api("apiReadDoc",S.code,IMP.url).then(function(r){
-    IMP.tabs=r.tabs||[];IMP.docTitle=r.title||"";
-    var best=0;IMP.tabs.some(function(t,i){if(/S\s*#\s*\d/i.test(t.text)){best=i;return true}});
-    IMP.tab=best;IMP.text=IMP.tabs.length?IMP.tabs[best].text:"";renderImport();
+    var T=IMP_T[IMP.target];IMP.tabs=r.tabs||[];IMP.docTitle=r.title||"";
+    var best=-1;IMP.tabs.some(function(t,i){if(T.tab.test(t.title||"")){best=i;return true}});
+    if(best<0)IMP.tabs.some(function(t,i){if(T.text.test(t.text||"")){best=i;return true}});
+    IMP.tab=Math.max(0,best);IMP.text=IMP.tabs.length?IMP.tabs[IMP.tab].text:"";renderImport();
   }).catch(function(e){
     var m=String(e&&e.message||e);btn.disabled=false;btn.textContent="불러오기";
     $("#f-err").textContent=/DOC_LINK/.test(m)?"문서 링크 모양이 아니에요. 주소창의 docs.google.com/document/d/… 링크를 통째로 붙여 넣어 주세요."
@@ -681,31 +889,46 @@ function importLoad(btn){
   });
 }
 function importSubmit(){
+  var T=IMP_T[IMP.target];
   if(IMP.stage==="input"){
     keepInput();
-    if(!IMP.text.trim())return fail("대본 내용을 붙여 넣거나 구글 문서를 불러와 주세요.");
-    IMP.found=IMP.mode==="lines"?parseLines(IMP.text):parseScenes(IMP.text);
-    if(!IMP.found.length)return fail(IMP.mode==="auto"?"씬 머리(S#1, S#2 …)를 찾지 못했어요. 핵심 사건 목록이라면 ‘한 줄 = 씬 하나’를 골라 주세요.":"내용이 비어 있어요.");
+    if(!IMP.text.trim())return fail("내용을 붙여 넣거나 구글 문서를 불러와 주세요.");
+    IMP.found=buildEntries(IMP.target,IMP.mode,IMP.text);
+    if(!IMP.found.length)return fail(IMP.target==="scene"&&IMP.mode==="auto"?"씬 머리(S#1, S#2 …)를 찾지 못했어요. 핵심 사건 목록이라면 ‘한 줄 = 씬 하나’를 골라 주세요."
+      :IMP.target==="schedule"?"날짜(11/12, 11. 14 같은)로 시작하는 줄을 찾지 못했어요. 날짜를 줄 맨 앞에 적어 주세요.":"항목을 찾지 못했어요. 한 줄에 하나씩, 또는 쉼표로 나열해 주세요.");
     if(IMP.found.length>300)return fail("한 번에 300개까지 올릴 수 있어요.");
     IMP.stage="preview";renderImport();return;
   }
   var picked=[].slice.call(document.querySelectorAll("[data-imp]:checked")).map(function(c){return IMP.found[Number(c.dataset.imp)]});
-  if(!picked.length)return fail("올릴 씬을 하나 이상 골라 주세요.");
-  var have={};all("scene").forEach(function(s){have[sceneKey(s.data.no)]=s});
+  if(!picked.length)return fail("올릴 항목을 하나 이상 골라 주세요.");
   var now=Date.now(),added=[],updated=[];
-  var items=picked.map(function(x){
-    var ex=have[sceneKey(x.no)],data={editedAt:now};
-    ["summary","place","ie","dn","cast"].forEach(function(k){if(x[k])data[k]=x[k]});
-    if(ex){updated.push(x.no);if(x.note&&!ex.data.note)data.note=x.note;return{id:ex.id,kind:"scene",data:data}}
-    added.push(x.no);data.no=x.no;data.status="todo";data.props="";data.planned="";data.note=x.note||"";data.createdAt=now;data.author=S.me.name;
-    return{id:"",kind:"scene",data:data};
+  var items=picked.map(function(e){
+    var ex=existingFor(e),src=e.data,data={editedAt:now},k,label=e.kind==="scene"?src.no:e.kind==="day"?fmtDate(src.date):e.kind==="prop"||e.kind==="gear"?src.name:fmtDate(src.date)+" "+(src.start||src.time||"")+" "+(e.kind==="meal"?src.meal:"");
+    if(ex){
+      updated.push(label);
+      var keys={scene:["summary","place","ie","dn","cast"],prop:["space","scenes","qty","source","owner","cost","link"],gear:["qty","owner"],day:["call","wrap","location","scenes","crew","note","status"],slot:["end","scenes","note"],meal:["how","place","note"]}[e.kind];
+      keys.forEach(function(f){if(src[f])data[f]=src[f]});
+      if(e.kind==="scene"&&src.note&&!ex.data.note)data.note=src.note;
+      if((e.kind==="prop"||e.kind==="gear")&&src.note&&String(ex.data.note||"").indexOf(src.note)<0)data.note=(ex.data.note?ex.data.note+" · ":"")+src.note;
+      if(e.kind==="prop"){if(src._st)data.status=src.status;else if(src.owner&&(ex.data.status||"need")==="need")data.status="finding"}
+      return{id:ex.id,kind:e.kind,data:data};
+    }
+    added.push(label);
+    for(k in src)if(k!=="_st")data[k]=src[k];
+    if(e.kind==="scene"){data.status="todo";data.props="";data.planned="";data.note=src.note||""}
+    if(e.kind==="gear")data.checked=false;
+    if(e.kind==="day"&&!data.status)data.status="confirmed";
+    data.createdAt=now;data.author=S.me.name;
+    return{id:"",kind:e.kind,data:data};
   });
   var btn=$("#f-submit");S.busy=true;btn.disabled=true;btn.textContent="올리는 중";
   api("apiSaveMany",S.code,items,S.me.name).then(function(res){
     (res||[]).forEach(put);
-    var body=(added.length?"새로 추가 "+added.length+"개: "+added.join(", "):"")+(added.length&&updated.length?"\n":"")+(updated.length?"내용 갱신 "+updated.length+"개: "+updated.join(", "):"")+(IMP.docTitle?"\n출처: "+IMP.docTitle:"");
-    save("log",{type:"notice",team:"dir",title:"씬 "+picked.length+"개를 문서에서 가져왔어요",body:body,acks:{},auto:true,author:S.me.name,createdAt:now,editedAt:now}).catch(function(){});
-    closeSheet();S.tab="scenes";S.sceneFilter="all";render();toast("씬 "+picked.length+"개를 올렸어요");
+    var body=(added.length?"새로 추가 "+added.length+"개: "+added.join(", "):"")+(added.length&&updated.length?"\n":"")+(updated.length?"갱신 "+updated.length+"개: "+updated.join(", "):"")+(IMP.docTitle?"\n출처: "+IMP.docTitle:"");
+    var team={scene:"dir",prop:"prop",gear:"cam",schedule:"prod"}[IMP.target];
+    save("log",{type:"notice",team:team,title:T.name+" "+picked.length+"개를 문서에서 가져왔어요",body:body,acks:{},auto:true,author:S.me.name,createdAt:now,editedAt:now}).catch(function(){});
+    var tab={scene:"scenes",prop:"props",gear:"gear",schedule:"schedule"}[IMP.target];
+    closeSheet();S.tab=tab;if(tab==="scenes")S.sceneFilter="all";if(tab==="props")S.propView="list";render();toast(T.name+" "+picked.length+"개를 올렸어요");
   }).catch(function(e){fail(/PASSCODE/.test(String(e&&e.message))?"팀 비밀번호가 맞지 않아요.":"올리지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.")});
 }
 
@@ -761,7 +984,7 @@ document.addEventListener("click",function(e){
     api("apiAck",S.code,d.ack,S.me.name,on).then(function(r){put(r);render()}).catch(function(){toast("확인 표시를 저장하지 못했어요.");sync()})}
   else if("close" in d){closeSheet()}
   else if(d.act==="code")openCode();
-  else if(d.act==="import"){if(!S.me.name){openMe(openImport);return}openImport()}
+  else if(d.act==="import"){var tg=d.target||"scene";if(!S.me.name){openMe(function(){openImport(tg)});return}openImport(tg)}
   else if(d.act==="imp-load")importLoad(b);
   else if(d.act==="imp-back"){IMP.stage="input";renderImport()}
   else if(d.act==="reset")arm(b,"reset",resetGear);
