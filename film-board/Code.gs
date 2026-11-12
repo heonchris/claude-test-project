@@ -127,18 +127,58 @@ function apiList(code, since) {
 /** 항목을 만들거나 고칩니다. 기존 필드는 유지하고 보낸 필드만 덮어씁니다. */
 function apiSave(code, item, by) {
   checkCode_(code);
+  return withLock_(function () { return saveOne_(sheet_(), item, by); });
+}
+
+/** 여러 항목을 한 번에 만들거나 고칩니다 (문서에서 씬 가져오기). */
+function apiSaveMany(code, items, by) {
+  checkCode_(code);
+  if (!items || !items.length) return [];
+  if (items.length > 300) throw new Error('TOO_MANY');
   return withLock_(function () {
     var sh = sheet_();
-    var id = item.id || newId_();
-    var row = findRow_(sh, id);
-    var old = row > 0 ? toItem_(sh.getRange(row, 1, 1, HEADER.length).getValues()[0]) : null;
-    var data = old ? old.data : {};
-    var src = item.data || {};
-    for (var k in src) if (src.hasOwnProperty(k)) data[k] = src[k];
-    var out = { id: id, kind: item.kind || (old && old.kind) || 'log', data: data, updatedAt: Date.now(), updatedBy: String(by || '').slice(0, 40), deleted: false };
-    write_(sh, row, out);
-    return out;
+    return items.map(function (it) { return saveOne_(sh, it, by); });
   });
+}
+
+function saveOne_(sh, item, by) {
+  var id = item.id || newId_();
+  var row = item.id ? findRow_(sh, id) : -1;
+  var old = row > 0 ? toItem_(sh.getRange(row, 1, 1, HEADER.length).getValues()[0]) : null;
+  var data = old ? old.data : {};
+  var src = item.data || {};
+  for (var k in src) if (src.hasOwnProperty(k)) data[k] = src[k];
+  var out = { id: id, kind: item.kind || (old && old.kind) || 'log', data: data, updatedAt: Date.now(), updatedBy: String(by || '').slice(0, 40), deleted: false };
+  write_(sh, row, out);
+  return out;
+}
+
+/**
+ * 구글 문서의 글을 탭별로 읽어 옵니다. 보드를 배포한 계정이 볼 수 있는 문서만 열려요.
+ * 링크 전체나 문서 ID를 받습니다.
+ */
+function apiReadDoc(code, ref) {
+  checkCode_(code);
+  ref = String(ref || '').trim();
+  var m = ref.match(/\/d\/([A-Za-z0-9_-]{20,})/) || ref.match(/^([A-Za-z0-9_-]{20,})$/);
+  if (!m) throw new Error('DOC_LINK');
+  var doc;
+  try { doc = DocumentApp.openById(m[1]); } catch (e) {
+    if (/권한|permission|authoriz/i.test(String(e && e.message))) throw new Error('DOC_AUTH');
+    throw new Error('DOC_ACCESS');
+  }
+  var tabs = [];
+  try {
+    var walk = function (list) {
+      list.forEach(function (t) {
+        tabs.push({ title: t.getTitle(), text: t.asDocumentTab().getBody().getText() });
+        walk(t.getChildTabs());
+      });
+    };
+    walk(doc.getTabs());
+  } catch (e) { tabs = []; }
+  if (!tabs.length) tabs = [{ title: doc.getName(), text: doc.getBody().getText() }];
+  return { title: doc.getName(), tabs: tabs };
 }
 
 /** 항목을 지웁니다 (다른 사람 화면에서도 사라지도록 삭제 표시만 남김). */

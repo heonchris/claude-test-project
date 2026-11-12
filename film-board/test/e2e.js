@@ -19,7 +19,7 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1};
     const errs=[];p.on('pageerror',e=>errs.push(e.message));p.__errs=errs;
     await p.exposeFunction('__gas',(fn,args)=>{try{return{ok:JSON.parse(JSON.stringify(G[fn](...args)))}}catch(e){return{err:'Exception: '+e.message}}});
     await p.addInitScript(()=>{function run(s,f){const r={withSuccessHandler:fn=>run(fn,f),withFailureHandler:fn=>run(s,fn)};
-      ['apiInfo','apiList','apiSave','apiDelete','apiAck','apiUpload'].forEach(k=>r[k]=(...a)=>{window.__gas(k,a).then(x=>x.err?f&&f(new Error(x.err)):s&&s(x.ok))});return r}
+      ['apiInfo','apiList','apiSave','apiSaveMany','apiReadDoc','apiDelete','apiAck','apiUpload'].forEach(k=>r[k]=(...a)=>{window.__gas(k,a).then(x=>x.err?f&&f(new Error(x.err)):s&&s(x.ok))});return r}
       window.google={script:{run:run(null,null)}}});
     await p.addInitScript(([n,t,c])=>{if(n)localStorage.setItem('fb-me',JSON.stringify({name:n,team:t}));if(c)localStorage.setItem('fb-code',c)},[name,team,code]);
     await p.goto('file://'+require('path').join(__dirname,'..','index.html'));await p.waitForTimeout(400);return p;
@@ -69,6 +69,38 @@ const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)process.exitCode=1};
   ok(await A.locator('.it').count()===before-1,'소품 삭제');
   await B.evaluate(()=>sync());await B.click('[data-pview=list]');await B.waitForTimeout(100);
   ok(await B.locator('.it').count()===before-1,'삭제가 민지 화면에도 반영');
+  // 문서에서 씬 가져오기 ① 붙여 넣기
+  await A.click('[data-tab=scenes]');await A.click('.empty [data-act=import]');
+  await A.fill('#imp-text','S#1 옆동네 (밤)\n설아가 걷는다.\n설아: 응\n\nS#2 굴다리 (밤)\n헤맨다.\n\nS#3 옆 동네 (밤)\n행인1: 네?');
+  await A.click('#f-submit');await A.waitForTimeout(100);
+  ok((await A.textContent('#form h2')).includes('3개'),'붙여 넣은 대본에서 씬 3개 찾음');
+  await A.uncheck('[data-imp="2"]');ok((await A.textContent('#f-submit')).includes('2개'),'체크 풀면 올릴 개수 갱신');
+  await A.click('#f-submit');await A.waitForTimeout(300);
+  ok(sh.rows.filter(r=>r[1]==='scene').length===2,'선택한 씬 2개만 시트에 저장');
+  ok(await A.locator('.it').count()===2,'씬 탭에 2개 표시');
+  // 상태를 바꿔 둔 뒤 다시 가져와도 상태가 유지되는지
+  await A.click('.it >> nth=0');await A.selectOption('#f-status','done');await A.fill('#f-shotPlace','시립대 골목');await A.click('#f-submit');await A.waitForTimeout(300);
+  // ② 구글 문서 링크 (탭 여러 개)
+  G.__docs['1vs349ijK4dgB75RcBPBGSgnOilUtqZrGlfCBG6pTHLY']={title:'테스트 문서',tabs:[{title:'메모',text:'아무 내용'},{title:'시나리오',text:'S#1 옆동네 (밤)\n설아가 휴대전화를 보며 걷는다.\n동생 VO (전화): 응\n\nS#4 벤치 쪽 (밤)\n은호가 지나간다.\n은호: 네?'}]};
+  await A.click('[data-act=import]');await A.fill('#imp-url','이상한 주소');await A.click('[data-act=imp-load]');await A.waitForTimeout(200);
+  ok((await A.textContent('#f-err')).includes('링크 모양'),'잘못된 링크면 안내');
+  await A.fill('#imp-url','https://docs.google.com/document/d/1vs349ijK4dgB75RcBPBGSgnOilUtqZrGlfCBG6pTHLY/edit?usp=drivesdk');await A.click('[data-act=imp-load]');await A.waitForTimeout(300);
+  ok(await A.locator('#imp-tab').inputValue()==='1','씬이 있는 탭(시나리오)을 자동 선택');
+  ok((await A.inputValue('#imp-text')).includes('S#4 벤치'),'문서 내용이 칸에 채워짐');
+  await A.click('#f-submit');await A.waitForTimeout(100);
+  ok(await A.locator('.imp-list .p-info').count()===1&&await A.locator('.imp-list .p-ok').count()===1,'S#1은 갱신, S#4는 새로');
+  await A.click('#f-submit');await A.waitForTimeout(300);
+  const s1=JSON.parse(sh.rows.find(r=>r[1]==='scene'&&r[3].includes('"no":"S#1"'))[3]);
+  ok(s1.status==='done'&&s1.shotPlace==='시립대 골목','다시 가져와도 상태·촬영 기록 유지');
+  ok(s1.summary.startsWith('설아가 휴대전화를')&&s1.cast==='동생','요약·등장인물은 새 문서 내용으로 갱신');
+  ok(sh.rows.filter(r=>r[1]==='scene').length===3,'씬은 중복 없이 3개');
+  await B.evaluate(()=>sync());await B.click('[data-tab=board]');await B.waitForTimeout(100);
+  ok((await B.textContent('#main')).includes('문서에서 가져왔어요'),'가져오기 공지가 다른 사람에게도 보임');
+  // ③ 한 줄 = 씬 하나
+  await A.click('[data-tab=scenes]');await A.click('[data-act=import]');
+  await A.fill('#imp-text','1. 비 오는 날 우연히 만난다\n2. 우산을 나눠 쓴다');await A.check('[name=imp-mode][value=lines]');await A.click('#f-submit');await A.waitForTimeout(100);
+  ok((await A.textContent('#form h2')).includes('2개'),'한 줄 = 씬 하나 모드');
+  await A.click('[data-close]');
   // 비밀번호
   G.__props.PASSCODE='film1114';
   const C=await open('지수','cam');ok(await C.isVisible('#code'),'비밀번호 설정 후 비밀번호 창');

@@ -172,6 +172,14 @@ a{color:inherit}
 .fsec{grid-column:1/-1;font-size:12px;font-family:var(--f-mono);letter-spacing:.08em;color:var(--accent);text-transform:uppercase;border-top:1px solid var(--line);padding-top:10px;margin-top:4px}
 .panel .acts{justify-content:flex-end;padding-top:4px}
 .err{color:var(--warn);font-size:13px;min-height:1em}
+.imp-src{display:flex;gap:8px;align-items:flex-end}
+.imp-src .field{flex:1}
+.imp-text{min-height:180px!important;font-size:13.5px!important;line-height:1.5}
+.imp-mode{display:flex;gap:8px;flex-wrap:wrap}
+.imp-mode label{display:flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:99px;padding:5px 12px;font-size:13.5px;color:var(--ink);white-space:nowrap;background:var(--sunk);cursor:pointer}
+.imp-mode input{accent-color:var(--accent);margin:0}
+.imp-list{max-height:52vh;overflow:auto;margin-top:0}
+.imp-list .it{grid-template-columns:auto auto 1fr auto;cursor:pointer}
 .toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);border-radius:8px;padding:8px 14px;font-size:14px;z-index:30;max-width:calc(100% - 32px)}
 @media (max-width:520px){
   .fgrid{grid-template-columns:1fr}
@@ -416,8 +424,8 @@ function scheduleView(){
 function scenesView(){
   var sc=all("scene").sort(function(a,b){return natNo(a.data.no)-natNo(b.data.no)||String(a.data.no).localeCompare(String(b.data.no))});
   var done=sc.filter(function(s){return s.data.status==="done"}).length;
-  var h='<div class="bar"><h2>씬 · 촬영 기록 <span class="muted mono" style="font-size:14px">'+done+'/'+sc.length+'</span></h2>'+addBtn("scene","씬")+'</div>';
-  if(!sc.length)return h+emptyBox("씬 목록이 아직 없어요","이야기 흐름이 정해지면 씬(또는 핵심 사건)마다 장소, 등장인물, 필요 소품을 채워요. 촬영이 끝나면 언제 어디서 찍었는지 기록하세요.","scene","씬 직접 추가");
+  var h='<div class="bar"><h2>씬 · 촬영 기록 <span class="muted mono" style="font-size:14px">'+done+'/'+sc.length+'</span></h2><span class="acts"><button class="ghost" type="button" data-act="import">문서에서 가져오기</button>'+addBtn("scene","씬")+'</span></div>';
+  if(!sc.length)return h+'<div class="list"><div class="empty"><strong>씬 목록이 아직 없어요</strong><span>구글 문서 링크나 대본을 붙여 넣으면 씬 번호, 장소, 시간대, 등장인물을 자동으로 채워요. 핵심 사건 목록도 한 줄씩 씬으로 만들 수 있어요.</span><span class="acts" style="justify-content:center"><button class="primary" type="button" data-act="import">문서에서 가져오기</button><button class="ghost" type="button" data-new="scene">직접 추가</button></span></div></div>';
   var f=S.sceneFilter;
   h+='<div class="chips" role="group" aria-label="상태 필터">'+[["all","전체"]].concat(opts(SCENE_ST)).map(function(o){var n=o[0]==="all"?sc.length:sc.filter(function(s){return(s.data.status||"todo")===o[0]}).length;return'<button type="button" class="chip" data-sfilter="'+o[0]+'" aria-pressed="'+(f===o[0])+'">'+o[1]+' <span class="mono">'+n+'</span></button>'}).join("")+'</div>';
   var list=sc.filter(function(s){return f==="all"||(s.data.status||"todo")===f});
@@ -523,7 +531,7 @@ function openForm(kind,id,preset){
   showSheet();
 }
 function showSheet(){$("#sheet").hidden=false;setTimeout(function(){var f=$("#form input:not([type=file]):not([type=checkbox]),#form textarea");if(f)f.focus()},40)}
-function closeSheet(){$("#sheet").hidden=true;editing=null;S.busy=false}
+function closeSheet(){$("#sheet").hidden=true;$("#form").innerHTML="";editing=null;S.busy=false}
 function fail(msg){$("#f-err").textContent=msg;var b=$("#f-submit");if(b){b.disabled=false;b.textContent="다시 시도"}S.busy=false}
 
 function fileToB64(file){
@@ -550,6 +558,7 @@ function upload(file,btn,label){
 function submitForm(e){
   e.preventDefault();if(S.busy||!editing)return;
   if(editing.kind==="__me")return saveMe();
+  if(editing.kind==="__import")return importSubmit();
   if(editing.kind==="__code")return saveCode();
   var kind=editing.kind,id=editing.id,F=FORMS[kind],form=$("#form"),btn=$("#f-submit");
   var data={},files=[],img=null;
@@ -588,6 +597,116 @@ function diffLines(kind,old,data){
   if(!old)return w.filter(function(k){return data[k]}).map(function(k){return label(kind,k)+": "+show(kind,k,data[k])});
   var out=[];w.forEach(function(k){var a=old[k]||"",b=data[k]||"";if(a!==b)out.push(label(kind,k)+": "+show(kind,k,a)+" → "+show(kind,k,b))});
   return out.length?out:null;
+}
+
+/* ---- 문서에서 씬 가져오기 ---- */
+var IMP=null;
+function cleanLine(l){return String(l).replace(/\u00a0/g," ").replace(/\*\*/g,"").replace(/\\([#~!*\[\]_.\-])/g,"$1").replace(/^\*(.*)\*$/,"$1").trim()}
+function sceneKey(no){return String(no||"").replace(/\s/g,"").toUpperCase()}
+function parseScenes(text){
+  var lines=String(text||"").split(/\r?\n/).map(cleanLine);
+  var strict=lines.some(function(l){return/^S\s*#\s*\d/i.test(l)});
+  var re=strict?/^S\s*#\s*(\d+(?:-\d+|[A-Za-z])?)\s*[.:]?\s*(.*)$/i:/^(?:#|씬|장면|scene)\s*(\d+(?:-\d+|[A-Za-z])?)\s*[.:)]?\s*(.*)$/i;
+  var out=[],cur=null,tag="";
+  function finish(){if(cur)out.push(buildScene(cur));cur=null}
+  for(var i=0;i<lines.length;i++){
+    var l=lines[i];if(!l)continue;
+    if(/^(끝|END|FIN|THE END)\.?$/i.test(l)){finish();break}
+    var m=l.match(re);
+    if(m){finish();cur={no:"S#"+m[1],head:m[2],body:[],tag:tag};tag="";continue}
+    if(/^\[[^\]]{1,20}\]$/.test(l)){var j=i+1;while(j<lines.length&&!lines[j])j++;if(j<lines.length&&re.test(lines[j])){tag=l;continue}}
+    if(cur)cur.body.push(l);
+  }
+  finish();return out;
+}
+function buildScene(c){
+  var h=c.head||"";
+  var place=h.replace(/\([^)]*\)\s*$/,"").replace(/\s*[-–—\/]\s*(낮|밤|아침|저녁|새벽|오후|오전|심야|DAY|NIGHT)\s*$/i,"").replace(/\b(INT|EXT)\b\.?\/?/gi,"").replace(/^[\s.\-–—]+|[\s.\-–—,]+$/g,"");
+  var inn=/\bINT\b|실내/i.test(h),ext=/\bEXT\b|실외|야외/i.test(h);
+  var ie=inn&&ext?"INT./EXT.":inn?"INT.":ext?"EXT.":"";
+  var dn=/새벽/.test(h)?"새벽":/아침/.test(h)?"아침":/해질|노을|저녁|석양/.test(h)?"저녁":/밤|심야|야간/.test(h)?"밤":/낮|오후|오전/.test(h)?"낮":"";
+  var cast=[],sum="",inserts=[],tags=c.tag?[c.tag]:[];
+  c.body.forEach(function(l){
+    var d=l.match(/^([^:：()\[\]"“'‘]{1,14}?)\s*(?:\(([^)]*)\))?\s*[:：]\s*(.*)$/);
+    if(d){
+      var nm=d[1].replace(/\s*(V\.?O\.?|N)\s*$/i,"").trim();
+      if(/^INSERT$/i.test(nm)){inserts.push(d[3]);return}
+      if(/^(CUT|소리|효과음|자막|NA|N|BGM)$/i.test(nm)||!/[가-힣A-Za-z]/.test(nm))return;
+      if(cast.indexOf(nm)<0)cast.push(nm);return;
+    }
+    if(/^\[[^\]]+\]$/.test(l)){tags.push(l);return}
+    if(!sum&&l.length>3&&!/^(CUT TO|CUT|FADE|DISSOLVE|암전|INSERT|\(|…|–|-|—|\d+\.?$)/i.test(l))sum=l;
+  });
+  var summary=(tags.join(" ")+" "+sum).trim();if(summary.length>90)summary=summary.slice(0,89)+"…";
+  return{no:c.no,place:place,ie:ie,dn:dn,cast:cast.join(", "),summary:summary,note:inserts.length?"INSERT: "+inserts.join(" / "):""};
+}
+function parseLines(text){
+  return String(text||"").split(/\r?\n/).map(cleanLine).filter(function(l){return l.length>1}).map(function(l,i){
+    l=l.replace(/^(\d+[.)]|[-•·⁃*])\s*/,"");return{no:"S#"+(i+1),summary:l.length>90?l.slice(0,89)+"…":l,place:"",ie:"",dn:"",cast:"",note:""}});
+}
+function openImport(){IMP={stage:"input",text:"",url:"",tabs:null,tab:0,docTitle:"",mode:"auto",found:[]};editing={kind:"__import"};renderImport();showSheet()}
+function keepInput(){var t=$("#imp-text"),u=$("#imp-url");if(t)IMP.text=t.value;if(u)IMP.url=u.value;var m=document.querySelector("[name=imp-mode]:checked");if(m)IMP.mode=m.value}
+function renderImport(){
+  var f=$("#form");
+  if(IMP.stage==="input"){
+    f.innerHTML='<h2>문서에서 씬 가져오기</h2><p class="note">대본에 <b>S#1 옆동네 (밤)</b>처럼 씬 머리가 있으면 씬마다 장소, 시간대, 등장인물(대사 앞 이름), 첫 지문을 채워요. 이미 있는 씬은 이 내용만 갱신하고 상태·예정일·촬영 기록은 그대로 둬요.</p>'+
+      '<div class="imp-src"><label class="field" for="imp-url">구글 문서 링크<input id="imp-url" inputmode="url" placeholder="https://docs.google.com/document/d/…" value="'+esc(IMP.url)+'"></label><button class="ghost" type="button" data-act="imp-load" style="padding-block:8px">불러오기</button></div>'+
+      (IMP.tabs&&IMP.tabs.length>1?'<label class="field" for="imp-tab">문서 탭 ('+esc(IMP.docTitle)+')<select id="imp-tab">'+IMP.tabs.map(function(t,i){return'<option value="'+i+'"'+(i===IMP.tab?" selected":"")+'>'+esc(t.title||("탭 "+(i+1)))+'</option>'}).join("")+'</select></label>':IMP.docTitle?'<p class="note">불러온 문서: '+esc(IMP.docTitle)+'</p>':"")+
+      '<label class="field" for="imp-text">대본 내용 (불러오거나 직접 붙여 넣기)<textarea id="imp-text" class="imp-text" placeholder="S#1 옆동네 (밤)&#10;설아가 휴대전화를 보며 걷고 있다.&#10;설아: 응, 나 지금 가는 중이야.&#10;&#10;S#2 굴다리 (밤)&#10;…">'+esc(IMP.text)+'</textarea></label>'+
+      '<div class="field">나누는 방법<div class="imp-mode" role="radiogroup"><label><input type="radio" name="imp-mode" value="auto"'+(IMP.mode==="auto"?" checked":"")+'>씬 번호(S#)로</label><label><input type="radio" name="imp-mode" value="lines"'+(IMP.mode==="lines"?" checked":"")+'>한 줄 = 씬 하나</label></div><span>‘한 줄 = 씬 하나’는 핵심 사건이나 스토리보드 목록을 줄마다 적었을 때 써요.</span></div>'+
+      '<div class="err" id="f-err" role="alert"></div><div class="acts"><button type="button" class="ghost" data-close>취소</button><button class="primary" type="submit" id="f-submit">씬 찾기</button></div>';
+    return;
+  }
+  var have={};all("scene").forEach(function(s){have[sceneKey(s.data.no)]=s});
+  var nNew=IMP.found.filter(function(x){return!have[sceneKey(x.no)]}).length;
+  f.innerHTML='<h2>씬 '+IMP.found.length+'개를 찾았어요</h2><p class="note">새로 추가 '+nNew+'개 · 내용 갱신 '+(IMP.found.length-nNew)+'개. 올리지 않을 씬은 체크를 풀어요. 올린 뒤에도 씬을 눌러 고칠 수 있어요.</p>'+
+    '<div class="items imp-list">'+IMP.found.map(function(x,i){var ex=have[sceneKey(x.no)];
+      return'<label class="it"><input class="chk" type="checkbox" data-imp="'+i+'" checked><span class="no">'+esc(x.no)+'</span><div class="main"><b>'+esc(x.summary||"(지문 없음)")+'</b><small>'+esc([x.ie,x.place,x.dn].filter(Boolean).join(" · ")||"장소 미정")+(x.cast?" · "+esc(x.cast):"")+'</small>'+(x.note?'<small>'+esc(x.note)+'</small>':"")+'</div>'+(ex?'<span class="pill p-info">갱신</span>':'<span class="pill p-ok">새로</span>')+'</label>'}).join("")+'</div>'+
+    '<div class="err" id="f-err" role="alert"></div><div class="acts"><button type="button" class="ghost" data-act="imp-back" style="margin-right:auto">뒤로</button><button type="button" class="ghost" data-close>취소</button><button class="primary" type="submit" id="f-submit">'+IMP.found.length+'개 올리기</button></div>';
+}
+function importLoad(btn){
+  keepInput();if(!IMP.url.trim()){$("#f-err").textContent="구글 문서 링크를 붙여 넣어 주세요.";return}
+  btn.disabled=true;btn.textContent="불러오는 중";$("#f-err").textContent="";
+  api("apiReadDoc",S.code,IMP.url).then(function(r){
+    IMP.tabs=r.tabs||[];IMP.docTitle=r.title||"";
+    var best=0;IMP.tabs.some(function(t,i){if(/S\s*#\s*\d/i.test(t.text)){best=i;return true}});
+    IMP.tab=best;IMP.text=IMP.tabs.length?IMP.tabs[best].text:"";renderImport();
+  }).catch(function(e){
+    var m=String(e&&e.message||e);btn.disabled=false;btn.textContent="불러오기";
+    $("#f-err").textContent=/DOC_LINK/.test(m)?"문서 링크 모양이 아니에요. 주소창의 docs.google.com/document/d/… 링크를 통째로 붙여 넣어 주세요."
+      :/DOC_ACCESS/.test(m)?"이 문서를 열 수 없어요. 보드를 배포한 구글 계정에 이 문서 보기 권한이 있어야 해요. 문서 공유 설정을 확인하거나, 내용을 복사해서 아래에 붙여 넣어 주세요."
+      :/DOC_AUTH|권한|permission|authoriz/i.test(m)?"보드에 문서 읽기 권한이 아직 없어요. 보드 주인이 Apps Script에서 setup을 한 번 다시 실행해 권한을 허용해야 해요. 그동안은 내용을 복사해서 붙여 넣어 주세요."
+      :/DOC_PREVIEW/.test(m)?"미리보기에서는 구글 문서를 불러올 수 없어요. 내용을 복사해서 아래에 붙여 넣어 보세요."
+      :/PASSCODE/.test(m)?"팀 비밀번호가 맞지 않아요.":"문서를 불러오지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.";
+  });
+}
+function importSubmit(){
+  if(IMP.stage==="input"){
+    keepInput();
+    if(!IMP.text.trim())return fail("대본 내용을 붙여 넣거나 구글 문서를 불러와 주세요.");
+    IMP.found=IMP.mode==="lines"?parseLines(IMP.text):parseScenes(IMP.text);
+    if(!IMP.found.length)return fail(IMP.mode==="auto"?"씬 머리(S#1, S#2 …)를 찾지 못했어요. 핵심 사건 목록이라면 ‘한 줄 = 씬 하나’를 골라 주세요.":"내용이 비어 있어요.");
+    if(IMP.found.length>300)return fail("한 번에 300개까지 올릴 수 있어요.");
+    IMP.stage="preview";renderImport();return;
+  }
+  var picked=[].slice.call(document.querySelectorAll("[data-imp]:checked")).map(function(c){return IMP.found[Number(c.dataset.imp)]});
+  if(!picked.length)return fail("올릴 씬을 하나 이상 골라 주세요.");
+  var have={};all("scene").forEach(function(s){have[sceneKey(s.data.no)]=s});
+  var now=Date.now(),added=[],updated=[];
+  var items=picked.map(function(x){
+    var ex=have[sceneKey(x.no)],data={editedAt:now};
+    ["summary","place","ie","dn","cast"].forEach(function(k){if(x[k])data[k]=x[k]});
+    if(ex){updated.push(x.no);if(x.note&&!ex.data.note)data.note=x.note;return{id:ex.id,kind:"scene",data:data}}
+    added.push(x.no);data.no=x.no;data.status="todo";data.props="";data.planned="";data.note=x.note||"";data.createdAt=now;data.author=S.me.name;
+    return{id:"",kind:"scene",data:data};
+  });
+  var btn=$("#f-submit");S.busy=true;btn.disabled=true;btn.textContent="올리는 중";
+  api("apiSaveMany",S.code,items,S.me.name).then(function(res){
+    (res||[]).forEach(put);
+    var body=(added.length?"새로 추가 "+added.length+"개: "+added.join(", "):"")+(added.length&&updated.length?"\n":"")+(updated.length?"내용 갱신 "+updated.length+"개: "+updated.join(", "):"")+(IMP.docTitle?"\n출처: "+IMP.docTitle:"");
+    save("log",{type:"notice",team:"dir",title:"씬 "+picked.length+"개를 문서에서 가져왔어요",body:body,acks:{},auto:true,author:S.me.name,createdAt:now,editedAt:now}).catch(function(){});
+    closeSheet();S.tab="scenes";S.sceneFilter="all";render();toast("씬 "+picked.length+"개를 올렸어요");
+  }).catch(function(e){fail(/PASSCODE/.test(String(e&&e.message))?"팀 비밀번호가 맞지 않아요.":"올리지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.")});
 }
 
 /* ---- 이름·비밀번호 ---- */
@@ -642,6 +761,9 @@ document.addEventListener("click",function(e){
     api("apiAck",S.code,d.ack,S.me.name,on).then(function(r){put(r);render()}).catch(function(){toast("확인 표시를 저장하지 못했어요.");sync()})}
   else if("close" in d){closeSheet()}
   else if(d.act==="code")openCode();
+  else if(d.act==="import"){if(!S.me.name){openMe(openImport);return}openImport()}
+  else if(d.act==="imp-load")importLoad(b);
+  else if(d.act==="imp-back"){IMP.stage="input";renderImport()}
   else if(d.act==="reset")arm(b,"reset",resetGear);
   else if(b.id==="meBtn")openMe();
 });
@@ -650,6 +772,8 @@ document.addEventListener("keydown",function(e){
   if((e.key==="Enter"||e.key===" ")&&e.target.matches&&e.target.matches(".it.clickable")){e.preventDefault();e.target.click()}
 });
 document.addEventListener("change",function(e){
+  if(e.target.id==="imp-tab"&&IMP&&IMP.tabs){IMP.tab=Number(e.target.value);$("#imp-text").value=IMP.tabs[IMP.tab].text;return}
+  if(e.target.dataset&&e.target.dataset.imp!=null){var n=document.querySelectorAll("[data-imp]:checked").length;$("#f-submit").textContent=n+"개 올리기";$("#f-submit").disabled=!n;return}
   var id=e.target.dataset&&e.target.dataset.check;if(!id)return;
   if(!S.me.name){e.target.checked=!e.target.checked;openMe();return}
   save("gear",{checked:e.target.checked,checkedBy:e.target.checked?S.me.name:""},id).catch(function(){});

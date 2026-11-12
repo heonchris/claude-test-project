@@ -30,10 +30,14 @@ function makeGas(){
       createFolder:()=>({getId:()=>'fold',createFile:b=>{const id='f'+files.length;files.push(b);return{getId:()=>id,getName:()=>b.name,getMimeType:()=>b.mime,getSize:()=>b.bytes.length,setSharing(){}}}}),
       getFolderById:()=>{throw new Error('x')}},
     HtmlService:{},
+    DocumentApp:{openById:id=>{const d=g.__docs[id];if(!d)throw new Error('문서를 찾을 수 없습니다');
+      const tab=t=>({getTitle:()=>t.title,asDocumentTab:()=>({getBody:()=>({getText:()=>t.text})}),getChildTabs:()=>[]});
+      return{getName:()=>d.title,getTabs:()=>d.tabs.map(tab),getBody:()=>({getText:()=>d.tabs[0].text})}}},
+    __docs:{},
     __props:props,__book:book,__files:files
   };
   const src=fs.readFileSync(require('path').join(__dirname,'..','Code.gs'),'utf8');
-  const names=['apiInfo','apiList','apiSave','apiDelete','apiAck','apiUpload','setup','resetAndSetup','setPasscode'];
+  const names=['apiInfo','apiList','apiSave','apiSaveMany','apiReadDoc','apiDelete','apiAck','apiUpload','setup','resetAndSetup','setPasscode'];
   const fn=new Function(...Object.keys(g).filter(k=>!k.startsWith('__')),src+';return {'+names.join(',')+'}');
   Object.assign(g,fn(...Object.keys(g).filter(k=>!k.startsWith('__')).map(k=>g[k])));
   return g;
