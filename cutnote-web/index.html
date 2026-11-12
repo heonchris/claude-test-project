@@ -219,7 +219,7 @@ label.f .req{color:var(--bad);margin-left:2px}
   --warn:#F2C14E; --bad:#FF6B6B; --ok:#4CC38A;
   --m-cut:#4F7DFF; --m-sub:#D45CCB; --m-sound:#2DBE63; --m-color:#FF7A33; --m-gfx:#FF5A52; --m-etc:#A7A9AC;
 }
-body{font-size:15px;line-height:1.6;letter-spacing:-.003em}
+body{font-size:15px;line-height:1.6;letter-spacing:-.003em;word-break:keep-all;overflow-wrap:break-word}
 a{color:var(--accent);text-decoration-color:color-mix(in srgb,var(--accent) 40%,transparent)}
 a:hover{color:var(--accent);text-decoration-color:var(--accent)}
 ::selection{background:var(--accent);color:#fff}
@@ -303,6 +303,18 @@ nav.tabs .count{background:var(--accent);color:var(--on-accent)}
 .agenda > li::marker{color:var(--accent)}
 .who{color:var(--accent)}
 .toast{background:var(--accent);color:var(--on-accent)}
+/* landing */
+.landing-sec{margin-top:36px}
+.steps{list-style:none;counter-reset:st;padding:0;margin:8px 0 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px}
+.steps li{counter-increment:st;display:grid;gap:6px;padding-top:12px}
+.steps li::before{content:counter(st);display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--accent);color:var(--on-accent);font-weight:700;font-size:16px}
+.steps b{font-size:19px;color:var(--ink)}
+.steps span{color:var(--fg);font-size:15px}
+.recent{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0 28px}
+.recent-item{display:grid;gap:4px;padding:18px 0;border-bottom:1px solid var(--line);text-decoration:none;color:var(--fg)}
+.recent-go{color:var(--accent);font-weight:700;font-size:14px}
+.recent-item:hover .pc-title{color:var(--accent)}
+@media (max-width: 700px){ .steps{grid-template-columns:minmax(0,1fr);gap:18px} }
 @media (max-width: 900px){
   .cols,.meetgrid{grid-template-columns:minmax(0,1fr)}
 }
@@ -459,6 +471,13 @@ function parseFeedback(text){
 
 /* ---------- rendering ---------- */
 function renderHeader(){
+  if(!S.W){
+    $('#spec-who').innerHTML = '<i>(cut note)</i> 컷노트';
+    $('#meet').className = 'meet'; $('#meet').innerHTML = '<i>Free</i> 가입 · 로그인 없음';
+    $('#spec-a').innerHTML = '<i>Share</i> 링크 하나로 함께';
+    $('#spec-b').innerHTML = '<i>Weekly</i> 금요일 회의 안건';
+    $('#share-btn').hidden = true; $('#tabs').hidden = true; return;
+  }
   const d = nextMeeting(); const diff = d - new Date();
   const hrs = Math.round(diff/3600000);
   const rel = diff < 0 ? '진행 중' : hrs < 24 ? `${Math.max(hrs,0)}시간 후` : `${Math.ceil(diff/86400000)}일 후`;
@@ -486,15 +505,30 @@ function bannerHTML(){
   return '';
 }
 
+function recentList(){ try{ const r = JSON.parse(localStorage.getItem('cutnote-recent')||'[]'); return Array.isArray(r) ? r.filter(x=>x && /^[A-Za-z0-9]{20,64}$/.test(x.w)) : []; }catch(_){ return []; } }
+
 function viewLanding(){
+  const recent = recentList();
+  const recentHTML = recent.length ? `<section class="landing-sec">
+      <div class="sec-h"><span class="eyebrow">이 기기에서 열었던 작업공간</span></div>
+      <div class="recent">${recent.map(x=>`<a class="recent-item" href="?w=${esc(x.w)}"><span class="pc-title">${esc(x.name||'이름 없는 작업공간')}</span><span class="muted" style="font-size:13px">${x.at?'마지막으로 연 날 '+esc(new Date(x.at).toLocaleDateString('ko-KR',{month:'long',day:'numeric'})):''}</span><span class="recent-go">열기 →</span></a>`).join('')}</div>
+    </section>` : '';
   return `<section class="hero"><div class="wrap">
       <div class="hero-row"><span class="it">Outsourced editing desk</span><span class="it">No account needed</span></div>
       <h1 class="display">컷노트</h1>
       <p class="lede">편집자와 촬영자가 <b>링크 하나</b>로 의뢰서, 타임코드 수정 요청, 금요일 회의 안건을 함께 봐요. 가입도 로그인도 없어요.</p>
       <div class="hero-actions"><button class="btn primary" data-act="new-ws">새 작업공간 만들기</button></div>
-      <p class="muted" style="margin:0;font-size:13px">공유 링크를 받았다면 그 링크로 바로 들어오면 돼요. 링크를 아는 사람은 누구나 보고 고칠 수 있으니 필요한 사람에게만 보내 주세요.</p>
     </div>
-    <svg class="ridge" viewBox="0 0 1200 150" preserveAspectRatio="none" aria-hidden="true"><path d="M0 150V96l40-8 38 12 46-22 34 6 52-30 30 14 44-6 40-22 26 10 34-4 58-40 22 8 30-30 26 20 36 2 48 30 30-6 40 22 56 4 44 18 38-10 46 14 52-6 40 16 46-8 44 12 50 2 30 14v66z"/></svg>
+  </section>
+  ${recentHTML}
+  <section class="landing-sec">
+    <div class="sec-h"><span class="eyebrow">처음 쓰는 순서</span></div>
+    <ol class="steps">
+      <li><b>작업공간 만들기</b><span>위 파란 버튼을 누르고 이름과 역할을 적어요. 채널 하나에 작업공간 하나면 충분해요.</span></li>
+      <li><b>링크 보내기</b><span>오른쪽 위 "공유 링크 복사"를 눌러 상대에게 카톡으로 보내요. 내 카톡 나와의 채팅에도 저장해 두세요.</span></li>
+      <li><b>함께 쓰기</b><span>촬영자는 의뢰서와 수정 요청을, 편집자는 편집본과 답변을 남겨요. 금요일 회의 안건은 자동으로 모여요.</span></li>
+    </ol>
+    <p class="muted" style="font-size:13px;margin:16px 0 0">링크를 아는 사람은 누구나 보고 고칠 수 있어요. 필요한 사람에게만 보내 주세요.</p>
   </section>`;
 }
 
@@ -946,6 +980,12 @@ async function importData(file){
 }
 document.addEventListener('change', e => { if(e.target.id==='import-file' && e.target.files[0]){ importData(e.target.files[0]); e.target.value=''; } });
 
+function rememberWS(){
+  try{ const list = recentList().filter(x=>x.w!==S.W); const prev = recentList().find(x=>x.w===S.W);
+    list.unshift({w:S.W, name:(S.settings.channel&&S.settings.channel.channel) || (prev&&prev.name) || '', at:Date.now()});
+    localStorage.setItem('cutnote-recent', JSON.stringify(list.slice(0,5))); }catch(_){}
+}
+
 /* ---------- boot ---------- */
 function boot(){
   const w = new URLSearchParams(location.search).get('w');
@@ -954,6 +994,7 @@ function boot(){
   try{ const me = JSON.parse(localStorage.getItem('cutnote-me') || 'null'); if(me && me.name && (me.role==='editor'||me.role==='shooter')){ S.me = me; S.role = me.role; } }catch(_){}
   route();
   if(!S.W) return;
+
   const cfg = window.CUTNOTE_FIREBASE;
   if(cfg && window.firebase){
     try{
@@ -967,8 +1008,10 @@ function boot(){
     clearTimeout(timer); S.conn='ok'; S.loaded[key]=true;
     if(map) S[key] = Object.fromEntries(snap.docs.map(d=>[d.id, d.data()]));
     else S[key] = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    if(key==='settings') rememberWS();
     render();
   }, err => { clearTimeout(timer); console.error(err); S.conn = err && err.code==='permission-denied' ? 'denied' : 'timeout'; S.loaded.projects=true; render(); });
+  rememberWS();
   sub('projects','projects'); sub('versions','versions'); sub('notes','notes'); sub('meetings','meetings',true); sub('settings','settings',true);
 }
 boot();
