@@ -5,9 +5,13 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     match /workspaces/{ws}/{col}/{doc} {
-      allow read, write: if ws.matches('^[A-Za-z0-9]{20,64}$')
-        && col in ['projects', 'versions', 'notes', 'meetings', 'settings']
-        && (request.resource == null || request.resource.size() < 60);
+      function ok() {
+        return ws.matches('^[A-Za-z0-9]{20,64}$')
+          && col in ['projects', 'versions', 'notes', 'meetings', 'settings'];
+      }
+      allow read: if ok();
+      allow create, update: if ok() && request.resource.data.size() < 60;
+      allow delete: if ok();
     }
   }
 }
