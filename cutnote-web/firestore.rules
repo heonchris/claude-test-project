@@ -1,0 +1,13 @@
+rules_version = '2';
+
+// 컷노트: 계정 없이 "링크를 아는 사람"만 읽고 쓰는 규칙.
+// 작업공간 아이디(20자 이상 무작위 문자)가 곧 열쇠예요. 다른 경로는 모두 막아요.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /workspaces/{ws}/{col}/{doc} {
+      allow read, write: if ws.matches('^[A-Za-z0-9]{20,64}$')
+        && col in ['projects', 'versions', 'notes', 'meetings', 'settings']
+        && (request.resource == null || request.resource.size() < 60);
+    }
+  }
+}

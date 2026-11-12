@@ -1,0 +1,859 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>컷노트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Noto+Serif+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a colour-specimen sheet at night. Italic spec rows frame the page top and bottom, one huge
+   condensed serif names the channel over a dark sky and ridge line, and projects read like dictionary
+   entries: a small italic source label over a large serif title. One committed dark world, blue ink only. */
+:root{
+  color-scheme:dark;
+  --bg:#030408; --sky:#0B1838; --field:#070B17; --line:#1B2858; --line-strong:#2D4392;
+  --ink:#4169E1;          /* royal blue: display type, rules, primary fills */
+  --fg:#86A2FF;           /* running text, brighter blue for legibility */
+  --muted:#5F7BD0;        /* secondary text */
+  --on-ink:#020309;
+  --warn:#E9B65C; --bad:#FF8189; --ok:#67D8B6;
+  --m-cut:#4169E1; --m-sub:#9DB2FF; --m-sound:#56B4F0; --m-color:#B9A7FF; --m-gfx:#7D8CFF; --m-etc:#5F7BD0;
+  --font-display:"Instrument Serif","Noto Serif KR",Georgia,serif;
+  --font-body:"Noto Serif KR","Instrument Serif",Georgia,"Apple SD Gothic Neo",serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:2px;
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:14px;line-height:1.6;margin:0;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+a{color:var(--fg);text-decoration-color:var(--line-strong);text-underline-offset:3px}
+a:hover{color:var(--ink)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:1px solid var(--fg);outline-offset:3px}
+::selection{background:var(--ink);color:var(--on-ink)}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.it{font-family:var(--font-display);font-style:italic}
+.wrap{max-width:1200px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* spec rows (top + bottom) */
+.spec{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px 20px;font-size:13px;color:var(--ink);padding-block:14px}
+.spec > *{min-width:0;overflow-wrap:anywhere}
+.spec > *:nth-child(2){text-align:center}
+.spec > *:nth-child(3){text-align:center}
+.spec > *:last-child{text-align:right}
+.spec i,.spec .it{font-family:var(--font-display);font-style:italic;font-size:15px}
+.spec b{font-weight:500;color:var(--fg)}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.meet.soon b{color:var(--warn)}
+.spacer{flex:1}
+.tabrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.tabrow .btn{margin-bottom:8px;flex:none}
+.who{border:0;background:none;padding:0;cursor:pointer;color:var(--fg);text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:3px}
+nav.tabs{display:flex;gap:28px;overflow-x:auto;padding-bottom:2px}
+nav.tabs a{padding:4px 0 10px;text-decoration:none;color:var(--muted);border-bottom:1px solid transparent;white-space:nowrap;font-family:var(--font-display);font-size:19px;letter-spacing:.005em}
+nav.tabs a:hover{color:var(--fg)}
+nav.tabs a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--ink)}
+nav.tabs .count{font-family:var(--font-mono);font-size:11px;vertical-align:super;margin-left:3px;color:var(--fg)}
+
+main{padding-block:28px 40px}
+h1,h2,h3{text-wrap:balance;margin:0;font-weight:400;color:var(--ink)}
+h1{font-family:var(--font-display);font-size:clamp(34px,5vw,54px);line-height:1.02;letter-spacing:-.01em}
+h2{font-family:var(--font-display);font-size:24px;line-height:1.15}
+h3{font-size:15px;font-weight:600}
+.eyebrow{font-family:var(--font-display);font-style:italic;font-size:15px;color:var(--ink)}
+.display{font-family:var(--font-display);font-weight:400;color:var(--ink);font-size:clamp(64px,13vw,168px);line-height:.9;letter-spacing:-.025em;margin:0}
+
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-strong);background:transparent;padding:6px 14px;border-radius:999px;cursor:pointer;font-size:13px;text-decoration:none;color:var(--fg);white-space:nowrap;transition:background .15s,color .15s,border-color .15s}
+.btn:hover{border-color:var(--ink);color:var(--ink)}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:var(--on-ink);font-weight:600}
+.btn.primary:hover{background:var(--fg);border-color:var(--fg);color:var(--on-ink)}
+.btn.ghost{border-color:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--fg);border-color:var(--line)}
+.btn.small{padding:2px 10px;font-size:12px}
+.btn.danger,.btn.danger:hover{color:var(--bad)}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+input[type=text],input[type=url],input[type=date],input[type=number],select,textarea{width:100%;border:0;border-bottom:1px solid var(--line-strong);background:var(--field);border-radius:0;padding:8px 10px;min-width:0;color:var(--fg)}
+input::placeholder,textarea::placeholder{color:var(--muted);opacity:.75}
+input:focus,select:focus,textarea:focus{outline:none;border-bottom-color:var(--fg)}
+select option{background:var(--bg)}
+textarea{resize:vertical;min-height:70px}
+label.f{display:grid;gap:4px;font-size:13px}
+label.f > span:first-child{font-family:var(--font-display);font-style:italic;font-size:15px;color:var(--ink)}
+label.f .req{color:var(--bad);margin-left:2px}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:0 9px;border:1px solid var(--line-strong);border-radius:999px;font-size:12px;line-height:20px;color:var(--fg);white-space:nowrap}
+.chip.ok{border-color:color-mix(in srgb,var(--ok) 55%,transparent);color:var(--ok)}
+.chip.warn{border-color:color-mix(in srgb,var(--warn) 55%,transparent);color:var(--warn)}
+.chip.bad{border-color:color-mix(in srgb,var(--bad) 55%,transparent);color:var(--bad)}
+.chip.acc{border-color:var(--ink);background:var(--ink);color:var(--on-ink)}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex:none}
+.check{width:16px;height:16px;margin-top:4px;accent-color:var(--ink);cursor:pointer}
+
+.banner{padding:10px 0;border-top:1px solid var(--warn);border-bottom:1px solid var(--warn);color:var(--warn);margin-bottom:20px;font-size:13px}
+.panel{border-top:1px solid var(--line-strong)}
+.panel-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 14px;padding:14px 0 12px}
+.panel-b{padding:4px 0 8px}
+.empty{padding:40px 0;color:var(--muted)}
+.empty h3{font-family:var(--font-display);font-weight:400;font-size:28px;margin-bottom:8px}
+
+/* hero */
+.hero{position:relative;overflow:hidden;margin-top:-28px;padding:44px 0 0;background:linear-gradient(180deg,var(--sky) 0%,#081130 45%,var(--bg) 100%)}
+.hero .wrap{position:relative;z-index:1;display:grid;gap:14px;padding-bottom:120px}
+.hero-row{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;color:var(--ink)}
+.hero-row .it{font-size:20px}
+.lede{max-width:46ch;font-family:var(--font-display);font-size:clamp(19px,2.2vw,24px);line-height:1.18;color:var(--ink);margin:6px 0 0}
+.lede b{font-weight:400;color:var(--fg)}
+.ridge{position:absolute;left:0;right:0;bottom:-1px;width:100%;height:150px;display:block}
+.ridge path{fill:var(--bg)}
+.hero-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+
+/* project entries */
+.sec-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line-strong);padding-top:12px;margin-top:8px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0 28px}
+.pcard{display:grid;gap:6px;align-content:start;padding:22px 0 24px;border-bottom:1px solid var(--line);text-decoration:none;color:var(--fg)}
+.pcard:hover .pc-title{color:var(--fg)}
+.pc-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.pc-src{font-family:var(--font-display);font-style:italic;font-size:15px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc-title{font-family:var(--font-display);font-size:30px;line-height:1.08;color:var(--ink);overflow-wrap:anywhere;transition:color .15s}
+.pc-meta{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:12px;color:var(--muted);margin-top:4px}
+.pc-meta b{color:var(--fg);font-weight:500}
+.donebox{margin-top:18px}
+.donebox summary{cursor:pointer;color:var(--muted);font-family:var(--font-display);font-style:italic;font-size:17px}
+.foot{border-top:1px solid var(--line);margin-top:48px}
+
+/* project page */
+.back{margin:0 0 8px -14px}
+.pdetail{display:grid;gap:22px;min-width:0}
+.phead{display:grid;gap:10px}
+.phead .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.ptitle{font-family:var(--font-display);font-size:clamp(44px,8vw,96px);line-height:.95;letter-spacing:-.02em;color:var(--ink);margin:0;font-weight:400}
+.facts{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding-block:10px}
+.facts b{color:var(--fg)}
+.pipeline{display:flex;gap:4px 18px;flex-wrap:wrap}
+.pipeline button{border:0;background:none;padding:2px 0;font-family:var(--font-display);font-size:18px;cursor:pointer;color:var(--muted);border-bottom:1px solid transparent}
+.pipeline button:hover{color:var(--fg)}
+.pipeline button[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.pipeline button[disabled]{cursor:default}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:40px;align-items:start}
+.side{display:grid;gap:28px;min-width:0}
+
+.brief dl{margin:0;display:grid;gap:12px}
+.brief dt{font-family:var(--font-display);font-style:italic;font-size:15px;color:var(--ink)}
+.brief dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.brief dd.missing{color:var(--bad);font-size:13px}
+.meter{height:2px;background:var(--line);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--ok)}
+.meter.part i{background:var(--warn)}
+.bform{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 20px}
+.bform .full{grid-column:1/-1}
+
+.vbar{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline}
+.vbar > button:not(.btn){border:0;background:none;padding:0;cursor:pointer;font-family:var(--font-display);font-size:22px;color:var(--muted);border-bottom:1px solid transparent}
+.vbar > button[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.vinfo{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:baseline;font-size:13px;padding:10px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.vinfo b{font-family:var(--font-display);font-weight:400;font-size:18px;color:var(--ink)}
+.compose{display:grid;gap:10px;padding:14px;background:var(--field);border:1px solid var(--line)}
+.compose textarea,.compose input,.compose select{background:transparent}
+.compose .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.compose .tc{width:86px;font-family:var(--font-mono);text-align:center}
+.compose select{width:auto}
+.compose label{color:var(--fg)}
+.compose .hint{font-size:12px;color:var(--muted)}
+.notes{display:grid}
+.note{display:grid;grid-template-columns:84px minmax(0,1fr);gap:4px 16px;padding:16px 0;border-top:1px solid var(--line)}
+.note:first-child{border-top:0}
+.note .tcb{grid-row:span 2;display:flex;flex-direction:column;gap:2px}
+.tcode{font-family:var(--font-mono);font-size:13px;color:var(--fg);padding-left:8px;border-left:2px solid var(--m-etc);font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1.5}
+.note.done .ntext{text-decoration:line-through;text-decoration-color:var(--muted);color:var(--muted)}
+.ntext{white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;color:var(--fg)}
+.nmeta{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:12px;color:var(--muted)}
+.nreply{margin-top:4px;padding:8px 12px;border-left:1px solid var(--ink);font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}
+.nreply b{font-family:var(--font-display);font-style:italic;font-weight:400;font-size:14px;color:var(--ink);margin-right:8px}
+.ractions{display:flex;gap:2px;flex-wrap:wrap;margin-top:4px;margin-left:-10px}
+.seg{display:inline-flex;gap:14px}
+.seg button{border:0;background:none;padding:0;cursor:pointer;font-size:13px;color:var(--muted);border-bottom:1px solid transparent}
+.seg button[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+
+.board{display:grid;gap:28px}
+.meetgrid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:40px;align-items:start}
+.agenda{padding-left:22px;margin:0;font-size:15px}
+.agenda > li{margin-bottom:18px}
+.agenda > li::marker{font-family:var(--font-display);color:var(--ink)}
+.agenda b a{font-family:var(--font-display);font-weight:400;font-size:24px;color:var(--ink);text-decoration:none}
+.agenda ul{color:var(--fg)}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--on-ink);padding:8px 18px;border-radius:999px;font-size:13px;z-index:20;max-width:calc(100% - 32px)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+@media (max-width: 900px){
+  .cols,.meetgrid{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width: 640px){
+  .spec{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .spec > *:nth-child(2){text-align:right}
+  .spec > *:nth-child(3){text-align:left}
+  .bform{grid-template-columns:minmax(0,1fr)}
+  nav.tabs{gap:20px}
+  .meet .rel{display:none}
+  .note{grid-template-columns:minmax(0,1fr)}
+  .note .tcb{grid-row:auto;flex-direction:row;gap:8px}
+  .hero .wrap{padding-bottom:90px}
+  .ridge{height:100px}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)} img{max-width:100%} [hidden]{display:none!important}</style>
+<script>
+/* 파이어베이스 웹 앱 설정. README.md의 순서대로 만든 값을 아래 null 자리에 붙여넣으세요.
+   비워 두면 이 브라우저에만 저장되는 체험 모드로 열려요. */
+window.CUTNOTE_FIREBASE = null;
+</script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<header class="top">
+  <div class="wrap spec" id="spec">
+    <span id="spec-who"><i>(cut note)</i> 컷노트</span>
+    <span class="meet" id="meet"></span>
+    <span id="spec-a"></span>
+    <span id="spec-b"></span>
+  </div>
+  <div class="wrap tabrow"><nav class="tabs" id="tabs" aria-label="화면"></nav><button class="btn small" id="share-btn" data-act="share" hidden>공유 링크 복사</button></div>
+</header>
+
+<main class="wrap" id="app">
+  <div class="empty"><h3>작업판을 불러오는 중이에요</h3><p>의뢰서, 수정 요청, 금요일 회의 안건이 여기에 나타나요.</p></div>
+</main>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+(() => {
+const CATS = [
+  {k:'cut',label:'컷·편집',v:'--m-cut'},
+  {k:'sub',label:'자막',v:'--m-sub'},
+  {k:'sound',label:'음악·사운드',v:'--m-sound'},
+  {k:'color',label:'색보정',v:'--m-color'},
+  {k:'gfx',label:'그래픽',v:'--m-gfx'},
+  {k:'etc',label:'기타',v:'--m-etc'},
+];
+const STATUS = [['brief','의뢰 접수'],['editing','편집 중'],['review','검토 요청'],['revising','수정 중'],['done','완료']];
+const FIELDS = [
+  {k:'title',label:'프로젝트명',req:1,ph:'예: 카페 브랜드 소개 영상'},
+  {k:'client',label:'의뢰인 · 채널',ph:'예: 촬영팀 이름'},
+  {k:'kind',label:'영상 종류',type:'select',opts:['유튜브 본편','숏폼(릴스·쇼츠)','롱폼 + 쇼츠 추출','광고·브랜드','행사·웨딩','인터뷰','기타']},
+  {k:'drive',label:'원본 구글 드라이브 링크',req:1,type:'url',ph:'https://drive.google.com/drive/folders/...',full:1},
+  {k:'refs',label:'레퍼런스 영상',req:1,type:'textarea',ph:'한 줄에 하나씩, 링크와 참고할 점\n예: https://youtu.be/... 0:30 부분 컷 템포',full:1},
+  {k:'length',label:'최종 길이',req:1,ph:'예: 8~10분'},
+  {k:'ratio',label:'화면 비율',req:1,type:'select',opts:['16:9','9:16','1:1','4:5']},
+  {k:'subs',label:'자막',req:1,type:'select',opts:['없음','강조 자막만','전체 자막','영문 자막 포함']},
+  {k:'music',label:'음악',type:'select',opts:['편집자가 선정','지정곡 있음','음악 없음']},
+  {k:'tone',label:'분위기 · 색감',type:'textarea',ph:'예: 밝고 경쾌하게, 웜톤',full:1},
+  {k:'must',label:'꼭 들어갈 장면',type:'textarea',ph:'예: 대표 인터뷰 2번 클립, 라떼아트 클로즈업'},
+  {k:'avoid',label:'빼야 할 장면',type:'textarea',ph:'예: 손님 얼굴이 정면으로 나온 컷'},
+  {k:'draftDue',label:'1차 편집본 날짜',req:1,type:'date'},
+  {k:'finalDue',label:'최종 마감일',req:1,type:'date'},
+  {k:'revisions',label:'무료 수정 횟수',req:1,type:'number',ph:'2'},
+  {k:'etc',label:'기타 요청',type:'textarea',full:1},
+];
+const REQ = FIELDS.filter(f=>f.req);
+const ROLE_LABEL = {editor:'편집자',shooter:'촬영자'};
+
+const S = {
+  conn:'loading', db:null, user:null, uid:null, canWrite:true, mode:'firebase', W:null, me:null,
+  projects:[], versions:[], notes:[], meetings:{}, settings:{},
+  loaded:{projects:false,versions:false,notes:false,meetings:false,settings:false},
+  role:'shooter', view:'projects', pid:null, editing:false, vsel:{}, filter:'open',
+  draft:{}, names:{}, replyOpen:null,
+};
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const safeUrl = u => /^https?:\/\/[^\s]+$/i.test(String(u||'').trim()) ? String(u).trim() : '';
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const dv = (id, fb='') => (id in S.draft) ? S.draft[id] : fb;
+const toSec = s => { const p = s.split(':').map(Number); return p.length===3 ? p[0]*3600+p[1]*60+p[2] : p[0]*60+p[1]; };
+const fmtTC = sec => { if(sec==null) return '전체'; const h=Math.floor(sec/3600), m=Math.floor(sec%3600/60), s=sec%60; const mm=String(m).padStart(2,'0'), ss=String(s).padStart(2,'0'); return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`; };
+const TC = '((?:\\d{1,2}:)?\\d{1,2}:\\d{2})';
+const TC_LINE = new RegExp(`^\\s*[\\[(]?${TC}(?:\\s*[-~–]\\s*${TC})?[\\])]?\\s*[-:.)]?\\s*`);
+const today = () => { const d=new Date(); return new Date(d.getFullYear(),d.getMonth(),d.getDate()); };
+const parseDate = s => { if(!s) return null; const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); };
+const dday = s => { const d=parseDate(s); if(!d) return null; return Math.round((d - today())/86400000); };
+const fmtDate = s => { const d=parseDate(s); if(!d) return ''; return `${d.getMonth()+1}/${d.getDate()} (${'일월화수목금토'[d.getDay()]})`; };
+const ddChip = s => { const n=dday(s); if(n==null) return ''; const cls = n<0?'bad':n<=2?'warn':''; const t = n<0?`${-n}일 지남`:n===0?'오늘':`D-${n}`; return `<span class="chip ${cls}">${t}</span>`; };
+const catOf = k => CATS.find(c=>c.k===k) || CATS[CATS.length-1];
+const statusLabel = k => (STATUS.find(s=>s[0]===k)||STATUS[0])[1];
+const missing = p => REQ.filter(f => !String(p[f.k] ?? '').trim());
+const projVersions = pid => S.versions.filter(v=>v.projectId===pid).sort((a,b)=>a.n-b.n);
+const projNotes = pid => S.notes.filter(n=>n.projectId===pid);
+const latestN = pid => { const vs=projVersions(pid); return vs.length ? vs[vs.length-1].n : 0; };
+const isShort = p => /숏/.test(p.kind||'');
+const isCombo = p => /롱폼 \+ 쇼츠/.test(p.kind||'');
+const ch = () => S.settings.channel || {};
+const lines = t => String(t||'').split('\n').map(x=>x.trim()).filter(Boolean);
+const uploadRules = p => isCombo(p) ? [...lines(ch().rulesCommon), ...lines(ch().rulesLong).map(x=>'롱폼: '+x), ...lines(ch().rulesShort).map(x=>'쇼츠: '+x)] : [...lines(ch().rulesCommon), ...lines(isShort(p) ? ch().rulesShort : ch().rulesLong)];
+const byLabel = n => `${ROLE_LABEL[n.role]||''}${n.byName ? ' · '+esc(n.byName) : ''}`;
+
+function nextMeeting(){
+  const now = new Date(); const d = new Date(now); d.setHours(9,0,0,0);
+  let add = (5 - d.getDay() + 7) % 7;
+  if(add===0 && now >= new Date(d.getTime()+60*60000)) add = 7; // 회의 1시간이 지나면 다음 주
+  d.setDate(d.getDate()+add); return d;
+}
+const meetingKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+let toastT;
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>t.hidden=true,2600); }
+
+async function write(fn, okMsg){
+  if(!S.db){ toast('저장소에 연결되지 않아 저장할 수 없어요'); return false; }
+  if(!S.canWrite){ toast('이 링크에서는 보기만 할 수 있어요'); return false; }
+  try{ await fn(); if(okMsg) toast(okMsg); return true; }
+  catch(e){
+    if(e && e.code==='permission-denied'){ toast('저장이 거부됐어요. 공유 링크가 맞는지 확인해 주세요'); }
+    else if(e && e.code==='resource-exhausted'){ toast('오늘 무료 사용량을 다 썼어요. 내일 다시 시도해 주세요'); }
+    else toast('저장하지 못했어요. 잠시 후 다시 눌러 주세요');
+    return false;
+  }
+}
+
+/* ---------- parsing pasted feedback ---------- */
+function parseFeedback(text){
+  const lines = text.split('\n').map(l=>l.replace(/^\s*[-•*·▶︎]\s*/,'').trimEnd()).filter(l=>l.trim());
+  const items = []; let anyTC = false;
+  for(const line of lines){
+    const m = TC_LINE.exec(line);
+    if(m){ anyTC = true; items.push({tc:toSec(m[1]), tcEnd:m[2]?toSec(m[2]):null, text:line.slice(m[0].length).trim()}); }
+    else if(items.length) items[items.length-1].text += (items[items.length-1].text ? '\n' : '') + line.trim();
+    else items.push({tc:null, tcEnd:null, text:line.trim()});
+  }
+  if(!anyTC) return null;
+  return items.filter(i=>i.text);
+}
+
+/* ---------- rendering ---------- */
+function renderHeader(){
+  const d = nextMeeting(); const diff = d - new Date();
+  const hrs = Math.round(diff/3600000);
+  const rel = diff < 0 ? '진행 중' : hrs < 24 ? `${Math.max(hrs,0)}시간 후` : `${Math.ceil(diff/86400000)}일 후`;
+  const m = $('#meet');
+  m.className = 'meet' + (diff < 86400000 ? ' soon' : '');
+  m.innerHTML = `<i>Meeting</i> <b>금 ${d.getMonth()+1}/${d.getDate()} 09:00</b><span class="rel"> · ${rel}</span>`;
+  const active = S.projects.filter(p=>p.status!=='done').length;
+  const open = S.notes.filter(n=>n.status==='open').length;
+  const q = S.notes.filter(n=>n.status==='question').length;
+  $('#spec-a').innerHTML = `<i>Active</i> <b>${active}</b>편 진행`;
+  $('#spec-b').innerHTML = `<i>Notes</i> 수정 <b>${open}</b> · 질문 <b>${q}</b>`;
+  $('#spec-who').innerHTML = S.me ? `<i>(you)</i> <button type="button" class="who" data-act="who">${esc(S.me.name)} · ${ROLE_LABEL[S.me.role]}</button>` : '<i>(cut note)</i> 컷노트';
+  $('#share-btn').hidden = !S.W;
+  $('#tabs').hidden = !S.W;
+  const agendaCount = agendaItems().length;
+  const tabs = [['projects','Projects 프로젝트',0],['meeting','Friday 금요일 회의',agendaCount],['channel','Channel 채널 · 업로드',0]];
+  const cur = S.view==='project' ? 'projects' : S.view;
+  $('#tabs').innerHTML = tabs.map(([k,l,c]) => { const [en,...ko]=l.split(' '); return `<a href="#${k}" ${cur===k?'aria-current="page"':''}><span class="it">${en}</span> ${ko.join(' ')}${c?`<span class="count">${c}</span>`:''}</a>`; }).join('');
+}
+
+function bannerHTML(){
+  if(S.mode==='demo') return `<div class="banner">체험 모드예요. 이 브라우저에만 저장되고 다른 사람과 공유되지 않아요. 파이어베이스를 연결하면 링크로 함께 쓸 수 있어요.</div>`;
+  if(S.conn==='timeout') return `<div class="banner">저장소 응답이 늦어요. 네트워크를 확인한 뒤 페이지를 새로 고쳐 주세요.</div>`;
+  if(S.conn==='denied') return `<div class="banner">이 작업공간을 읽을 수 없어요. 받은 공유 링크를 그대로 열었는지 확인해 주세요.</div>`;
+  return '';
+}
+
+function viewLanding(){
+  return `<section class="hero"><div class="wrap">
+      <div class="hero-row"><span class="it">Outsourced editing desk</span><span class="it">No account needed</span></div>
+      <h1 class="display">컷노트</h1>
+      <p class="lede">편집자와 촬영자가 <b>링크 하나</b>로 의뢰서, 타임코드 수정 요청, 금요일 회의 안건을 함께 봐요. 가입도 로그인도 없어요.</p>
+      <div class="hero-actions"><button class="btn primary" data-act="new-ws">새 작업공간 만들기</button></div>
+      <p class="muted" style="margin:0;font-size:13px">공유 링크를 받았다면 그 링크로 바로 들어오면 돼요. 링크를 아는 사람은 누구나 보고 고칠 수 있으니 필요한 사람에게만 보내 주세요.</p>
+    </div>
+    <svg class="ridge" viewBox="0 0 1200 150" preserveAspectRatio="none" aria-hidden="true"><path d="M0 150V96l40-8 38 12 46-22 34 6 52-30 30 14 44-6 40-22 26 10 34-4 58-40 22 8 30-30 26 20 36 2 48 30 30-6 40 22 56 4 44 18 38-10 46 14 52-6 40 16 46-8 44 12 50 2 30 14v66z"/></svg>
+  </section>`;
+}
+
+function viewWho(){
+  const r = dv('d-me-role', S.me?.role || '');
+  return `<div class="board" style="max-width:520px">
+    <div><div class="eyebrow">Who's here</div><h1>누구인지 알려 주세요</h1></div>
+    <p class="muted" style="margin:0">수정 요청과 답변에 이름과 역할이 함께 표시돼요. 이 브라우저에만 기억해요.</p>
+    <label class="f" for="d-me-name"><span>이름</span><input id="d-me-name" type="text" placeholder="예: 우승헌" value="${esc(dv('d-me-name', S.me?.name||''))}"></label>
+    <div class="f"><span class="eyebrow">역할</span><div class="pipeline" role="group" aria-label="역할">
+      <button type="button" data-act="me-role" data-r="editor" aria-pressed="${r==='editor'}">편집자</button>
+      <button type="button" data-act="me-role" data-r="shooter" aria-pressed="${r==='shooter'}">촬영자</button></div></div>
+    <div><button class="btn primary" data-act="me-save">시작하기</button></div>
+  </div>`;
+}
+
+function render(){
+  // keep focus & caret across re-renders
+  const a = document.activeElement; const fid = a && a.id && $('#app').contains(a) ? a.id : null;
+  let sel = null; try{ if(fid && 'selectionStart' in a) sel=[a.selectionStart,a.selectionEnd]; }catch(e){}
+  renderHeader();
+  let html = bannerHTML();
+  if(!S.W) html = viewLanding();
+  else if(!S.me || S.draft._who) html += viewWho();
+  else if(S.conn==='loading' && !S.loaded.projects) html += `<div class="empty"><h3>작업판을 불러오는 중이에요</h3><p>의뢰서, 수정 요청, 금요일 회의 안건이 여기에 나타나요.</p></div>`;
+  else if(S.view==='meeting') html += viewMeeting();
+  else if(S.view==='channel') html += viewChannel();
+  else html += viewProjects();
+  $('#app').innerHTML = html;
+  if(fid){ const el=document.getElementById(fid); if(el){ el.focus({preventScroll:true}); if(sel) try{ el.setSelectionRange(sel[0],sel[1]); }catch(e){} } }
+}
+
+function emptyAll(){
+  return `<div class="panel"><div class="empty">
+    <h3>아직 프로젝트가 없어요</h3>
+    <p>새 의뢰서를 만들어 촬영자에게 이 페이지를 공유하세요. 촬영자가 빈칸을 채우면 빠진 항목이 바로 보여요.</p>
+    <p style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px">
+      <button class="btn primary" data-act="new-project">새 의뢰서 만들기</button>
+      <button class="btn" data-act="sample">예시 프로젝트로 둘러보기</button>
+    </p></div></div>`;
+}
+
+/* ----- 프로젝트 ----- */
+function viewProjects(){
+  if(!S.projects.length) return emptyAll();
+  if(S.view==='project'){
+    const p = S.projects.find(x=>x.id===S.pid);
+    if(!p) return `<div class="empty"><h3>프로젝트를 찾을 수 없어요</h3><p><a href="#projects">목록으로 돌아가기</a></p></div>`;
+    return `<a class="btn ghost back" href="#projects">← 프로젝트 목록</a>${projectDetail(p)}`;
+  }
+  const order = {review:0,revising:1,editing:2,brief:3,done:4};
+  const list = [...S.projects].sort((a,b)=>(order[a.status]??3)-(order[b.status]??3) || (a.finalDue||'9').localeCompare(b.finalDue||'9') || (a.createdAt||0)-(b.createdAt||0));
+  const active = list.filter(p=>p.status!=='done'), done = list.filter(p=>p.status==='done');
+  const open = S.notes.filter(n=>n.status==='open').length, q = S.notes.filter(n=>n.status==='question').length;
+  const d = nextMeeting();
+  const card = x => {
+    const ns = projNotes(x.id); const o = ns.filter(n=>n.status==='open').length; const qq = ns.filter(n=>n.status==='question').length;
+    const miss = missing(x).length; const vs = projVersions(x.id);
+    const stc = {review:'warn',revising:'warn',done:'ok'}[x.status]||'';
+    return `<a class="pcard" href="#p-${x.id}">
+      <div class="pc-top"><span class="pc-src">${esc(x.kind||'영상')}</span><span class="chip ${stc}">${statusLabel(x.status)}</span></div>
+      <div class="pc-title">${esc(x.title||'제목 없음')}</div>
+      <div class="pc-meta">${vs.length?`<span class="mono">v${vs[vs.length-1].n}</span>`:''}${o?`<span>수정 남음 <b>${o}</b></span>`:''}${qq?`<span class="chip warn">답변 필요 ${qq}</span>`:''}${miss&&x.status!=='done'?`<span>빈칸 <b>${miss}</b></span>`:''}${x.status!=='done'?ddChip(x.finalDue):''}</div>
+    </a>`;
+  };
+  const c = ch();
+  const rulesS = lines(c.rulesShort), rulesL = lines(c.rulesLong);
+  return `<section class="hero"><div class="wrap">
+      <div class="hero-row"><span class="it">Outsourced editing desk</span><span class="it">${esc(c.channel?'Channel':'Projects')}</span></div>
+      <h1 class="display">${esc(c.channel||'컷노트')}</h1>
+      <p class="lede">진행 중인 영상 <b>${active.length}편</b>, 남은 수정 요청 <b>${open}건</b>, 답을 기다리는 질문 <b>${q}건</b>. 다음 정기 회의는 ${d.getMonth()+1}월 ${d.getDate()}일 금요일 오전 9시예요.</p>
+      <div class="hero-actions"><button class="btn primary" data-act="new-project">새 의뢰서</button>${safeUrl(c.deliverFolder)?`<a class="btn" href="${esc(safeUrl(c.deliverFolder))}" target="_blank" rel="noopener">완성본 폴더</a>`:''}</div>
+    </div>
+    <svg class="ridge" viewBox="0 0 1200 150" preserveAspectRatio="none" aria-hidden="true"><path d="M0 150V96l40-8 38 12 46-22 34 6 52-30 30 14 44-6 40-22 26 10 34-4 58-40 22 8 30-30 26 20 36 2 48 30 30-6 40 22 56 4 44 18 38-10 46 14 52-6 40 16 46-8 44 12 50 2 30 14v66z"/></svg>
+  </section>
+  <div class="board" style="margin-top:8px">
+    <div class="sec-h"><span class="eyebrow">In progress</span><span class="muted">${active.length}편</span></div>
+    ${active.length?`<div class="pgrid">${active.map(card).join('')}</div>`:'<p class="muted">진행 중인 프로젝트가 없어요.</p>'}
+    ${done.length?`<details class="donebox" ${S.draft._showDone?'open':''}><summary data-act="toggle-done-list">Completed · 완료 ${done.length}편</summary><div class="pgrid">${done.map(card).join('')}</div></details>`:''}
+  </div>
+  <div class="spec foot"><span><i>(upload)</i> 공통 · 일부공개</span><span><i>Shorts</i> ${esc(rulesS[0]||'규칙 없음')}</span><span><i>Long</i> ${esc(rulesL[0]||'규칙 없음')}</span><span><a href="#channel">규칙 전체 보기 →</a></span></div>`;
+}
+
+function projectDetail(p){
+  const vs = projVersions(p.id);
+  const used = Math.max(vs.length-1,0); const inc = Number(p.revisions)||0;
+  const miss = missing(p);
+  const head = `<div class="phead">
+      <div class="row"><span class="eyebrow">${esc(p.kind||'영상')}</span><span class="eyebrow">${esc(p.client||'')}</span></div>
+      <h1 class="ptitle">${esc(p.title||'제목 없음')}</h1>
+      <div class="spec facts"><span><i>Draft</i> <b>${p.draftDue?esc(fmtDate(p.draftDue)):'미정'}</b> ${ddChip(p.status==='brief'||p.status==='editing'?p.draftDue:'')}</span><span><i>Final</i> <b>${p.finalDue?esc(fmtDate(p.finalDue)):'미정'}</b> ${ddChip(p.status!=='done'?p.finalDue:'')}</span><span><i>Revisions</i> <b class="mono">${used}/${inc||'?'}</b>${inc&&used>inc?' <span class="chip bad">추가 수정</span>':''}</span><span>${safeUrl(p.drive)?`<a href="${esc(safeUrl(p.drive))}" target="_blank" rel="noopener">원본 ↗</a>`:'<span class="muted">원본 링크 없음</span>'}${safeUrl(ch().deliverFolder)?` · <a href="${esc(safeUrl(ch().deliverFolder))}" target="_blank" rel="noopener">완성본 ↗</a>`:''}</span></div>
+      <div class="pipeline" role="group" aria-label="진행 단계">${STATUS.map(([k,l])=>`<button type="button" data-act="status" data-k="${k}" aria-pressed="${p.status===k}" ${S.canWrite?'':'disabled'}>${l}</button>`).join('')}</div>
+    </div>`;
+  if(S.editing) return `<div class="pdetail">${head}${briefPanel(p, miss)}</div>`;
+  return `<div class="pdetail">${head}<div class="cols">${feedbackPanel(p, vs)}<div class="side">${briefPanel(p, miss)}${uploadPanel(p)}</div></div></div>`;
+}
+
+function briefPanel(p, miss){
+  const pct = Math.round((REQ.length-miss.length)/REQ.length*100);
+  if(S.editing) return `<section class="panel brief"><div class="panel-h"><h2>의뢰서 수정</h2><span class="spacer"></span><button class="btn ghost" data-act="cancel-brief">취소</button><button class="btn primary" data-act="save-brief">저장</button></div>
+    <div class="panel-b"><form class="bform" id="bform" onsubmit="return false">${FIELDS.map(f=>fieldHTML(f,p)).join('')}
+    <div class="full" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><button type="button" class="btn danger" data-act="delete-project">프로젝트 삭제</button><span style="display:flex;gap:8px"><button type="button" class="btn ghost" data-act="cancel-brief">취소</button><button type="button" class="btn primary" data-act="save-brief">저장</button></span></div></form></div></section>`;
+  const row = f => { const v = String(p[f.k] ?? '').trim();
+    let val = esc(v);
+    if(f.type==='url' && safeUrl(v)) val = `<a href="${esc(safeUrl(v))}" target="_blank" rel="noopener">드라이브 폴더 열기</a>`;
+    if(f.k==='refs' && v) val = v.split('\n').map(l=>{ const m=l.match(/https?:\/\/\S+/); if(!m) return esc(l); const u=safeUrl(m[0]); return esc(l.slice(0,m.index))+(u?`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(m[0].length>40?m[0].slice(0,40)+'…':m[0])}</a>`:esc(m[0]))+esc(l.slice(m.index+m[0].length)); }).join('\n');
+    if(f.type==='date' && v) val = esc(fmtDate(v));
+    if(f.k==='revisions' && v) val = `${esc(v)}회`;
+    if(!v) return f.req ? `<div><dt>${f.label}</dt><dd class="missing">비어 있어요</dd></div>` : '';
+    return `<div><dt>${f.label}</dt><dd>${val}</dd></div>`; };
+  return `<section class="panel brief"><div class="panel-h"><h2>의뢰서</h2><span class="spacer"></span><button class="btn small" data-act="edit-brief" ${S.canWrite?'':'disabled'}>수정</button></div>
+    <div class="panel-b" style="display:grid;gap:14px">
+      <div style="display:grid;gap:6px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>필수 항목 ${REQ.length-miss.length}/${REQ.length}</span>${miss.length?`<span class="chip bad">빈칸 ${miss.length}</span>`:'<span class="chip ok">모두 채움</span>'}</div><div class="meter ${miss.length?'part':''}"><i style="width:${pct}%"></i></div></div>
+      ${miss.length?`<div class="muted" style="font-size:13px">빈칸은 금요일 회의 안건에 자동으로 올라가요.</div>`:''}
+      <dl>${FIELDS.filter(f=>f.k!=='title'&&f.k!=='kind'&&f.k!=='client').map(row).join('')}</dl>
+    </div></section>`;
+}
+
+function uploadPanel(p){
+  const rules = uploadRules(p); const done = p.uploadChecks || {};
+  const n = rules.filter((_,i)=>done[i]).length;
+  const body = rules.length ? `<div style="display:grid;gap:8px">${rules.map((r,i)=>`<label style="display:flex;gap:8px;align-items:flex-start;font-size:14px"><input type="checkbox" class="check" style="margin-top:2px" data-act="upload-check" data-i="${i}" ${done[i]?'checked':''} ${S.canWrite?'':'disabled'}><span${done[i]?' class="muted" style="text-decoration:line-through"':''}>${esc(r)}</span></label>`).join('')}</div>`
+    : `<p class="muted" style="margin:0;font-size:13px">채널 · 업로드 탭에서 업로드 규칙을 적어 두면 여기에 체크리스트로 나와요.</p>`;
+  return `<section class="panel"><div class="panel-h"><h2>업로드 체크</h2><span class="chip ${isShort(p)?'acc':''}">${isCombo(p)?'롱폼 + 쇼츠 규칙':isShort(p)?'숏폼 규칙':'롱폼 규칙'}</span><span class="spacer"></span>${rules.length?`<span class="mono muted" style="font-size:12px">${n}/${rules.length}</span>`:''}</div><div class="panel-b">${body}</div></section>`;
+}
+
+const CH_FIELDS = [
+  {k:'channel',label:'채널 이름',ph:'예: 예카 유튜브'},
+  {k:'deliverFolder',label:'완성본 공유 드라이브 폴더',type:'url',ph:'https://drive.google.com/drive/folders/...'},
+  {k:'styleRef',label:'편집 소스 (채널 공통 스타일 레퍼런스)',type:'textarea',ph:'한 줄에 하나씩 링크와 설명'},
+  {k:'rulesCommon',label:'업로드 규칙 · 공통',type:'textarea',ph:'한 줄에 하나씩'},
+  {k:'rulesLong',label:'업로드 규칙 · 롱폼만',type:'textarea',ph:'예: 더보기란에 타임테이블 만들기'},
+  {k:'rulesShort',label:'업로드 규칙 · 숏폼만',type:'textarea',ph:'예: 태그 몇 개만 달기'},
+];
+function linkify(t){ return esc(t).replace(/https?:\/\/[^\s<]+/g, m => { const u=safeUrl(m.replace(/&amp;/g,'&')); return u?`<a href="${esc(u)}" target="_blank" rel="noopener">${m.length>48?m.slice(0,48)+'…':m}</a>`:m; }); }
+function viewChannel(){
+  const c = ch();
+  if(S.draft._chEdit) return `<div class="board"><div><div class="eyebrow">모든 프로젝트에 공통</div><h1>채널 · 업로드 수정</h1></div><section class="panel"><div class="panel-b"><form class="bform" onsubmit="return false">${CH_FIELDS.map(f=>{ const id='d-c-'+f.k; const v=dv(id,c[f.k]||''); return `<label class="f full" for="${id}"><span>${f.label}</span>${f.type==='textarea'?`<textarea id="${id}" placeholder="${esc(f.ph)}">${esc(v)}</textarea>`:`<input id="${id}" type="${f.type||'text'}" placeholder="${esc(f.ph)}" value="${esc(v)}">`}</label>`; }).join('')}
+    <div class="full" style="display:flex;justify-content:flex-end;gap:8px"><button type="button" class="btn ghost" data-act="ch-cancel">취소</button><button type="button" class="btn primary" data-act="ch-save">저장</button></div></form></div></section></div>`;
+  const block = (t, v, empty) => `<section class="panel"><div class="panel-h"><h2>${t}</h2></div><div class="panel-b">${v ? `<div class="ntext">${v}</div>` : `<p class="muted" style="margin:0">${empty}</p>`}</div></section>`;
+  const list = t => lines(t).length ? `<ul style="margin:0;padding-left:18px">${lines(t).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>` : '';
+  return `<div class="board"><div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:flex-end"><div style="flex:1;min-width:200px"><div class="eyebrow">모든 프로젝트에 공통</div><h1>${esc(c.channel||'채널 · 업로드')}</h1></div>
+    ${safeUrl(c.deliverFolder)?`<a class="btn" href="${esc(safeUrl(c.deliverFolder))}" target="_blank" rel="noopener">완성본 폴더 열기</a>`:''}<button class="btn" data-act="ch-edit" ${S.canWrite?'':'disabled'}>수정</button></div>
+    <div class="meetgrid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+      ${block('편집 소스', c.styleRef?linkify(c.styleRef):'', '채널 전체에 적용할 스타일 레퍼런스를 적어 두세요.')}
+      ${block('업로드 규칙 · 공통', list(c.rulesCommon), '모든 영상에 적용할 규칙')}
+      ${block('업로드 규칙 · 롱폼', list(c.rulesLong), '롱폼에만 적용할 규칙')}
+      ${block('업로드 규칙 · 숏폼', list(c.rulesShort), '숏폼에만 적용할 규칙')}
+    </div>
+    <section class="panel"><div class="panel-h"><h2>백업</h2><span class="muted" style="font-size:13px">모든 프로젝트, 수정 요청, 회의록을 파일 하나로 저장하거나 불러와요</span></div>
+      <div class="panel-b" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn" data-act="export">백업 파일 내려받기</button>
+      <label class="btn" for="import-file">백업 파일 불러오기</label><input id="import-file" type="file" accept="application/json,.json" class="sr"></div></section>
+    <p class="muted" style="margin:0;font-size:13px">프로젝트의 영상 종류가 숏폼이면 숏폼 규칙, 그 외에는 롱폼 규칙이 프로젝트 화면의 업로드 체크에 나와요.</p></div>`;
+}
+
+function fieldHTML(f, p){
+  const id = 'd-b-'+f.k; const v = dv(id, p[f.k] ?? '');
+  const lab = `${f.label}${f.req?'<span class="req" aria-label="필수">*</span>':''}`;
+  let ctl;
+  if(f.type==='select') ctl = `<select id="${id}"><option value="">선택</option>${f.opts.map(o=>`<option ${o===v?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
+  else if(f.type==='textarea') ctl = `<textarea id="${id}" placeholder="${esc(f.ph||'')}">${esc(v)}</textarea>`;
+  else ctl = `<input id="${id}" type="${f.type||'text'}" ${f.type==='number'?'min="0" step="1"':''} placeholder="${esc(f.ph||'')}" value="${esc(v)}">`;
+  return `<label class="f ${f.full?'full':''}" for="${id}"><span>${lab}</span>${ctl}</label>`;
+}
+
+function feedbackPanel(p, vs){
+  const latest = vs.length ? vs[vs.length-1].n : 0;
+  let cur = S.vsel[p.id]; if(cur==null || (cur!==0 && !vs.find(v=>v.n===cur))) cur = latest;
+  const v = vs.find(x=>x.n===cur);
+  const all = projNotes(p.id).filter(n=>n.version===cur).sort((a,b)=>((a.tc??-1)-(b.tc??-1)) || (a.createdAt||0)-(b.createdAt||0));
+  const shown = all.filter(n => S.filter==='all' || (S.filter==='open' ? n.status!=='done' : n.status==='done'));
+  const counts = {open:all.filter(n=>n.status!=='done').length, done:all.filter(n=>n.status==='done').length};
+  const vbar = `<div class="vbar" role="group" aria-label="편집본 버전">
+      ${vs.length?'':`<button type="button" aria-pressed="true" data-act="vsel" data-n="0">편집 전</button>`}
+      ${vs.map(x=>`<button type="button" data-act="vsel" data-n="${x.n}" aria-pressed="${x.n===cur}">v${x.n}</button>`).join('')}
+      ${S.canWrite?`<button type="button" class="btn small" style="font-family:var(--font-body)" data-act="toggle-vform">+ 새 편집본 올리기</button>`:''}</div>`;
+  const vform = S.draft._vform ? `<div class="compose"><div class="row"><span class="chip acc mono">v${latest+1}</span><input id="d-v-link" type="url" placeholder="편집본 드라이브 공유 링크" value="${esc(dv('d-v-link'))}" style="flex:1;min-width:200px"></div>
+      <input id="d-v-note" type="text" placeholder="이번 버전에서 바뀐 점 (예: 1차 피드백 7건 반영, 엔딩 자막 교체)" value="${esc(dv('d-v-note'))}">
+      <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-act="toggle-vform">취소</button><button class="btn primary" data-act="add-version">올리고 검토 요청</button></div></div>` : '';
+  const vinfo = v ? `<div class="vinfo"><b class="mono">v${v.n}</b>${safeUrl(v.link)?`<a href="${esc(safeUrl(v.link))}" target="_blank" rel="noopener">영상 열기</a>`:''}<span class="muted">${v.createdAt?new Date(v.createdAt).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'}):''} 업로드</span>${v.note?`<span style="flex-basis:100%">${esc(v.note)}</span>`:''}</div>`
+    : `<div class="vinfo muted">아직 편집본이 없어요. 편집 전 질문이나 요청은 여기에 남기세요.</div>`;
+  const compose = `<div class="compose">
+      <label for="d-n-text" class="sr">수정 요청 내용</label>
+      <textarea id="d-n-text" placeholder="예) 01:23 인서트 컷 2초 줄여 주세요&#10;02:10~02:25 배경음악 볼륨 낮춰 주세요&#10;&#10;카톡 메모를 그대로 붙여넣어도 시간별로 나눠져요.">${esc(dv('d-n-text'))}</textarea>
+      <div class="row">
+        <label class="sr" for="d-n-tc">타임코드</label><input id="d-n-tc" class="tc" type="text" inputmode="numeric" placeholder="00:00" value="${esc(dv('d-n-tc'))}">
+        <label class="sr" for="d-n-cat">분류</label><select id="d-n-cat">${CATS.map(c=>`<option value="${c.k}" ${dv('d-n-cat','cut')===c.k?'selected':''}>${c.label}</option>`).join('')}</select>
+        <label style="display:flex;gap:5px;align-items:center;font-size:13px"><input type="checkbox" id="d-n-q" ${dv('d-n-q')?'checked':''}>질문으로 보내기</label>
+        <label style="display:flex;gap:5px;align-items:center;font-size:13px"><input type="checkbox" id="d-n-ag" ${dv('d-n-ag')?'checked':''}>회의 안건</label>
+        <span class="spacer"></span>
+        <button class="btn primary" data-act="add-note" ${S.canWrite?'':'disabled'}>${pasteCount()>1?`${pasteCount()}건 나눠서 남기기`:'남기기'}</button>
+      </div>
+      <div class="hint">타임코드는 <span class="mono">1:23</span>, <span class="mono">01:23~01:40</span>, <span class="mono">1:02:03</span> 모두 돼요. 줄마다 시간이 있으면 줄별로 나눠서 저장해요.</div></div>`;
+  const list = shown.length ? `<div class="notes">${shown.map(noteRow).join('')}</div>`
+    : `<div class="empty" style="padding:20px"><p style="margin:0">${all.length?'이 필터에 해당하는 요청이 없어요.':'이 버전에 남긴 요청이 아직 없어요.'}</p></div>`;
+  return `<section class="panel"><div class="panel-h"><h2>수정 요청</h2><span class="spacer"></span>
+      <div class="seg" role="group" aria-label="필터"><button type="button" data-act="filter" data-f="open" aria-pressed="${S.filter==='open'}">남음 ${counts.open}</button><button type="button" data-act="filter" data-f="done" aria-pressed="${S.filter==='done'}">완료 ${counts.done}</button><button type="button" data-act="filter" data-f="all" aria-pressed="${S.filter==='all'}">전체</button></div>
+      <button class="btn small" data-act="copy" data-n="${cur}" title="프리미어·파이널컷 마커 메모용">목록 복사</button></div>
+    <div class="panel-b" style="display:grid;gap:12px">${vbar}${vform}${vinfo}${compose}${list}</div></section>`;
+}
+
+function pasteCount(){ const t = dv('d-n-text'); if(!t) return 0; const items = parseFeedback(t); return items ? items.length : 1; }
+
+function noteRow(n){
+  const cat = catOf(n.cat);
+  const other = n.role==='editor' ? '촬영자' : '편집자';
+  const replyBox = S.replyOpen===n.id ? `<div class="nreply" style="display:grid;gap:6px;background:none;padding:0"><textarea id="d-r-${n.id}" placeholder="${other}에게 답변">${esc(dv('d-r-'+n.id, n.reply||''))}</textarea><div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn small ghost" data-act="reply" data-id="${n.id}">취소</button><button class="btn small primary" data-act="save-reply" data-id="${n.id}">답변 저장</button></div></div>` : '';
+  return `<div class="note ${n.status==='done'?'done':''}">
+    <div class="tcb"><span class="tcode" style="border-left-color:var(${cat.v})">${fmtTC(n.tc)}</span>${n.tcEnd!=null?`<span class="mono muted" style="font-size:12px">~${fmtTC(n.tcEnd)}</span>`:''}</div>
+    <div class="ntext">${esc(n.text)}</div>
+    <div style="grid-column:2;display:grid;gap:4px">
+      <div class="nmeta"><span><span class="dot" style="background:var(${cat.v})"></span> ${cat.label}</span><span>· ${byLabel(n)}</span>
+        ${n.status==='question'?'<span class="chip warn">답변 필요</span>':''}${n.status==='done'?'<span class="chip ok">완료</span>':''}${n.agenda&&n.status!=='done'?'<span class="chip acc">회의 안건</span>':''}</div>
+      ${n.reply&&S.replyOpen!==n.id?`<div class="nreply" style="grid-column:auto"><b>${esc(ROLE_LABEL[n.replyRole]||'답변')}${n.replyName?' '+esc(n.replyName):''}</b>${esc(n.reply)}</div>`:''}
+      ${replyBox}
+      ${S.canWrite?`<div class="ractions">
+        ${n.status==='done'?`<button class="btn small ghost" data-act="set-status" data-id="${n.id}" data-s="open">다시 열기</button>`:`<button class="btn small" data-act="set-status" data-id="${n.id}" data-s="done">완료</button>`}
+        ${n.status!=='done'?`<button class="btn small ghost" data-act="reply" data-id="${n.id}">${n.reply?'답변 고치기':'답변'}</button>`:''}
+        ${n.status==='open'?`<button class="btn small ghost" data-act="set-status" data-id="${n.id}" data-s="question">질문으로 돌리기</button>`:''}
+        ${n.status!=='done'?`<button class="btn small ghost" data-act="agenda" data-id="${n.id}">${n.agenda?'안건에서 빼기':'회의 안건'}</button>`:''}
+        ${n.byId===S.uid?`<button class="btn small ghost danger" data-act="del-note" data-id="${n.id}">삭제</button>`:''}
+      </div>`:''}
+    </div></div>`;
+}
+
+/* ----- 금요일 회의 ----- */
+function agendaItems(){
+  const items = [];
+  for(const p of S.projects.filter(p=>p.status!=='done')){
+    const miss = missing(p); const ns = S.notes.filter(n=>n.projectId===p.id && n.status!=='done' && (n.agenda || n.status==='question'));
+    const vs = projVersions(p.id); const dd = dday(p.finalDue);
+    if(miss.length || ns.length || p.status==='review' || (dd!=null && dd<=7)) items.push({p, miss, ns, vs, dd});
+  }
+  return items;
+}
+
+function viewMeeting(){
+  const d = nextMeeting(); const key = meetingKey(d); const items = agendaItems();
+  const saved = S.meetings[key]; const past = Object.keys(S.meetings).filter(k=>k!==key).sort().reverse();
+  const agenda = items.length ? `<ol class="agenda">${items.map(({p,miss,ns,vs,dd})=>`<li><b><a href="#p-${p.id}">${esc(p.title||'제목 없음')}</a></b> <span class="chip">${statusLabel(p.status)}</span> ${ddChip(p.finalDue)}
+      <ul style="margin:6px 0 0;padding-left:18px">
+        ${p.status==='review'?`<li>v${vs.length?vs[vs.length-1].n:'?'} 편집본 피드백 받기</li>`:''}
+        ${dd!=null&&dd<=7?`<li>최종 마감 ${esc(fmtDate(p.finalDue))} 일정 확인</li>`:''}
+        ${miss.length?`<li>의뢰서 빈칸: ${miss.map(f=>esc(f.label)).join(', ')}</li>`:''}
+        ${ns.map(n=>`<li><span class="tcode" style="border-left-color:var(${catOf(n.cat).v});font-size:12px">${fmtTC(n.tc)}</span> ${esc(n.text)} ${n.status==='question'?'<span class="chip warn">질문</span>':''} ${S.canWrite&&n.agenda?`<button class="btn small ghost" data-act="agenda" data-id="${n.id}">논의 끝</button>`:''}</li>`).join('')}
+      </ul></li>`).join('')}</ol>`
+    : `<p class="muted" style="margin:0">이번 주 안건이 없어요. 수정 요청에서 '회의 안건'을 누르거나 질문을 남기면 여기에 모여요.</p>`;
+  return `<div class="board"><div><div class="eyebrow">매주 금요일 오전 9시</div><h1>${d.getMonth()+1}월 ${d.getDate()}일 회의</h1></div>
+    <div class="meetgrid">
+      <section class="panel"><div class="panel-h"><h2>안건</h2><span class="muted" style="font-size:13px">질문, 빈 의뢰서 칸, 검토 대기, 7일 안 마감이 자동으로 모여요</span><span class="spacer"></span><button class="btn small" data-act="copy-agenda">안건 복사</button></div><div class="panel-b">${agenda}</div></section>
+      <section class="panel"><div class="panel-h"><h2>회의록</h2></div><div class="panel-b" style="display:grid;gap:10px">
+        <label class="sr" for="d-m-${key}">회의록</label>
+        <textarea id="d-m-${key}" style="min-height:180px" placeholder="정한 것과 다음 주까지 할 일을 적어 두세요&#10;예) 카페 영상 엔딩 문구 확정: '오늘도 한 잔'&#10;다음 주 수요일까지 v2 업로드">${esc(dv('d-m-'+key, saved?.text||''))}</textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><span class="muted" style="font-size:12px">${saved?.updatedAt?'마지막 저장 '+new Date(saved.updatedAt).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit'}):'아직 저장 안 됨'}</span><button class="btn primary" data-act="save-meeting" data-k="${key}" ${S.canWrite?'':'disabled'}>회의록 저장</button></div>
+        ${past.length?`<details><summary style="cursor:pointer;font-size:13px">지난 회의록 ${past.length}개</summary>${past.map(k=>`<div style="margin-top:10px"><b class="mono" style="font-size:13px">${k}</b><div class="ntext" style="font-size:13px">${esc(S.meetings[k].text||'')}</div></div>`).join('')}</details>`:''}
+      </div></section>
+    </div></div>`;
+}
+
+/* ---------- actions ---------- */
+const col = name => S.db.collection(name);
+
+async function createProject(sample){
+  const id = newId();
+  const base = {title:'', status:'brief', createdAt:Date.now(), createdBy:S.uid||null};
+  const data = sample ? Object.assign(base, sampleProject()) : base;
+  const ok = await write(()=>col('projects').doc(id).set(data));
+  if(!ok) return;
+  if(sample){
+    await write(()=>col('versions').doc(id+'v1').set({projectId:id, n:1, link:'https://drive.google.com/', note:'[예시] 1차 편집본, 4분 12초', createdAt:Date.now(), createdBy:S.uid||null}));
+    const ns = [
+      {tc:5,cat:'sub',text:'[예시] 오프닝 타이틀 글씨를 조금 더 크게',role:'shooter',status:'open'},
+      {tc:83,tcEnd:91,cat:'cut',text:'[예시] 라떼아트 클로즈업 2초 정도 줄여 주세요',role:'shooter',status:'open'},
+      {tc:130,cat:'sound',text:'[예시] 인터뷰 구간에서 음악 볼륨 낮춰 주세요',role:'shooter',status:'done'},
+      {tc:200,cat:'cut',text:'[예시] 이 장면 대체 컷이 있을까요? 초점이 나갔어요',role:'editor',status:'question',agenda:true},
+    ];
+    for(const n of ns) await write(()=>col('notes').doc(newId()).set({projectId:id, version:1, tcEnd:null, agenda:false, ...n, byId:S.uid||null, byName:S.me?.name||'', createdAt:Date.now()}));
+  }
+  S.editing = !sample; S.draft = {}; location.hash = 'p-'+id;
+}
+
+function sampleProject(){
+  const d = n => { const x=today(); x.setDate(x.getDate()+n); return meetingKey(x); };
+  return {title:'[예시] 동네 카페 브랜드 영상', client:'예시 촬영팀', kind:'광고·브랜드', status:'review',
+    drive:'https://drive.google.com/', refs:'https://www.youtube.com/ 0:20~0:40 컷 템포 참고', length:'2분 내외', ratio:'16:9', subs:'강조 자막만',
+    music:'편집자가 선정', tone:'따뜻하고 차분하게, 웜톤', must:'대표 인터뷰, 라떼아트 클로즈업', avoid:'손님 얼굴 정면 컷', draftDue:d(-2), finalDue:d(6), revisions:'2', etc:''};
+}
+
+async function saveBrief(){
+  const p = S.projects.find(x=>x.id===S.pid); if(!p) return;
+  const data = {...p}; delete data.id;
+  for(const f of FIELDS){ const k='d-b-'+f.k; if(k in S.draft) data[f.k] = String(S.draft[k]).trim(); }
+  data.updatedAt = Date.now();
+  if(await write(()=>col('projects').doc(p.id).set(data), '의뢰서를 저장했어요')){ S.editing=false; for(const k of Object.keys(S.draft)) if(k.startsWith('d-b-')) delete S.draft[k]; render(); }
+}
+
+async function addNote(){
+  const p = S.projects.find(x=>x.id===S.pid); if(!p) return;
+  const text = String(dv('d-n-text')).trim(); if(!text){ toast('내용을 적어 주세요'); $('#d-n-text')?.focus(); return; }
+  const vs = projVersions(p.id); let ver = S.vsel[p.id]; if(ver==null || (ver!==0 && !vs.find(v=>v.n===ver))) ver = latestN(p.id);
+  const cat = dv('d-n-cat','cut'); const q = !!dv('d-n-q'); const ag = !!dv('d-n-ag');
+  let items = parseFeedback(text);
+  if(!items){
+    const tcRaw = String(dv('d-n-tc')).trim(); let tc=null, tcEnd=null;
+    if(tcRaw){ const m = new RegExp(`^${TC}(?:\\s*[-~–]\\s*${TC})?$`).exec(tcRaw); if(!m){ toast('타임코드는 01:23 처럼 적어 주세요'); $('#d-n-tc')?.focus(); return; } tc=toSec(m[1]); tcEnd=m[2]?toSec(m[2]):null; }
+    items = [{tc, tcEnd, text}];
+  }
+  const now = Date.now();
+  for(let i=0;i<items.length;i++){
+    const it = items[i];
+    const ok = await write(()=>col('notes').doc(newId()).set({projectId:p.id, version:ver, tc:it.tc, tcEnd:it.tcEnd, text:it.text, cat, role:S.role, byId:S.uid||null, byName:S.me?.name||'', status:q?'question':'open', agenda:ag, createdAt:now+i}));
+    if(!ok) return;
+  }
+  for(const k of ['d-n-text','d-n-tc','d-n-q','d-n-ag']) delete S.draft[k];
+  if(S.role==='shooter' && p.status==='review' && !q) await write(()=>col('projects').doc(p.id).update({status:'revising'}));
+  toast(items.length>1 ? `${items.length}건을 시간순으로 남겼어요` : '남겼어요'); render();
+}
+
+async function addVersion(){
+  const p = S.projects.find(x=>x.id===S.pid); if(!p) return;
+  const link = String(dv('d-v-link')).trim();
+  if(link && !safeUrl(link)){ toast('링크는 https:// 로 시작해야 해요'); return; }
+  const n = latestN(p.id)+1;
+  const ok = await write(()=>col('versions').doc(p.id+'v'+n).set({projectId:p.id, n, link, note:String(dv('d-v-note')).trim(), createdAt:Date.now(), createdBy:S.uid||null}));
+  if(!ok) return;
+  await write(()=>col('projects').doc(p.id).update({status:'review'}));
+  delete S.draft['d-v-link']; delete S.draft['d-v-note']; delete S.draft._vform; S.vsel[p.id]=n; toast(`v${n}을 올리고 검토 요청으로 바꿨어요`); render();
+}
+
+async function copyText(text, msg){
+  try{ await navigator.clipboard.writeText(text); toast(msg); }
+  catch(e){ const ta=document.createElement('textarea'); ta.value=text; ta.style.cssText='position:fixed;opacity:0'; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); toast(msg); }catch(_){ toast('복사가 막혀 있어요. 직접 선택해 복사해 주세요'); } ta.remove(); }
+}
+
+document.addEventListener('input', e => {
+  const t = e.target; if(!t.id || !t.id.startsWith('d-')) return;
+  S.draft[t.id] = t.type==='checkbox' ? t.checked : t.value;
+  if(t.id==='d-n-text'){ const btn=document.querySelector('[data-act="add-note"]'); if(btn){ const c=pasteCount(); btn.textContent = c>1?`${c}건 나눠서 남기기`:'남기기'; } }
+});
+document.addEventListener('change', e => { const t=e.target; if(t.id && t.id.startsWith('d-')) S.draft[t.id] = t.type==='checkbox' ? t.checked : t.value; });
+document.addEventListener('keydown', e => { if(e.target.id==='d-n-text' && e.key==='Enter' && (e.metaKey||e.ctrlKey)){ e.preventDefault(); addNote(); } });
+
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-act]'); if(!b) return;
+  const act = b.dataset.act; const id = b.dataset.id; const n = id && S.notes.find(x=>x.id===id);
+  switch(act){
+    case 'role': S.role=b.dataset.role; try{ localStorage.setItem('cutnote-role',S.role); }catch(_){} render(); break;
+    case 'new-project': createProject(false); break;
+    case 'new-ws': { const id = randId(24); location.href = location.pathname + '?w=' + id; break; }
+    case 'share': copyText(location.origin + location.pathname + '?w=' + S.W, '공유 링크를 복사했어요. 카톡으로 보내 주세요'); break;
+    case 'who': S.draft._who = true; render(); break;
+    case 'me-role': S.draft['d-me-role'] = b.dataset.r; render(); break;
+    case 'me-save': { const name = String(dv('d-me-name', S.me?.name||'')).trim(); const role = dv('d-me-role', S.me?.role||'');
+      if(!name){ toast('이름을 적어 주세요'); $('#d-me-name')?.focus(); break; }
+      if(role!=='editor' && role!=='shooter'){ toast('역할을 골라 주세요'); break; }
+      S.me = {name, role}; S.role = role; try{ localStorage.setItem('cutnote-me', JSON.stringify(S.me)); }catch(_){}
+      delete S.draft._who; delete S.draft['d-me-name']; delete S.draft['d-me-role']; render(); break; }
+    case 'export': exportData(); break;
+    case 'toggle-done-list': S.draft._showDone = !b.closest('details').open; break;
+    case 'sample': createProject(true); break;
+    case 'edit-brief': S.editing=true; render(); break;
+    case 'cancel-brief': S.editing=false; for(const k of Object.keys(S.draft)) if(k.startsWith('d-b-')) delete S.draft[k]; render(); break;
+    case 'save-brief': saveBrief(); break;
+    case 'upload-check': { const p=S.projects.find(x=>x.id===S.pid); if(!p) break; const m={...(p.uploadChecks||{})}; m[b.dataset.i]=b.checked; await write(()=>col('projects').doc(p.id).update({uploadChecks:m})); break; }
+    case 'ch-edit': S.draft._chEdit=true; render(); break;
+    case 'ch-cancel': delete S.draft._chEdit; for(const k of Object.keys(S.draft)) if(k.startsWith('d-c-')) delete S.draft[k]; render(); break;
+    case 'ch-save': { const c={...ch()}; for(const f of CH_FIELDS){ const k='d-c-'+f.k; if(k in S.draft) c[f.k]=String(S.draft[k]).trim(); } c.updatedAt=Date.now();
+      if(c.deliverFolder && !safeUrl(c.deliverFolder)){ toast('폴더 링크는 https:// 로 시작해야 해요'); break; }
+      if(await write(()=>col('settings').doc('channel').set(c),'저장했어요')){ delete S.draft._chEdit; for(const k of Object.keys(S.draft)) if(k.startsWith('d-c-')) delete S.draft[k]; render(); } break; }
+    case 'delete-project':
+      if(b.dataset.confirm!=='1'){ b.dataset.confirm='1'; b.textContent='한 번 더 누르면 삭제돼요'; return; }
+      { const pid=S.pid; for(const x of projNotes(pid)) await write(()=>col('notes').doc(x.id).delete()); for(const v of projVersions(pid)) await write(()=>col('versions').doc(v.id).delete());
+        if(await write(()=>col('projects').doc(pid).delete(),'프로젝트를 삭제했어요')){ S.editing=false; S.pid=null; location.hash='projects'; } }
+      break;
+    case 'status': await write(()=>col('projects').doc(S.pid).update({status:b.dataset.k})); break;
+    case 'vsel': S.vsel[S.pid]=Number(b.dataset.n); render(); break;
+    case 'toggle-vform': S.draft._vform=!S.draft._vform; render(); if(S.draft._vform) $('#d-v-link')?.focus(); break;
+    case 'add-version': addVersion(); break;
+    case 'filter': S.filter=b.dataset.f; render(); break;
+    case 'add-note': addNote(); break;
+    case 'toggle-done': if(n) await write(()=>col('notes').doc(id).update({status:b.checked?'done':'open'})); break;
+    case 'set-status': if(n) await write(()=>col('notes').doc(id).update({status:b.dataset.s})); break;
+    case 'agenda': if(n) await write(()=>col('notes').doc(id).update({agenda:!n.agenda})); break;
+    case 'reply': S.replyOpen = S.replyOpen===id ? null : id; delete S.draft['d-r-'+id]; render(); if(S.replyOpen) $('#d-r-'+id)?.focus(); break;
+    case 'save-reply': if(n){ const txt=String(dv('d-r-'+id, n.reply||'')).trim();
+      const upd = {reply:txt, replyRole:S.role, replyName:S.me?.name||''}; if(n.status==='question' && txt) upd.status='open';
+      if(await write(()=>col('notes').doc(id).update(upd),'답변을 남겼어요')){ S.replyOpen=null; delete S.draft['d-r-'+id]; render(); } } break;
+    case 'del-note':
+      if(b.dataset.confirm!=='1'){ b.dataset.confirm='1'; b.textContent='정말 삭제'; return; }
+      await write(()=>col('notes').doc(id).delete(),'삭제했어요'); break;
+    case 'copy': {
+      const p=S.projects.find(x=>x.id===S.pid); const v=Number(b.dataset.n);
+      const ns=projNotes(S.pid).filter(x=>x.version===v && x.status!=='done').sort((a,c)=>(a.tc??-1)-(c.tc??-1));
+      if(!ns.length){ toast('복사할 남은 요청이 없어요'); return; }
+      copyText(`${p.title} v${v} 수정 요청\n`+ns.map(x=>`${fmtTC(x.tc)}${x.tcEnd!=null?'~'+fmtTC(x.tcEnd):''}\t[${catOf(x.cat).label}] ${x.text.replace(/\n/g,' ')}`).join('\n'), `${ns.length}건을 복사했어요`); break; }
+    case 'copy-agenda': {
+      const d=nextMeeting(); const items=agendaItems(); if(!items.length){ toast('안건이 없어요'); return; }
+      copyText(`${d.getMonth()+1}/${d.getDate()} 금요일 회의 안건\n\n`+items.map(({p,miss,ns,vs,dd},i)=>[`${i+1}. ${p.title} (${statusLabel(p.status)})`,
+        p.status==='review'?`  - v${vs.length?vs[vs.length-1].n:'?'} 편집본 피드백`:'', dd!=null&&dd<=7?`  - 최종 마감 ${fmtDate(p.finalDue)}`:'', miss.length?`  - 의뢰서 빈칸: ${miss.map(f=>f.label).join(', ')}`:'',
+        ...ns.map(x=>`  - ${fmtTC(x.tc)} ${x.text.replace(/\n/g,' ')}${x.status==='question'?' (질문)':''}`)].filter(Boolean).join('\n')).join('\n\n'), '안건을 복사했어요'); break; }
+    case 'save-meeting': { const k=b.dataset.k; const text=String(dv('d-m-'+k, S.meetings[k]?.text||''));
+      if(await write(()=>col('meetings').doc(k).set({text, updatedAt:Date.now(), by:S.uid||null}),'회의록을 저장했어요')) delete S.draft['d-m-'+k]; break; }
+  }
+});
+
+/* ---------- routing ---------- */
+function route(){
+  const h = location.hash.slice(1);
+  if(h.startsWith('p-')){ const id=h.slice(2); if(S.pid!==id){ S.editing=false; S.replyOpen=null; } S.view='project'; S.pid=id; }
+  else if(h==='meeting' || h==='projects' || h==='channel') S.view = h;
+  else { S.view='projects'; S.editing=false; }
+  render(); window.scrollTo(0,0);
+}
+window.addEventListener('hashchange', route);
+setInterval(renderHeader, 60000);
+
+/* ---------- storage ---------- */
+function randId(n){ const a='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'; const r=new Uint32Array(n); crypto.getRandomValues(r); return Array.from(r, x=>a[x%a.length]).join(''); }
+
+function demoDB(W){
+  const KEY = 'cutnote-demo-' + W; let store = {};
+  try{ store = JSON.parse(localStorage.getItem(KEY) || '{}'); }catch(_){}
+  const subs = {};
+  const save = () => { try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(_){} };
+  const emit = name => (subs[name]||[]).forEach(fn => fn({docs:Object.entries(store[name]||{}).map(([id,d])=>({id, data:()=>d}))}));
+  return { collection: name => ({
+    onSnapshot(next){ (subs[name] = subs[name]||[]).push(next); setTimeout(()=>emit(name), 0); return () => {}; },
+    doc: id => ({
+      async set(d){ (store[name] = store[name]||{})[id] = JSON.parse(JSON.stringify(d)); save(); emit(name); },
+      async update(d){ const c = (store[name]||{})[id]; if(!c) throw {code:'not-found'}; Object.assign(c, JSON.parse(JSON.stringify(d))); save(); emit(name); },
+      async delete(){ if(store[name]) delete store[name][id]; save(); emit(name); },
+    }),
+  })};
+}
+
+function exportData(){
+  const data = {app:'cutnote', format:1, exportedAt:new Date().toISOString(), projects:S.projects, versions:S.versions, notes:S.notes, meetings:S.meetings, settings:S.settings};
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], {type:'application/json'}));
+  a.download = `cutnote-backup-${meetingKey(new Date())}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+}
+async function importData(file){
+  let d; try{ d = JSON.parse(await file.text()); }catch(_){ toast('백업 파일을 읽지 못했어요. 컷노트에서 내려받은 .json 파일인지 확인해 주세요'); return; }
+  const ok = /^[A-Za-z0-9_-]{1,100}$/; let n = 0;
+  for(const c of ['projects','versions','notes']) for(const x of (Array.isArray(d[c]) ? d[c] : [])){ const {id, ...rest} = x || {}; if(!ok.test(id||'')) continue; if(!await write(()=>col(c).doc(id).set(rest))) return; n++; }
+  for(const c of ['meetings','settings']) for(const [k, v] of Object.entries(d[c] && typeof d[c]==='object' ? d[c] : {})){ if(!ok.test(k) || !v || typeof v!=='object') continue; if(!await write(()=>col(c).doc(k).set(v))) return; n++; }
+  toast(n ? `${n}건을 불러왔어요` : '불러올 내용이 없었어요');
+}
+document.addEventListener('change', e => { if(e.target.id==='import-file' && e.target.files[0]){ importData(e.target.files[0]); e.target.value=''; } });
+
+/* ---------- boot ---------- */
+function boot(){
+  const w = new URLSearchParams(location.search).get('w');
+  S.W = w && /^[A-Za-z0-9]{20,64}$/.test(w) ? w : null;
+  try{ S.uid = localStorage.getItem('cutnote-device') || (localStorage.setItem('cutnote-device', randId(16)), localStorage.getItem('cutnote-device')); }catch(_){ S.uid = randId(16); }
+  try{ const me = JSON.parse(localStorage.getItem('cutnote-me') || 'null'); if(me && me.name && (me.role==='editor'||me.role==='shooter')){ S.me = me; S.role = me.role; } }catch(_){}
+  route();
+  if(!S.W) return;
+  const cfg = window.CUTNOTE_FIREBASE;
+  if(cfg && window.firebase){
+    try{
+      firebase.initializeApp(cfg);
+      const fs = firebase.firestore();
+      S.db = { collection: name => fs.collection(`workspaces/${S.W}/${name}`) };
+    }catch(e){ console.error(e); S.mode='demo'; S.db = demoDB(S.W); }
+  } else { S.mode='demo'; S.db = demoDB(S.W); }
+  const timer = setTimeout(()=>{ if(S.conn==='loading'){ S.conn='timeout'; S.loaded.projects=true; render(); } }, 12000);
+  const sub = (name, key, map) => S.db.collection(name).onSnapshot(snap => {
+    clearTimeout(timer); S.conn='ok'; S.loaded[key]=true;
+    if(map) S[key] = Object.fromEntries(snap.docs.map(d=>[d.id, d.data()]));
+    else S[key] = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    render();
+  }, err => { clearTimeout(timer); console.error(err); S.conn = err && err.code==='permission-denied' ? 'denied' : 'timeout'; S.loaded.projects=true; render(); });
+  sub('projects','projects'); sub('versions','versions'); sub('notes','notes'); sub('meetings','meetings',true); sub('settings','settings',true);
+}
+boot();
+})();
+</script>
+
+</body>
+</html>
