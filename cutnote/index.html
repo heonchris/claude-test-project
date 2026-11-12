@@ -311,11 +311,167 @@ nav.tabs .count{background:var(--accent);color:var(--on-accent)}
   .ridge{height:100px}
 }
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+
+/* ===== Refined layer: soft neutral canvas, white cards, calmer type scale ===== */
+:root{
+  --bg:#F4F5F7; --surface:#FFFFFF; --field:#F7F8FA; --line:#E4E7EC; --line-strong:#CDD2DA;
+  --ink:#111318; --fg:#2B3039; --muted:#6A7180;
+  --accent:#1F4FD8; --on-accent:#FFFFFF; --accent-soft:#EDF2FD;
+  --shadow:0 1px 2px rgba(17,19,24,.04),0 2px 8px rgba(17,19,24,.05);
+  --shadow-hover:0 2px 4px rgba(17,19,24,.05),0 10px 24px rgba(17,19,24,.08);
+  --r-card:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1014; --surface:#171A20; --field:#1C2027; --line:#262B34; --line-strong:#373D48;
+  --ink:#F3F5F8; --fg:#D8DCE3; --muted:#98A0AD;
+  --accent:#7196FF; --on-accent:#0B0D12; --accent-soft:#1A2440;
+  --shadow:0 1px 2px rgba(0,0,0,.3); --shadow-hover:0 6px 20px rgba(0,0,0,.4);
+}}
+:root[data-theme="dark"]{
+  --bg:#0E1014; --surface:#171A20; --field:#1C2027; --line:#262B34; --line-strong:#373D48;
+  --ink:#F3F5F8; --fg:#D8DCE3; --muted:#98A0AD;
+  --accent:#7196FF; --on-accent:#0B0D12; --accent-soft:#1A2440;
+  --shadow:0 1px 2px rgba(0,0,0,.3); --shadow-hover:0 6px 20px rgba(0,0,0,.4);
+}
+html,body{background:var(--bg)}
+main{padding-block:24px 56px}
+
+/* app bar */
+header.top{background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:saturate(1.4) blur(12px);-webkit-backdrop-filter:saturate(1.4) blur(12px);border-bottom:1px solid var(--line)}
+.top .spec{display:flex;align-items:center;gap:12px;padding-block:12px 6px}
+.top .spec > *{text-align:left!important}
+#spec-a,#spec-b{display:none}
+#spec-who{font-size:15px;font-weight:700;color:var(--ink);margin-right:auto}
+#spec-who i{display:none}
+#spec-who .who{font-weight:600;color:var(--fg);text-decoration:none;font-size:14px;padding:4px 10px;border-radius:999px;background:var(--field)}
+.meet{font-size:13px;color:var(--muted);background:var(--field);padding:5px 12px;border-radius:999px;white-space:nowrap}
+.meet i{display:none}
+.meet b{color:var(--ink);font-weight:600}
+.meet.soon{background:color-mix(in srgb,var(--warn) 14%,transparent)}
+.meet.soon b{color:var(--warn)}
+.tabrow,.top .wrap:last-child{padding-bottom:10px}
+nav.tabs{gap:4px;padding:0}
+nav.tabs a{font-size:14px;font-weight:600;color:var(--muted);padding:7px 14px;border-radius:999px;border:0}
+nav.tabs a:hover{background:var(--field);color:var(--ink)}
+nav.tabs a[aria-current="page"]{background:var(--ink);color:var(--surface);border:0}
+nav.tabs a .it{display:none}
+nav.tabs .count{background:var(--accent);color:var(--on-accent)}
+nav.tabs a[aria-current="page"] .count{background:var(--surface);color:var(--ink)}
+.tabrow .btn{margin:0}
+
+/* type scale */
+h1{font-size:clamp(26px,3.2vw,34px);letter-spacing:-.02em}
+h2{font-size:17px;letter-spacing:-.01em}
+.display{font-size:clamp(34px,5vw,52px);letter-spacing:-.03em;line-height:1.05}
+.ptitle{font-size:clamp(28px,4vw,42px);letter-spacing:-.025em;line-height:1.12}
+.eyebrow,.spec i,.pc-src,.brief dt,label.f > span:first-child{font-size:12px;font-weight:600;letter-spacing:.01em;color:var(--muted);text-transform:none}
+
+/* buttons + chips */
+.btn{border-radius:10px;padding:8px 14px;font-weight:600;border-color:var(--line-strong);background:var(--surface)}
+.btn.small{border-radius:8px;padding:4px 10px}
+.btn.ghost{background:transparent;border-color:transparent}
+.btn.ghost:hover{background:var(--field);border-color:transparent;color:var(--ink)}
+.btn.primary{box-shadow:0 1px 2px rgba(31,79,216,.25)}
+.chip{border:0;background:var(--field);color:var(--fg);font-weight:600;line-height:22px;padding:0 10px}
+.chip.warn{background:color-mix(in srgb,var(--warn) 14%,transparent);color:var(--warn)}
+.chip.bad{background:color-mix(in srgb,var(--bad) 11%,transparent);color:var(--bad)}
+.chip.ok{background:color-mix(in srgb,var(--ok) 13%,transparent);color:var(--ok)}
+.chip.acc{background:var(--accent-soft);color:var(--accent)}
+
+/* hero becomes a calm card */
+.hero{margin-top:0;padding:0;background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);overflow:hidden;position:relative}
+.hero::after{content:"";position:absolute;inset:0 0 auto auto;width:46%;height:100%;background:radial-gradient(120% 90% at 100% 0%,var(--accent-soft) 0%,transparent 70%);pointer-events:none}
+.hero .wrap{padding:32px 32px 30px;max-width:none;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:32px;row-gap:12px;align-items:end}
+.hero .wrap > *{grid-column:1}
+.hero-row{display:none}
+.hero .display,.hero .lede,.hero .it{color:var(--ink)}
+.hero .lede{color:var(--muted);font-size:16px;line-height:1.55;max-width:52ch;margin:0}
+.hero .lede b{color:var(--ink);font-weight:700}
+.hero .muted{color:var(--muted)}
+.hero .btn{border-color:var(--line-strong);color:var(--fg);background:var(--surface)}
+.hero .btn:hover{border-color:var(--accent);color:var(--accent)}
+.hero .btn.primary,.hero .btn.primary:hover{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.hero-stats{grid-column:2!important;grid-row:1 / span 3;display:grid;grid-template-columns:repeat(3,minmax(96px,auto));gap:10px;position:relative;z-index:1}
+.hero-stats div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:96px}
+.hero-stats b{display:block;font-size:26px;font-weight:700;color:var(--ink);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.hero-stats span{font-size:12px;color:var(--muted);font-weight:600}
+.hero-stats .hot b{color:var(--accent)}
+
+/* section heads */
+.sec-h{border-top:0;padding-top:0;margin-top:8px}
+.sec-h .eyebrow{font-size:14px;color:var(--ink);font-weight:700}
+
+/* project cards */
+.pgrid{gap:14px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.pcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:16px 18px 16px;box-shadow:var(--shadow);gap:8px;transition:box-shadow .18s,transform .18s,border-color .18s}
+.pcard:hover{box-shadow:var(--shadow-hover);transform:translateY(-2px);border-color:var(--line-strong)}
+.pc-title{font-size:17px;font-weight:700;line-height:1.35;color:var(--ink)}
+.pcard:hover .pc-title{color:var(--ink)}
+.pc-meta{margin-top:2px}
+.pc-bar{display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-top:4px}
+.pc-bar i{height:4px;border-radius:2px;background:var(--line)}
+.pc-bar i.on{background:var(--accent)}
+.pc-bar-label{font-size:11px;color:var(--muted);font-weight:600}
+.donebox summary{font-size:14px;font-weight:600;color:var(--muted);padding:6px 0}
+.donebox .pgrid{margin-top:10px}
+.foot{border:1px solid var(--line);border-radius:var(--r-card);background:var(--surface);padding:14px 18px;margin-top:32px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 18px;font-size:13px}
+.foot i{display:block;margin-bottom:2px}
+
+/* landing pieces */
+.steps li{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:18px;box-shadow:var(--shadow)}
+.steps li::before{width:28px;height:28px;font-size:14px}
+.steps b{font-size:17px}
+.recent{gap:14px}
+.recent-item{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:16px 18px;box-shadow:var(--shadow)}
+
+/* panels are cards */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);box-shadow:var(--shadow);padding:4px 20px 16px}
+.panel-h{border-bottom:1px solid var(--line);padding:14px 0 12px;margin-bottom:12px}
+.panel-b{padding:0}
+.board{gap:20px}
+
+/* project page */
+.back{margin:0 0 4px -10px}
+.pdetail{gap:18px}
+.phead{background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:22px 24px 18px;gap:12px}
+.facts{border:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.facts > span{background:var(--field);border-radius:10px;padding:10px 12px;text-align:left!important}
+.facts i{display:block;margin-bottom:2px}
+.pipeline{gap:6px;background:var(--field);padding:4px;border-radius:12px;width:max-content;max-width:100%}
+.pipeline button{padding:6px 12px;border-radius:9px;border:0;font-size:13px;font-weight:600;color:var(--muted)}
+.pipeline button:hover{color:var(--ink)}
+.pipeline button[aria-pressed="true"]{background:var(--surface);color:var(--accent);border:0;box-shadow:var(--shadow)}
+.cols{gap:18px;grid-template-columns:minmax(0,1fr) 340px}
+.side{gap:18px}
+.vbar > button:not(.btn){font-size:13px;border-width:1px;padding:3px 12px}
+.vinfo{border:0;background:var(--field);border-radius:10px;padding:10px 12px}
+.compose{background:var(--field);border:1px solid var(--line);border-radius:12px}
+.compose textarea,.compose input,.compose select{background:var(--surface)}
+input[type=text],input[type=url],input[type=date],input[type=number],select,textarea{border-radius:10px;border-color:var(--line-strong)}
+.note{padding:14px 0}
+.tcode{background:var(--field);border-radius:6px;border-left-width:3px;padding:2px 8px}
+.nreply{background:var(--field)}
+.meter{background:var(--line)}
+.banner{border:0;border-radius:12px;padding:12px 16px;background:color-mix(in srgb,var(--warn) 12%,transparent)}
+.meetgrid{gap:18px}
+
+@media (max-width: 900px){
+  .hero .wrap{grid-template-columns:minmax(0,1fr)}
+  .hero-stats{grid-column:1!important;grid-row:auto;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .foot{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width: 560px){
+  .hero .wrap{padding:22px 18px}
+  .phead{padding:18px}
+  .panel{padding:2px 16px 14px}
+  .meet .rel{display:none}
+}
 </style>
 
 <header class="top">
   <div class="wrap spec" id="spec">
-    <span><i>(cut note)</i> 컷노트</span>
+    <span id="spec-who"><i>(cut note)</i> 컷노트</span>
     <span class="meet" id="meet"></span>
     <span id="spec-a"></span>
     <span id="spec-b"></span>
@@ -505,6 +661,7 @@ function viewProjects(){
     return `<a class="pcard" href="#p-${x.id}">
       <div class="pc-top"><span class="pc-src">${esc(x.kind||'영상')}</span><span class="chip ${stc}">${statusLabel(x.status)}</span></div>
       <div class="pc-title">${esc(x.title||'제목 없음')}</div>
+      <div class="pc-bar" aria-label="진행 단계 ${statusLabel(x.status)}">${STATUS.map((_,i)=>`<i class="${i<=STATUS.findIndex(t=>t[0]===x.status)?'on':''}"></i>`).join('')}</div>
       <div class="pc-meta">${vs.length?`<span class="mono">v${vs[vs.length-1].n}</span>`:''}${o?`<span>수정 남음 <b>${o}</b></span>`:''}${qq?`<span class="chip warn">답변 필요 ${qq}</span>`:''}${miss&&x.status!=='done'?`<span>빈칸 <b>${miss}</b></span>`:''}${x.status!=='done'?ddChip(x.finalDue):''}</div>
     </a>`;
   };
@@ -514,16 +671,16 @@ function viewProjects(){
       <div class="hero-row"><span class="it">Outsourced editing desk</span><span class="it">${esc(c.channel?'Channel':'Projects')}</span></div>
       <h1 class="display">${esc(c.channel||'컷노트')}</h1>
       <p class="lede">진행 중인 영상 <b>${active.length}편</b>, 남은 수정 요청 <b>${open}건</b>, 답을 기다리는 질문 <b>${q}건</b>. 다음 정기 회의는 ${d.getMonth()+1}월 ${d.getDate()}일 금요일 오전 9시예요.</p>
-      <div class="hero-actions"><button class="btn primary" data-act="new-project">새 의뢰서</button>${safeUrl(c.deliverFolder)?`<a class="btn" href="${esc(safeUrl(c.deliverFolder))}" target="_blank" rel="noopener">완성본 폴더</a>`:''}</div>
+      <div class="hero-stats"><div><b>${active.length}</b><span>진행 중</span></div><div class="${open?'hot':''}"><b>${open}</b><span>수정 남음</span></div><div class="${q?'hot':''}"><b>${q}</b><span>답변 필요</span></div></div><div class="hero-actions"><button class="btn primary" data-act="new-project">새 의뢰서</button>${safeUrl(c.deliverFolder)?`<a class="btn" href="${esc(safeUrl(c.deliverFolder))}" target="_blank" rel="noopener">완성본 폴더</a>`:''}</div>
     </div>
     <svg class="ridge" viewBox="0 0 1200 150" preserveAspectRatio="none" aria-hidden="true"><path d="M0 150V96l40-8 38 12 46-22 34 6 52-30 30 14 44-6 40-22 26 10 34-4 58-40 22 8 30-30 26 20 36 2 48 30 30-6 40 22 56 4 44 18 38-10 46 14 52-6 40 16 46-8 44 12 50 2 30 14v66z"/></svg>
   </section>
   <div class="board" style="margin-top:8px">
-    <div class="sec-h"><span class="eyebrow">In progress</span><span class="muted">${active.length}편</span></div>
+    <div class="sec-h"><span class="eyebrow">진행 중인 프로젝트</span><span class="muted">${active.length}편</span></div>
     ${active.length?`<div class="pgrid">${active.map(card).join('')}</div>`:'<p class="muted">진행 중인 프로젝트가 없어요.</p>'}
-    ${done.length?`<details class="donebox" ${S.draft._showDone?'open':''}><summary data-act="toggle-done-list">Completed · 완료 ${done.length}편</summary><div class="pgrid">${done.map(card).join('')}</div></details>`:''}
+    ${done.length?`<details class="donebox" ${S.draft._showDone?'open':''}><summary data-act="toggle-done-list">완료한 프로젝트 ${done.length}편</summary><div class="pgrid">${done.map(card).join('')}</div></details>`:''}
   </div>
-  <div class="spec foot"><span><i>(upload)</i> 공통 · 일부공개</span><span><i>Shorts</i> ${esc(rulesS[0]||'규칙 없음')}</span><span><i>Long</i> ${esc(rulesL[0]||'규칙 없음')}</span><span><a href="#channel">규칙 전체 보기 →</a></span></div>`;
+  <div class="spec foot"><span><i>업로드</i> 공통 · 일부공개</span><span><i>숏폼</i> ${esc(rulesS[0]||'규칙 없음')}</span><span><i>롱폼</i> ${esc(rulesL[0]||'규칙 없음')}</span><span><a href="#channel">규칙 전체 보기 →</a></span></div>`;
 }
 
 function projectDetail(p){
@@ -533,7 +690,7 @@ function projectDetail(p){
   const head = `<div class="phead">
       <div class="row"><span class="eyebrow">${esc(p.kind||'영상')}</span><span class="eyebrow">${esc(p.client||'')}</span></div>
       <h1 class="ptitle">${esc(p.title||'제목 없음')}</h1>
-      <div class="spec facts"><span><i>Draft</i> <b>${p.draftDue?esc(fmtDate(p.draftDue)):'미정'}</b> ${ddChip(p.status==='brief'||p.status==='editing'?p.draftDue:'')}</span><span><i>Final</i> <b>${p.finalDue?esc(fmtDate(p.finalDue)):'미정'}</b> ${ddChip(p.status!=='done'?p.finalDue:'')}</span><span><i>Revisions</i> <b class="mono">${used}/${inc||'?'}</b>${inc&&used>inc?' <span class="chip bad">추가 수정</span>':''}</span><span>${safeUrl(p.drive)?`<a href="${esc(safeUrl(p.drive))}" target="_blank" rel="noopener">원본 ↗</a>`:'<span class="muted">원본 링크 없음</span>'}${safeUrl(ch().deliverFolder)?` · <a href="${esc(safeUrl(ch().deliverFolder))}" target="_blank" rel="noopener">완성본 ↗</a>`:''}</span></div>
+      <div class="spec facts"><span><i>1차 편집본</i> <b>${p.draftDue?esc(fmtDate(p.draftDue)):'미정'}</b> ${ddChip(p.status==='brief'||p.status==='editing'?p.draftDue:'')}</span><span><i>최종 마감</i> <b>${p.finalDue?esc(fmtDate(p.finalDue)):'미정'}</b> ${ddChip(p.status!=='done'?p.finalDue:'')}</span><span><i>수정 횟수</i> <b class="mono">${used}/${inc||'?'}</b>${inc&&used>inc?' <span class="chip bad">추가 수정</span>':''}</span><span>${safeUrl(p.drive)?`<a href="${esc(safeUrl(p.drive))}" target="_blank" rel="noopener">원본 ↗</a>`:'<span class="muted">원본 링크 없음</span>'}${safeUrl(ch().deliverFolder)?` · <a href="${esc(safeUrl(ch().deliverFolder))}" target="_blank" rel="noopener">완성본 ↗</a>`:''}</span></div>
       <div class="pipeline" role="group" aria-label="진행 단계">${STATUS.map(([k,l])=>`<button type="button" data-act="status" data-k="${k}" aria-pressed="${p.status===k}" ${S.canWrite?'':'disabled'}>${l}</button>`).join('')}</div>
     </div>`;
   if(S.editing) return `<div class="pdetail">${head}${briefPanel(p, miss)}</div>`;
