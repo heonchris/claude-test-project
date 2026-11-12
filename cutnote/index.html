@@ -88,6 +88,17 @@ label.f .req{color:var(--bad);margin-left:2px}
 .empty{padding:28px 16px;text-align:center;color:var(--muted)}
 .empty h3{color:var(--fg);margin-bottom:6px}
 
+/* project cards */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.pcard{display:grid;gap:8px;align-content:start;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--fg);transition:border-color .15s}
+.pcard:hover{border-color:var(--accent)}
+.pc-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pc-kind{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc-title{font-weight:600;font-size:15px;line-height:1.4;overflow-wrap:anywhere}
+.pc-meta{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:12px;color:var(--muted)}
+.pc-meta b{color:var(--fg)}
+.donebox summary{cursor:pointer;color:var(--muted);font-weight:500}
+.back{margin:-4px 0 12px -8px}
 /* project layout */
 .proj{display:grid;grid-template-columns:240px minmax(0,1fr);gap:20px;align-items:start}
 .plist{display:grid;gap:4px}
@@ -177,10 +188,6 @@ label.f .req{color:var(--bad);margin-left:2px}
     </div>
     <div class="meet" id="meet"></div>
     <div class="spacer"></div>
-    <div class="seg" role="group" aria-label="내 역할">
-      <button type="button" data-act="role" data-role="editor" id="role-editor">편집자</button>
-      <button type="button" data-act="role" data-role="shooter" id="role-shooter">촬영자</button>
-    </div>
   </div>
   <div class="wrap"><nav class="tabs" id="tabs" aria-label="화면"></nav></div>
 </header>
@@ -204,7 +211,7 @@ const STATUS = [['brief','의뢰 접수'],['editing','편집 중'],['review','�
 const FIELDS = [
   {k:'title',label:'프로젝트명',req:1,ph:'예: 카페 브랜드 소개 영상'},
   {k:'client',label:'의뢰인 · 채널',ph:'예: 촬영팀 이름'},
-  {k:'kind',label:'영상 종류',type:'select',opts:['유튜브 본편','숏폼(릴스·쇼츠)','광고·브랜드','행사·웨딩','인터뷰','기타']},
+  {k:'kind',label:'영상 종류',type:'select',opts:['유튜브 본편','숏폼(릴스·쇼츠)','롱폼 + 쇼츠 추출','광고·브랜드','행사·웨딩','인터뷰','기타']},
   {k:'drive',label:'원본 구글 드라이브 링크',req:1,type:'url',ph:'https://drive.google.com/drive/folders/...',full:1},
   {k:'refs',label:'레퍼런스 영상',req:1,type:'textarea',ph:'한 줄에 하나씩, 링크와 참고할 점\n예: https://youtu.be/... 0:30 부분 컷 템포',full:1},
   {k:'length',label:'최종 길이',req:1,ph:'예: 8~10분'},
@@ -226,10 +233,9 @@ const S = {
   conn:'loading', db:null, user:null, uid:null, canWrite:true,
   projects:[], versions:[], notes:[], meetings:{}, settings:{},
   loaded:{projects:false,versions:false,notes:false,meetings:false,settings:false},
-  role:'editor', view:'todo', pid:null, editing:false, vsel:{}, filter:'open',
+  role:'shooter', view:'projects', pid:null, editing:false, vsel:{}, filter:'open',
   draft:{}, names:{}, replyOpen:null,
 };
-try{ const r = localStorage.getItem('cutnote-role'); if(r==='editor'||r==='shooter') S.role=r; }catch(e){}
 
 /* ---------- helpers ---------- */
 const $ = s => document.querySelector(s);
@@ -253,9 +259,10 @@ const projVersions = pid => S.versions.filter(v=>v.projectId===pid).sort((a,b)=>
 const projNotes = pid => S.notes.filter(n=>n.projectId===pid);
 const latestN = pid => { const vs=projVersions(pid); return vs.length ? vs[vs.length-1].n : 0; };
 const isShort = p => /숏/.test(p.kind||'');
+const isCombo = p => /롱폼 \+ 쇼츠/.test(p.kind||'');
 const ch = () => S.settings.channel || {};
 const lines = t => String(t||'').split('\n').map(x=>x.trim()).filter(Boolean);
-const uploadRules = p => [...lines(ch().rulesCommon), ...lines(isShort(p) ? ch().rulesShort : ch().rulesLong)];
+const uploadRules = p => isCombo(p) ? [...lines(ch().rulesCommon), ...lines(ch().rulesLong).map(x=>'롱폼: '+x), ...lines(ch().rulesShort).map(x=>'쇼츠: '+x)] : [...lines(ch().rulesCommon), ...lines(isShort(p) ? ch().rulesShort : ch().rulesLong)];
 const nameOf = id => S.names[id] || '';
 const byLabel = n => `${ROLE_LABEL[n.role]||''}${nameOf(n.byId) ? ' · '+esc(nameOf(n.byId)) : ''}`;
 
@@ -304,13 +311,11 @@ function renderHeader(){
   const m = $('#meet');
   m.className = 'meet' + (diff < 86400000 ? ' soon' : '');
   m.innerHTML = `<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M7 3.5V7l2.2 1.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg><span><span class="long">정기 회의 </span><b>${d.getMonth()+1}/${d.getDate()} (금) 오전 9:00</b> · ${rel}</span>`;
-  $('#role-editor').setAttribute('aria-pressed', S.role==='editor');
-  $('#role-shooter').setAttribute('aria-pressed', S.role==='shooter');
   const openCount = S.role==='editor'
     ? S.notes.filter(n=>n.status==='open').length
     : S.notes.filter(n=>n.status==='question').length + S.projects.filter(p=>p.status==='review').length;
   const agendaCount = agendaItems().length;
-  const tabs = [['todo','할 일',openCount],['projects','프로젝트',0],['meeting','금요일 회의',agendaCount],['channel','채널 · 업로드',0]];
+  const tabs = [['projects','프로젝트',0],['meeting','금요일 회의',agendaCount],['channel','채널 · 업로드',0]];
   const cur = S.view==='project' ? 'projects' : S.view;
   $('#tabs').innerHTML = tabs.map(([k,l,c]) => `<a href="#${k}" ${cur===k?'aria-current="page"':''}>${l}${c?`<span class="count">${c}</span>`:''}</a>`).join('');
 }
@@ -329,7 +334,6 @@ function render(){
   renderHeader();
   let html = bannerHTML();
   if(S.conn==='loading' && !S.loaded.projects) html += `<div class="empty"><h3>작업판을 불러오는 중이에요</h3><p>의뢰서, 수정 요청, 금요일 회의 안건이 여기에 나타나요.</p></div>`;
-  else if(S.view==='todo') html += viewTodo();
   else if(S.view==='meeting') html += viewMeeting();
   else if(S.view==='channel') html += viewChannel();
   else html += viewProjects();
@@ -348,70 +352,32 @@ function emptyAll(){
     </p></div></div>`;
 }
 
-/* ----- 할 일 ----- */
-function viewTodo(){
-  if(!S.projects.length) return emptyAll();
-  const active = S.projects.filter(p=>p.status!=='done').sort((a,b)=>(a.finalDue||'9').localeCompare(b.finalDue||'9'));
-  const openNotes = S.notes.filter(n=>n.status==='open');
-  const questions = S.notes.filter(n=>n.status==='question');
-  const reviews = active.filter(p=>p.status==='review');
-  const briefGaps = active.filter(p=>missing(p).length);
-  const soonest = active.find(p=>p.finalDue);
-  let out = `<div class="board">
-    <div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:flex-end">
-      <div style="flex:1;min-width:200px"><div class="eyebrow">${S.role==='editor'?'편집자 화면':'촬영자 화면'}</div><h1>${S.role==='editor'?'지금 손대야 할 수정':'확인해 주셔야 할 것'}</h1></div>
-      <button class="btn" data-act="new-project">새 의뢰서</button>
-    </div>
-    <div class="stats">
-      <div class="stat"><b>${openNotes.length}</b><span>남은 수정 요청</span></div>
-      <div class="stat"><b>${questions.length}</b><span>답을 기다리는 질문</span></div>
-      <div class="stat"><b>${reviews.length}</b><span>검토 기다리는 편집본</span></div>
-      <div class="stat"><b>${soonest?esc(fmtDate(soonest.finalDue)):'—'}</b><span>${soonest?'가장 가까운 마감 · '+esc(soonest.title||'제목 없음'):'잡힌 마감 없음'}</span></div>
-    </div>`;
-
-  const sec = (title, body, note) => `<section class="panel"><div class="panel-h"><h2>${title}</h2>${note?`<span class="muted" style="font-size:13px">${note}</span>`:''}</div><div class="panel-b">${body}</div></section>`;
-
-  const editPart = () => {
-    const groups = active.map(p => {
-      const ns = openNotes.filter(n=>n.projectId===p.id).sort((a,b)=>(b.version-a.version)||((a.tc??-1)-(b.tc??-1)));
-      if(!ns.length) return '';
-      return `<div class="group" style="margin-bottom:14px"><h3><a href="#p-${p.id}">${esc(p.title||'제목 없음')}</a> ${ddChip(p.finalDue)} <span class="chip">${ns.length}건</span></h3>
-        <div class="tlist">${ns.map(todoRow).join('')}</div></div>`;
-    }).join('');
-    return sec('수정 요청', groups || `<p class="muted" style="margin:0">남은 수정 요청이 없어요.</p>`, '체크하면 완료로 바뀌고 촬영자 화면에도 바로 보여요');
-  };
-  const askPart = () => {
-    const qs = questions.map(n => { const p=S.projects.find(x=>x.id===n.projectId); return todoRow(n, p); }).join('');
-    const rv = reviews.map(p => { const vs=projVersions(p.id); const v=vs[vs.length-1]; const link=v&&safeUrl(v.link);
-      return `<div class="titem"><span class="chip acc mono">v${v?v.n:'?'}</span><div><a href="#p-${p.id}"><b>${esc(p.title||'제목 없음')}</b></a> 편집본을 확인하고 수정 요청을 남겨 주세요.${v&&v.note?`<div class="muted" style="font-size:13px">${esc(v.note)}</div>`:''}</div>${link?`<a class="btn small" href="${esc(link)}" target="_blank" rel="noopener">영상 열기</a>`:'<span></span>'}</div>`; }).join('');
-    const gaps = briefGaps.map(p => `<div class="titem"><span class="chip bad">의뢰서</span><div><a href="#p-${p.id}"><b>${esc(p.title||'제목 없음')}</b></a> · 빠진 항목: ${missing(p).map(f=>esc(f.label)).join(', ')}</div><a class="btn small" href="#p-${p.id}">채우기</a></div>`).join('');
-    const body = (rv||qs||gaps) ? `<div class="tlist" style="margin-top:0">${rv}${qs}${gaps}</div>` : `<p class="muted" style="margin:0">지금 확인할 것이 없어요.</p>`;
-    return sec(S.role==='editor'?'촬영자 확인 대기':'확인해 주세요', body, S.role==='editor'?'질문과 빠진 의뢰서 항목은 금요일 회의 안건에도 올라가요':'편집자의 질문, 새 편집본, 빈 의뢰서 칸');
-  };
-  out += S.role==='editor' ? editPart()+askPart() : askPart()+editPart();
-  return out + `</div>`;
-}
-
-function todoRow(n, p){
-  const cat = catOf(n.cat);
-  const proj = p ? `<a href="#p-${p.id}" class="muted" style="font-size:12px">${esc(p.title||'')}</a> · ` : '';
-  return `<div class="titem">
-    <input type="checkbox" class="check" data-act="toggle-done" data-id="${n.id}" ${n.status==='done'?'checked':''} aria-label="완료로 표시" ${S.canWrite?'':'disabled'}>
-    <div><div class="nmeta" style="margin-bottom:2px">${proj}<span class="tcode" style="border-left-color:var(${cat.v})">${fmtTC(n.tc)}${n.tcEnd!=null?'–'+fmtTC(n.tcEnd):''}</span><span class="mono">v${n.version}</span><span>${cat.label}</span>${n.status==='question'?'<span class="chip warn">질문</span>':''}</div>
-    <div class="ntext">${esc(n.text)}</div>${n.reply?`<div class="nreply"><b>답변</b>${esc(n.reply)}</div>`:''}</div>
-    <a class="btn small ghost" href="#p-${n.projectId}">열기</a></div>`;
-}
-
 /* ----- 프로젝트 ----- */
 function viewProjects(){
   if(!S.projects.length) return emptyAll();
-  const list = [...S.projects].sort((a,b)=>(a.status==='done')-(b.status==='done') || (a.finalDue||'9').localeCompare(b.finalDue||'9'));
-  if(!S.pid || !S.projects.find(p=>p.id===S.pid)) S.pid = list[0].id;
-  const p = S.projects.find(x=>x.id===S.pid);
-  const side = `<div><div class="plist">${list.map(x=>{ const open=projNotes(x.id).filter(n=>n.status!=='done').length; const miss=missing(x).length;
-      return `<a href="#p-${x.id}" ${x.id===S.pid?'aria-current="page"':''}><span class="pt">${esc(x.title||'제목 없음')}</span><span class="pm"><span>${statusLabel(x.status)}</span>${open?`<span>· 수정 ${open}</span>`:''}${miss?`<span class="chip bad">빈칸 ${miss}</span>`:''}${ddChip(x.finalDue)}</span></a>`; }).join('')}</div>
-    <button class="btn" style="margin-top:10px;width:100%;justify-content:center" data-act="new-project">새 의뢰서</button></div>`;
-  return `<div class="proj">${side}${projectDetail(p)}</div>`;
+  if(S.view==='project'){
+    const p = S.projects.find(x=>x.id===S.pid);
+    if(!p) return `<div class="empty"><h3>프로젝트를 찾을 수 없어요</h3><p><a href="#projects">목록으로 돌아가기</a></p></div>`;
+    return `<a class="btn ghost back" href="#projects">← 프로젝트 목록</a>${projectDetail(p)}`;
+  }
+  const order = {review:0,revising:1,editing:2,brief:3,done:4};
+  const list = [...S.projects].sort((a,b)=>(order[a.status]??3)-(order[b.status]??3) || (a.finalDue||'9').localeCompare(b.finalDue||'9') || (a.createdAt||0)-(b.createdAt||0));
+  const active = list.filter(p=>p.status!=='done'), done = list.filter(p=>p.status==='done');
+  const card = x => {
+    const ns = projNotes(x.id); const open = ns.filter(n=>n.status==='open').length; const q = ns.filter(n=>n.status==='question').length;
+    const miss = missing(x).length; const vs = projVersions(x.id);
+    const st = {brief:'',editing:'acc',review:'warn',revising:'warn',done:'ok'}[x.status]||'';
+    return `<a class="pcard" href="#p-${x.id}">
+      <div class="pc-top"><span class="chip ${st}">${statusLabel(x.status)}</span><span class="muted pc-kind">${esc(x.kind||'영상')}</span></div>
+      <div class="pc-title">${esc(x.title||'제목 없음')}</div>
+      <div class="pc-meta">${vs.length?`<span class="mono">v${vs[vs.length-1].n}</span>`:''}${open?`<span>수정 남음 <b>${open}</b></span>`:''}${q?`<span class="chip warn">답변 필요 ${q}</span>`:''}${miss&&x.status!=='done'?`<span class="chip bad">빈칸 ${miss}</span>`:''}${x.status!=='done'?ddChip(x.finalDue):''}${!open&&!q&&!(miss&&x.status!=='done')&&!vs.length?'<span class="muted">새 의뢰</span>':''}</div>
+    </a>`;
+  };
+  return `<div class="board">
+    <div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:flex-end"><div style="flex:1;min-width:200px"><div class="eyebrow">${esc(ch().channel||'프로젝트')}</div><h1>진행 중 ${active.length}개</h1></div><button class="btn primary" data-act="new-project">새 의뢰서</button></div>
+    ${active.length?`<div class="pgrid">${active.map(card).join('')}</div>`:'<p class="muted">진행 중인 프로젝트가 없어요.</p>'}
+    ${done.length?`<details class="donebox" ${S.draft._showDone?'open':''}><summary data-act="toggle-done-list">완료 ${done.length}개</summary><div class="pgrid" style="margin-top:12px">${done.map(card).join('')}</div></details>`:''}
+  </div>`;
 }
 
 function projectDetail(p){
@@ -445,7 +411,7 @@ function briefPanel(p, miss){
   return `<section class="panel brief"><div class="panel-h"><h2>의뢰서</h2><span class="spacer"></span><button class="btn small" data-act="edit-brief" ${S.canWrite?'':'disabled'}>수정</button></div>
     <div class="panel-b" style="display:grid;gap:14px">
       <div style="display:grid;gap:6px"><div style="display:flex;justify-content:space-between;font-size:13px"><span>필수 항목 ${REQ.length-miss.length}/${REQ.length}</span>${miss.length?`<span class="chip bad">빈칸 ${miss.length}</span>`:'<span class="chip ok">모두 채움</span>'}</div><div class="meter ${miss.length?'part':''}"><i style="width:${pct}%"></i></div></div>
-      ${miss.length?`<div class="muted" style="font-size:13px">${S.role==='shooter'?'편집을 시작하려면 빈칸을 채워 주세요.':'빈칸은 금요일 회의 안건에 자동으로 올라가요.'}</div>`:''}
+      ${miss.length?`<div class="muted" style="font-size:13px">빈칸은 금요일 회의 안건에 자동으로 올라가요.</div>`:''}
       <dl>${FIELDS.filter(f=>f.k!=='title'&&f.k!=='kind'&&f.k!=='client').map(row).join('')}</dl>
     </div></section>`;
 }
@@ -455,7 +421,7 @@ function uploadPanel(p){
   const n = rules.filter((_,i)=>done[i]).length;
   const body = rules.length ? `<div style="display:grid;gap:8px">${rules.map((r,i)=>`<label style="display:flex;gap:8px;align-items:flex-start;font-size:14px"><input type="checkbox" class="check" style="margin-top:2px" data-act="upload-check" data-i="${i}" ${done[i]?'checked':''} ${S.canWrite?'':'disabled'}><span${done[i]?' class="muted" style="text-decoration:line-through"':''}>${esc(r)}</span></label>`).join('')}</div>`
     : `<p class="muted" style="margin:0;font-size:13px">채널 · 업로드 탭에서 업로드 규칙을 적어 두면 여기에 체크리스트로 나와요.</p>`;
-  return `<section class="panel"><div class="panel-h"><h2>업로드 체크</h2><span class="chip ${isShort(p)?'acc':''}">${isShort(p)?'숏폼 규칙':'롱폼 규칙'}</span><span class="spacer"></span>${rules.length?`<span class="mono muted" style="font-size:12px">${n}/${rules.length}</span>`:''}</div><div class="panel-b">${body}</div></section>`;
+  return `<section class="panel"><div class="panel-h"><h2>업로드 체크</h2><span class="chip ${isShort(p)?'acc':''}">${isCombo(p)?'롱폼 + 쇼츠 규칙':isShort(p)?'숏폼 규칙':'롱폼 규칙'}</span><span class="spacer"></span>${rules.length?`<span class="mono muted" style="font-size:12px">${n}/${rules.length}</span>`:''}</div><div class="panel-b">${body}</div></section>`;
 }
 
 const CH_FIELDS = [
@@ -503,7 +469,7 @@ function feedbackPanel(p, vs){
   const vbar = `<div class="vbar" role="group" aria-label="편집본 버전">
       ${vs.length?'':`<button type="button" aria-pressed="true" data-act="vsel" data-n="0">편집 전</button>`}
       ${vs.map(x=>`<button type="button" data-act="vsel" data-n="${x.n}" aria-pressed="${x.n===cur}">v${x.n}</button>`).join('')}
-      ${S.role==='editor'?`<button type="button" class="btn small" style="font-family:var(--font-body)" data-act="toggle-vform">+ 새 편집본 올리기</button>`:''}</div>`;
+      ${S.canWrite?`<button type="button" class="btn small" style="font-family:var(--font-body)" data-act="toggle-vform">+ 새 편집본 올리기</button>`:''}</div>`;
   const vform = S.draft._vform ? `<div class="compose"><div class="row"><span class="chip acc mono">v${latest+1}</span><input id="d-v-link" type="url" placeholder="편집본 드라이브 공유 링크" value="${esc(dv('d-v-link'))}" style="flex:1;min-width:200px"></div>
       <input id="d-v-note" type="text" placeholder="이번 버전에서 바뀐 점 (예: 1차 피드백 7건 반영, 엔딩 자막 교체)" value="${esc(dv('d-v-note'))}">
       <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-act="toggle-vform">취소</button><button class="btn primary" data-act="add-version">올리고 검토 요청</button></div></div>` : '';
@@ -511,7 +477,7 @@ function feedbackPanel(p, vs){
     : `<div class="vinfo muted">아직 편집본이 없어요. 편집 전 질문이나 요청은 여기에 남기세요.</div>`;
   const compose = `<div class="compose">
       <label for="d-n-text" class="sr">수정 요청 내용</label>
-      <textarea id="d-n-text" placeholder="${S.role==='shooter'?'예) 01:23 인서트 컷 2초 줄여 주세요\n02:10~02:25 배경음악 볼륨 낮춰 주세요\n\n카톡에 적어 둔 메모를 그대로 붙여넣어도 시간별로 나눠져요.':'촬영자에게 물어볼 것, 메모 등\n예) 00:45 이 장면 대체 컷이 있나요?'}">${esc(dv('d-n-text'))}</textarea>
+      <textarea id="d-n-text" placeholder="예) 01:23 인서트 컷 2초 줄여 주세요&#10;02:10~02:25 배경음악 볼륨 낮춰 주세요&#10;&#10;카톡 메모를 그대로 붙여넣어도 시간별로 나눠져요.">${esc(dv('d-n-text'))}</textarea>
       <div class="row">
         <label class="sr" for="d-n-tc">타임코드</label><input id="d-n-tc" class="tc" type="text" inputmode="numeric" placeholder="00:00" value="${esc(dv('d-n-tc'))}">
         <label class="sr" for="d-n-cat">분류</label><select id="d-n-cat">${CATS.map(c=>`<option value="${c.k}" ${dv('d-n-cat','cut')===c.k?'selected':''}>${c.label}</option>`).join('')}</select>
@@ -688,6 +654,7 @@ document.addEventListener('click', async e => {
   switch(act){
     case 'role': S.role=b.dataset.role; try{ localStorage.setItem('cutnote-role',S.role); }catch(_){} render(); break;
     case 'new-project': createProject(false); break;
+    case 'toggle-done-list': S.draft._showDone = !b.closest('details').open; break;
     case 'sample': createProject(true); break;
     case 'edit-brief': S.editing=true; render(); break;
     case 'cancel-brief': S.editing=false; for(const k of Object.keys(S.draft)) if(k.startsWith('d-b-')) delete S.draft[k]; render(); break;
@@ -739,7 +706,7 @@ function route(){
   const h = location.hash.slice(1);
   if(h.startsWith('p-')){ const id=h.slice(2); if(S.pid!==id){ S.editing=false; S.replyOpen=null; } S.view='project'; S.pid=id; }
   else if(h==='meeting' || h==='projects' || h==='channel') S.view = h;
-  else S.view='todo';
+  else { S.view='projects'; S.editing=false; }
   render(); window.scrollTo(0,0);
 }
 window.addEventListener('hashchange', route);
@@ -754,7 +721,7 @@ async function boot(){
   const [db, user] = await Promise.all([c.use('db'), c.use('user')]);
   S.db = db; S.user = user;
   if(!db){ clearTimeout(timer); S.conn='none'; S.loaded.projects=true; render(); return; }
-  if(user){ try{ S.uid = await user.id(); }catch(_){} try{ const w = await user.can('data.write'); if(w===false) S.canWrite=false; }catch(_){} }
+  if(user){ try{ S.uid = await user.id(); }catch(_){} try{ S.role = (await user.isOwner()) ? 'editor' : 'shooter'; }catch(_){} try{ const w = await user.can('data.write'); if(w===false) S.canWrite=false; }catch(_){} }
   const sub = (name, key, map) => db.collection(name).onSnapshot(snap => {
     clearTimeout(timer); S.conn='ok'; S.loaded[key]=true;
     if(map) S[key] = Object.fromEntries(snap.docs.map(d=>[d.id, d.data()]));
