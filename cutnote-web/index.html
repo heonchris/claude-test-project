@@ -7,9 +7,10 @@
 <title>컷노트</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Noto+Serif+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <style>
-/* Layout: a colour-specimen sheet at night. Italic spec rows frame the page top and bottom, one huge
+/* Layout: transit signage. Helvetica throughout, a black station-sign band for the channel, then plain
+   high-contrast lists; categories and stages use line-colour bullets. (Earlier note:) a colour-specimen sheet at night. Italic spec rows frame the page top and bottom, one huge
    condensed serif names the channel over a dark sky and ridge line, and projects read like dictionary
    entries: a small italic source label over a large serif title. One committed dark world, blue ink only. */
 :root{
@@ -190,6 +191,96 @@ label.f .req{color:var(--bad);margin-left:2px}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--on-ink);padding:8px 18px;border-radius:999px;font-size:13px;z-index:20;max-width:calc(100% - 32px)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 
+/* ===== Subway signage restyle: Helvetica everywhere, high-contrast neutrals, line-colour bullets ===== */
+:root{
+  color-scheme:light;
+  --bg:#FFFFFF; --field:#F3F3F1; --line:#E2E2DF; --line-strong:#B9B9B5;
+  --ink:#111111; --fg:#1B1B1B; --muted:#5B5B58; --on-ink:#FFFFFF;
+  --accent:#0039A6; --band:#0B0B0B; --band-fg:#FFFFFF; --band-muted:#B5B5B5;
+  --warn:#8A5A00; --bad:#C8102E; --ok:#00753A;
+  --m-cut:#0039A6; --m-sub:#B933AD; --m-sound:#00933C; --m-color:#FF6319; --m-gfx:#EE352E; --m-etc:#808183;
+  --font-display:"Helvetica Neue",Helvetica,Arial,"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --font-body:"Helvetica Neue",Helvetica,Arial,"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --font-mono:"Helvetica Neue",Helvetica,Arial,"Noto Sans KR",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --bg:#101010; --field:#1B1B1B; --line:#2B2B2B; --line-strong:#484848;
+  --ink:#F4F4F2; --fg:#EAEAE7; --muted:#A6A6A2; --on-ink:#111111;
+  --accent:#7FA6FF; --band:#000000; --band-fg:#FFFFFF; --band-muted:#A6A6A2;
+  --warn:#F2C14E; --bad:#FF6B6B; --ok:#4CC38A;
+  --m-cut:#4F7DFF; --m-sub:#D45CCB; --m-sound:#2DBE63; --m-color:#FF7A33; --m-gfx:#FF5A52; --m-etc:#A7A9AC;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#101010; --field:#1B1B1B; --line:#2B2B2B; --line-strong:#484848;
+  --ink:#F4F4F2; --fg:#EAEAE7; --muted:#A6A6A2; --on-ink:#111111;
+  --accent:#7FA6FF; --band:#000000; --band-fg:#FFFFFF; --band-muted:#A6A6A2;
+  --warn:#F2C14E; --bad:#FF6B6B; --ok:#4CC38A;
+  --m-cut:#4F7DFF; --m-sub:#D45CCB; --m-sound:#2DBE63; --m-color:#FF7A33; --m-gfx:#FF5A52; --m-etc:#A7A9AC;
+}
+body{font-size:15px;line-height:1.6;letter-spacing:-.003em}
+a{color:var(--accent);text-decoration-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+a:hover{color:var(--accent);text-decoration-color:var(--accent)}
+::selection{background:var(--accent);color:#fff}
+:focus-visible{outline:2px solid var(--accent)}
+.it,.eyebrow,.spec i,.pc-src,.brief dt,label.f > span:first-child,.nreply b,.donebox summary{font-style:normal;font-family:var(--font-body)}
+.eyebrow,.spec i,.pc-src,.brief dt,label.f > span:first-child{font-size:12px;font-weight:700;letter-spacing:.03em;color:var(--muted)}
+.spec{color:var(--fg)} .spec b{color:var(--ink);font-weight:700}
+h1,h2,h3{color:var(--ink);font-weight:700;letter-spacing:-.015em}
+h1{font-size:clamp(28px,4vw,40px)} h2{font-size:20px}
+.display{font-weight:700;letter-spacing:-.03em;font-size:clamp(48px,9vw,112px);line-height:.95}
+.ptitle{font-weight:700;letter-spacing:-.025em;font-size:clamp(34px,5.5vw,64px);line-height:1.02}
+.pc-title{font-size:21px;font-weight:700;line-height:1.25;letter-spacing:-.01em}
+.pcard:hover .pc-title{color:var(--accent)}
+.lede{font-size:clamp(17px,1.8vw,20px);line-height:1.45;font-weight:400}
+nav.tabs a{font-size:16px;font-weight:500;color:var(--muted)}
+nav.tabs a[aria-current="page"]{color:var(--ink);border-bottom:3px solid var(--ink)}
+nav.tabs .count{display:inline-block;min-width:18px;height:18px;line-height:18px;padding:0 5px;border-radius:9px;background:var(--ink);color:var(--on-ink);font-size:11px;font-weight:700;text-align:center;vertical-align:1px;margin-left:5px}
+header.top{background:color-mix(in srgb,var(--bg) 94%,transparent);border-bottom-color:var(--line)}
+.btn{border-color:var(--line-strong);color:var(--fg);font-weight:500}
+.btn:hover{border-color:var(--ink);color:var(--ink)}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:var(--on-ink);font-weight:700}
+.btn.primary:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+.chip{border-color:var(--line-strong);color:var(--fg);font-weight:500}
+.chip.acc{background:var(--ink);border-color:var(--ink);color:var(--on-ink)}
+.chip.warn{background:color-mix(in srgb,var(--warn) 12%,transparent)}
+.chip.bad{background:color-mix(in srgb,var(--bad) 10%,transparent)}
+.chip.ok{background:color-mix(in srgb,var(--ok) 12%,transparent)}
+input[type=text],input[type=url],input[type=date],input[type=number],select,textarea{border:1px solid var(--line-strong);border-radius:6px;background:var(--bg)}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 20%,transparent)}
+.compose{background:var(--field);border-color:var(--line);border-radius:8px}
+.compose textarea,.compose input,.compose select{background:var(--bg)}
+.panel{border-top:2px solid var(--ink)}
+.banner{border-color:var(--warn);color:var(--warn)}
+/* hero: a black station sign band */
+.hero{background:var(--band);border-radius:0;margin-top:-28px}
+.hero .ridge{display:none}
+.hero .wrap{padding-bottom:40px}
+.hero .display,.hero .lede,.hero-row,.hero .it{color:var(--band-fg)}
+.hero .lede b{color:var(--band-fg);font-weight:700}
+.hero-row .it{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--band-muted)}
+.hero .muted{color:var(--band-muted)}
+.hero .btn{border-color:#5A5A5A;color:#fff}
+.hero .btn:hover{border-color:#fff;color:#fff}
+.hero .btn.primary{background:#fff;border-color:#fff;color:#000}
+.hero .btn.primary:hover{background:var(--m-sound);border-color:var(--m-sound);color:#fff}
+/* line bullets for timecodes, versions and stages */
+.tcode{font-family:var(--font-body);font-weight:700;font-size:13px;color:var(--ink);border-left-width:4px}
+.vbar > button:not(.btn){font-size:16px;font-weight:700;color:var(--muted);border:2px solid var(--line-strong);border-radius:999px;padding:2px 12px}
+.vbar > button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--on-ink)}
+.vinfo b{font-family:var(--font-body);font-weight:700;font-size:15px;color:var(--ink)}
+.pipeline button{font-family:var(--font-body);font-size:15px;font-weight:500;padding:4px 0}
+.pipeline button[aria-pressed="true"]{color:var(--ink);font-weight:700;border-bottom:3px solid var(--ink)}
+.ntext{font-size:15px;color:var(--fg)}
+.nreply{border-left:3px solid var(--line-strong);background:var(--field);border-radius:0 6px 6px 0}
+.nreply b{font-size:13px;font-weight:700;color:var(--ink)}
+.agenda b a{font-family:var(--font-body);font-weight:700;font-size:20px;color:var(--ink)}
+.agenda > li::marker{font-family:var(--font-body);font-weight:700;color:var(--ink)}
+.meter{height:4px;border-radius:2px}
+.seg button[aria-pressed="true"]{color:var(--ink);font-weight:700;border-bottom-width:2px}
+.toast{background:var(--ink);color:var(--on-ink)}
+.who{color:var(--ink);font-weight:700}
 @media (max-width: 900px){
   .cols,.meetgrid{grid-template-columns:minmax(0,1fr)}
 }
