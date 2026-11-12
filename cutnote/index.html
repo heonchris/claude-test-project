@@ -224,8 +224,8 @@ const ROLE_LABEL = {editor:'편집자',shooter:'촬영자'};
 
 const S = {
   conn:'loading', db:null, user:null, uid:null, canWrite:true,
-  projects:[], versions:[], notes:[], meetings:{},
-  loaded:{projects:false,versions:false,notes:false,meetings:false},
+  projects:[], versions:[], notes:[], meetings:{}, settings:{},
+  loaded:{projects:false,versions:false,notes:false,meetings:false,settings:false},
   role:'editor', view:'todo', pid:null, editing:false, vsel:{}, filter:'open',
   draft:{}, names:{}, replyOpen:null,
 };
@@ -252,6 +252,10 @@ const missing = p => REQ.filter(f => !String(p[f.k] ?? '').trim());
 const projVersions = pid => S.versions.filter(v=>v.projectId===pid).sort((a,b)=>a.n-b.n);
 const projNotes = pid => S.notes.filter(n=>n.projectId===pid);
 const latestN = pid => { const vs=projVersions(pid); return vs.length ? vs[vs.length-1].n : 0; };
+const isShort = p => /숏/.test(p.kind||'');
+const ch = () => S.settings.channel || {};
+const lines = t => String(t||'').split('\n').map(x=>x.trim()).filter(Boolean);
+const uploadRules = p => [...lines(ch().rulesCommon), ...lines(isShort(p) ? ch().rulesShort : ch().rulesLong)];
 const nameOf = id => S.names[id] || '';
 const byLabel = n => `${ROLE_LABEL[n.role]||''}${nameOf(n.byId) ? ' · '+esc(nameOf(n.byId)) : ''}`;
 
@@ -306,7 +310,7 @@ function renderHeader(){
     ? S.notes.filter(n=>n.status==='open').length
     : S.notes.filter(n=>n.status==='question').length + S.projects.filter(p=>p.status==='review').length;
   const agendaCount = agendaItems().length;
-  const tabs = [['todo','할 일',openCount],['projects','프로젝트',0],['meeting','금요일 회의',agendaCount]];
+  const tabs = [['todo','할 일',openCount],['projects','프로젝트',0],['meeting','금요일 회의',agendaCount],['channel','채널 · 업로드',0]];
   const cur = S.view==='project' ? 'projects' : S.view;
   $('#tabs').innerHTML = tabs.map(([k,l,c]) => `<a href="#${k}" ${cur===k?'aria-current="page"':''}>${l}${c?`<span class="count">${c}</span>`:''}</a>`).join('');
 }
@@ -327,6 +331,7 @@ function render(){
   if(S.conn==='loading' && !S.loaded.projects) html += `<div class="empty"><h3>작업판을 불러오는 중이에요</h3><p>의뢰서, 수정 요청, 금요일 회의 안건이 여기에 나타나요.</p></div>`;
   else if(S.view==='todo') html += viewTodo();
   else if(S.view==='meeting') html += viewMeeting();
+  else if(S.view==='channel') html += viewChannel();
   else html += viewProjects();
   $('#app').innerHTML = html;
   if(fid){ const el=document.getElementById(fid); if(el){ el.focus({preventScroll:true}); if(sel) try{ el.setSelectionRange(sel[0],sel[1]); }catch(e){} } }
@@ -418,14 +423,15 @@ function projectDetail(p){
       <h1>${esc(p.title||'제목 없음')}</h1>
       <div class="facts"><span>1차 <b>${p.draftDue?esc(fmtDate(p.draftDue)):'미정'}</b> ${ddChip(p.status==='brief'||p.status==='editing'?p.draftDue:'')}</span><span>최종 <b>${p.finalDue?esc(fmtDate(p.finalDue)):'미정'}</b> ${ddChip(p.status!=='done'?p.finalDue:'')}</span><span>수정 <b class="mono">${used}/${inc||'?'}</b>회 사용${inc&&used>inc?' <span class="chip bad">추가 수정</span>':''}</span></div>
     </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap">${safeUrl(p.drive)?`<a class="btn" href="${esc(safeUrl(p.drive))}" target="_blank" rel="noopener">원본 드라이브</a>`:''}</div></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">${safeUrl(p.drive)?`<a class="btn" href="${esc(safeUrl(p.drive))}" target="_blank" rel="noopener">원본 드라이브</a>`:''}${safeUrl(ch().deliverFolder)?`<a class="btn" href="${esc(safeUrl(ch().deliverFolder))}" target="_blank" rel="noopener">완성본 폴더</a>`:''}</div></div>
     <div class="pipeline" role="group" aria-label="진행 단계">${STATUS.map(([k,l])=>`<button type="button" data-act="status" data-k="${k}" aria-pressed="${p.status===k}" ${S.canWrite?'':'disabled'}>${l}</button>`).join('')}</div>`;
-  return `<div class="pdetail">${head}<div class="cols">${feedbackPanel(p, vs)}${briefPanel(p, miss)}</div></div>`;
+  if(S.editing) return `<div class="pdetail">${head}${briefPanel(p, miss)}</div>`;
+  return `<div class="pdetail">${head}<div class="cols">${feedbackPanel(p, vs)}<div style="display:grid;gap:16px;min-width:0">${briefPanel(p, miss)}${uploadPanel(p)}</div></div></div>`;
 }
 
 function briefPanel(p, miss){
   const pct = Math.round((REQ.length-miss.length)/REQ.length*100);
-  if(S.editing) return `<section class="panel brief" style="grid-column:1/-1;order:-1"><div class="panel-h"><h2>의뢰서 수정</h2><span class="spacer"></span><button class="btn ghost" data-act="cancel-brief">취소</button><button class="btn primary" data-act="save-brief">저장</button></div>
+  if(S.editing) return `<section class="panel brief"><div class="panel-h"><h2>의뢰서 수정</h2><span class="spacer"></span><button class="btn ghost" data-act="cancel-brief">취소</button><button class="btn primary" data-act="save-brief">저장</button></div>
     <div class="panel-b"><form class="bform" id="bform" onsubmit="return false">${FIELDS.map(f=>fieldHTML(f,p)).join('')}
     <div class="full" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><button type="button" class="btn danger" data-act="delete-project">프로젝트 삭제</button><span style="display:flex;gap:8px"><button type="button" class="btn ghost" data-act="cancel-brief">취소</button><button type="button" class="btn primary" data-act="save-brief">저장</button></span></div></form></div></section>`;
   const row = f => { const v = String(p[f.k] ?? '').trim();
@@ -442,6 +448,39 @@ function briefPanel(p, miss){
       ${miss.length?`<div class="muted" style="font-size:13px">${S.role==='shooter'?'편집을 시작하려면 빈칸을 채워 주세요.':'빈칸은 금요일 회의 안건에 자동으로 올라가요.'}</div>`:''}
       <dl>${FIELDS.filter(f=>f.k!=='title'&&f.k!=='kind'&&f.k!=='client').map(row).join('')}</dl>
     </div></section>`;
+}
+
+function uploadPanel(p){
+  const rules = uploadRules(p); const done = p.uploadChecks || {};
+  const n = rules.filter((_,i)=>done[i]).length;
+  const body = rules.length ? `<div style="display:grid;gap:8px">${rules.map((r,i)=>`<label style="display:flex;gap:8px;align-items:flex-start;font-size:14px"><input type="checkbox" class="check" style="margin-top:2px" data-act="upload-check" data-i="${i}" ${done[i]?'checked':''} ${S.canWrite?'':'disabled'}><span${done[i]?' class="muted" style="text-decoration:line-through"':''}>${esc(r)}</span></label>`).join('')}</div>`
+    : `<p class="muted" style="margin:0;font-size:13px">채널 · 업로드 탭에서 업로드 규칙을 적어 두면 여기에 체크리스트로 나와요.</p>`;
+  return `<section class="panel"><div class="panel-h"><h2>업로드 체크</h2><span class="chip ${isShort(p)?'acc':''}">${isShort(p)?'숏폼 규칙':'롱폼 규칙'}</span><span class="spacer"></span>${rules.length?`<span class="mono muted" style="font-size:12px">${n}/${rules.length}</span>`:''}</div><div class="panel-b">${body}</div></section>`;
+}
+
+const CH_FIELDS = [
+  {k:'channel',label:'채널 이름',ph:'예: 예카 유튜브'},
+  {k:'deliverFolder',label:'완성본 공유 드라이브 폴더',type:'url',ph:'https://drive.google.com/drive/folders/...'},
+  {k:'styleRef',label:'편집 소스 (채널 공통 스타일 레퍼런스)',type:'textarea',ph:'한 줄에 하나씩 링크와 설명'},
+  {k:'rulesCommon',label:'업로드 규칙 · 공통',type:'textarea',ph:'한 줄에 하나씩'},
+  {k:'rulesLong',label:'업로드 규칙 · 롱폼만',type:'textarea',ph:'예: 더보기란에 타임테이블 만들기'},
+  {k:'rulesShort',label:'업로드 규칙 · 숏폼만',type:'textarea',ph:'예: 태그 몇 개만 달기'},
+];
+function linkify(t){ return esc(t).replace(/https?:\/\/[^\s<]+/g, m => { const u=safeUrl(m.replace(/&amp;/g,'&')); return u?`<a href="${esc(u)}" target="_blank" rel="noopener">${m.length>48?m.slice(0,48)+'…':m}</a>`:m; }); }
+function viewChannel(){
+  const c = ch();
+  if(S.draft._chEdit) return `<div class="board"><div><div class="eyebrow">모든 프로젝트에 공통</div><h1>채널 · 업로드 수정</h1></div><section class="panel"><div class="panel-b"><form class="bform" onsubmit="return false">${CH_FIELDS.map(f=>{ const id='d-c-'+f.k; const v=dv(id,c[f.k]||''); return `<label class="f full" for="${id}"><span>${f.label}</span>${f.type==='textarea'?`<textarea id="${id}" placeholder="${esc(f.ph)}">${esc(v)}</textarea>`:`<input id="${id}" type="${f.type||'text'}" placeholder="${esc(f.ph)}" value="${esc(v)}">`}</label>`; }).join('')}
+    <div class="full" style="display:flex;justify-content:flex-end;gap:8px"><button type="button" class="btn ghost" data-act="ch-cancel">취소</button><button type="button" class="btn primary" data-act="ch-save">저장</button></div></form></div></section></div>`;
+  const block = (t, v, empty) => `<section class="panel"><div class="panel-h"><h2>${t}</h2></div><div class="panel-b">${v ? `<div class="ntext">${v}</div>` : `<p class="muted" style="margin:0">${empty}</p>`}</div></section>`;
+  const list = t => lines(t).length ? `<ul style="margin:0;padding-left:18px">${lines(t).map(x=>`<li>${esc(x)}</li>`).join('')}</ul>` : '';
+  return `<div class="board"><div style="display:flex;flex-wrap:wrap;gap:8px 16px;align-items:flex-end"><div style="flex:1;min-width:200px"><div class="eyebrow">모든 프로젝트에 공통</div><h1>${esc(c.channel||'채널 · 업로드')}</h1></div>
+    ${safeUrl(c.deliverFolder)?`<a class="btn" href="${esc(safeUrl(c.deliverFolder))}" target="_blank" rel="noopener">완성본 폴더 열기</a>`:''}<button class="btn" data-act="ch-edit" ${S.canWrite?'':'disabled'}>수정</button></div>
+    <div class="meetgrid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+      ${block('편집 소스', c.styleRef?linkify(c.styleRef):'', '채널 전체에 적용할 스타일 레퍼런스를 적어 두세요.')}
+      ${block('업로드 규칙 · 공통', list(c.rulesCommon), '모든 영상에 적용할 규칙')}
+      ${block('업로드 규칙 · 롱폼', list(c.rulesLong), '롱폼에만 적용할 규칙')}
+      ${block('업로드 규칙 · 숏폼', list(c.rulesShort), '숏폼에만 적용할 규칙')}
+    </div><p class="muted" style="margin:0;font-size:13px">프로젝트의 영상 종류가 숏폼이면 숏폼 규칙, 그 외에는 롱폼 규칙이 프로젝트 화면의 업로드 체크에 나와요.</p></div>`;
 }
 
 function fieldHTML(f, p){
@@ -653,6 +692,12 @@ document.addEventListener('click', async e => {
     case 'edit-brief': S.editing=true; render(); break;
     case 'cancel-brief': S.editing=false; for(const k of Object.keys(S.draft)) if(k.startsWith('d-b-')) delete S.draft[k]; render(); break;
     case 'save-brief': saveBrief(); break;
+    case 'upload-check': { const p=S.projects.find(x=>x.id===S.pid); if(!p) break; const m={...(p.uploadChecks||{})}; m[b.dataset.i]=b.checked; await write(()=>col('projects').doc(p.id).update({uploadChecks:m})); break; }
+    case 'ch-edit': S.draft._chEdit=true; render(); break;
+    case 'ch-cancel': delete S.draft._chEdit; for(const k of Object.keys(S.draft)) if(k.startsWith('d-c-')) delete S.draft[k]; render(); break;
+    case 'ch-save': { const c={...ch()}; for(const f of CH_FIELDS){ const k='d-c-'+f.k; if(k in S.draft) c[f.k]=String(S.draft[k]).trim(); } c.updatedAt=Date.now();
+      if(c.deliverFolder && !safeUrl(c.deliverFolder)){ toast('폴더 링크는 https:// 로 시작해야 해요'); break; }
+      if(await write(()=>col('settings').doc('channel').set(c),'저장했어요')){ delete S.draft._chEdit; for(const k of Object.keys(S.draft)) if(k.startsWith('d-c-')) delete S.draft[k]; render(); } break; }
     case 'delete-project':
       if(b.dataset.confirm!=='1'){ b.dataset.confirm='1'; b.textContent='한 번 더 누르면 삭제돼요'; return; }
       { const pid=S.pid; for(const x of projNotes(pid)) await write(()=>col('notes').doc(x.id).delete()); for(const v of projVersions(pid)) await write(()=>col('versions').doc(v.id).delete());
@@ -693,7 +738,7 @@ document.addEventListener('click', async e => {
 function route(){
   const h = location.hash.slice(1);
   if(h.startsWith('p-')){ const id=h.slice(2); if(S.pid!==id){ S.editing=false; S.replyOpen=null; } S.view='project'; S.pid=id; }
-  else if(h==='meeting' || h==='projects') S.view = h;
+  else if(h==='meeting' || h==='projects' || h==='channel') S.view = h;
   else S.view='todo';
   render(); window.scrollTo(0,0);
 }
@@ -716,7 +761,7 @@ async function boot(){
     else S[key] = snap.docs.map(d=>({id:d.id, ...d.data()}));
     render();
   }, err => { clearTimeout(timer); if(err && (err.code==='revoked'||err.code==='not_granted')){ S.canWrite=false; } render(); });
-  sub('projects','projects'); sub('versions','versions'); sub('notes','notes'); sub('meetings','meetings',true);
+  sub('projects','projects'); sub('versions','versions'); sub('notes','notes'); sub('meetings','meetings',true); sub('settings','settings',true);
 }
 boot();
 })();
